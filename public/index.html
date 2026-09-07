@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPECTER-7</title>
+    <script>
+        // توجيه تلقائي
+        if (sessionStorage.getItem('logged_in') === 'true') {
+            window.location.href = 'panel.html';
+        } else {
+            window.location.href = 'login.html';
+        }
+    </script>
+</head>
+<body>
+    <p>جاري التوجيه...</p>
+</body>
+</html>
