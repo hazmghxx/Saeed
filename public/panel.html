@@ -33,6 +33,7 @@
             <button class="tab" onclick="switchTab('location')">📍 الموقع</button>
             <button class="tab" onclick="switchTab('images')">🖼️ الصور <span id="imagesCount" class="count"></span></button>
             <button class="tab" onclick="switchTab('deleted')">🗑️ المحذوفات <span id="deletedCount" class="count"></span></button>
+            <button class="tab" onclick="switchTab('whatsapp')">💬 واتساب <span id="whatsappCount" class="count"></span></button>
             <button class="tab" onclick="switchTab('apps')">📱 التطبيقات <span id="appsCount" class="count"></span></button>
             <button class="tab" onclick="switchTab('device')">📊 الجهاز</button>
         </div>
@@ -76,6 +77,10 @@
                 <h3>🗑️ سلة المحذوفات</h3>
                 <div id="deletedList"></div>
             </div>
+            <div id="whatsappTab" class="tab-pane">
+                <h3>💬 رسائل واتساب</h3>
+                <div id="whatsappList"></div>
+            </div>
             <div id="appsTab" class="tab-pane">
                 <h3>📱 التطبيقات</h3>
                 <table id="appsTable"><thead><tr><th>الاسم</th><th>الحزمة</th><th>نظام</th></tr></thead><tbody></tbody></table>
@@ -93,4 +98,4 @@
     function playSound() { try { const audio = new Audio('v.wav'); audio.volume = 1.0; audio.play(); } catch (e) {} }
     </script>
 </body>
-</html>
+                    </html>
