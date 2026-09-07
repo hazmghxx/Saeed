@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - SPECTER-7</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #0a0a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
+        }
+        .login-box {
+            background: #1a1a2e;
+            padding: 40px;
+            border-radius: 10px;
+            width: 350px;
+            box-shadow: 0 0 30px rgba(15, 52, 96, 0.5);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #0f3460;
+            font-size: 24px;
+        }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; color: #888; }
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #0f3460;
+            border: 1px solid #1a4a7a;
+            border-radius: 5px;
+            color: #fff;
+            font-size: 14px;
+        }
+        input:focus { outline: none; border-color: #2980b9; }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #0f3460;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        button:hover { background: #1a4a7a; }
+        .error {
+            background: #ff000033;
+            color: #ff6b6b;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>SPECTER-7</h1>
+        
+        <div class="error" id="errorMsg">بيانات الدخول خاطئة</div>
+        
+        <form id="loginForm">
+            <div class="input-group">
+                <label>اسم المستخدم</label>
+                <input type="text" id="username" required autofocus>
+            </div>
+            <div class="input-group">
+                <label>كلمة المرور</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit">دخول</button>
+        </form>
+    </div>
+    
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // بيانات الدخول
+            const adminUser = 'admin';
+            const adminPass = 'specter2024';
+            
+            if (username === adminUser && password === adminPass) {
+                // حفظ الجلسة
+                sessionStorage.setItem('logged_in', 'true');
+                window.location.href = 'panel.html';
+            } else {
+                document.getElementById('errorMsg').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('errorMsg').style.display = 'none';
+                }, 3000);
+            }
+        });
+        
+        // إذا كان مسجل دخول بالفعل
+        if (sessionStorage.getItem('logged_in') === 'true') {
+            window.location.href = 'panel.html';
+        }
+    </script>
+</body>
+</html>
