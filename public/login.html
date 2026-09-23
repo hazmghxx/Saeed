@@ -6,108 +6,332 @@
     <title>تسجيل الدخول - SPECTER-7</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
+
+        html, body {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
             font-family: 'Segoe UI', Tahoma, sans-serif;
-            background: #0a0a1a;
+            background: #000;
+            color: #fff;
+        }
+
+        /* ✅ توسيط صندوق الدخول في وسط الصفحة */
+        body {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            color: #fff;
         }
+
+        /* ✅ خلفية موجات مرعبة متحركة */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -3;
+            background:
+                radial-gradient(ellipse at 20% 30%, rgba(139, 0, 0, 0.55), transparent 55%),
+                radial-gradient(ellipse at 80% 70%, rgba(75, 0, 130, 0.55), transparent 55%),
+                radial-gradient(ellipse at 50% 50%, rgba(0, 60, 80, 0.45), transparent 60%),
+                #000;
+            animation: bgShift 18s ease-in-out infinite alternate;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: -50%; left: -50%;
+            width: 200%;
+            height: 200%;
+            z-index: -2;
+            background:
+                repeating-linear-gradient(45deg,
+                    transparent 0px,
+                    transparent 40px,
+                    rgba(255, 0, 60, 0.04) 40px,
+                    rgba(255, 0, 60, 0.04) 80px),
+                repeating-linear-gradient(-45deg,
+                    transparent 0px,
+                    transparent 60px,
+                    rgba(0, 200, 255, 0.04) 60px,
+                    rgba(0, 200, 255, 0.04) 120px);
+            animation: waveMove 30s linear infinite;
+        }
+
+        @keyframes bgShift {
+            0% {
+                background-position: 0% 0%, 100% 100%, 50% 50%;
+                filter: hue-rotate(0deg);
+            }
+            50% { filter: hue-rotate(20deg); }
+            100% {
+                background-position: 100% 100%, 0% 0%, 50% 50%;
+                filter: hue-rotate(-20deg);
+            }
+        }
+
+        @keyframes waveMove {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(5%, 5%) rotate(2deg); }
+        }
+
+        /* ✅ صندوق الدخول */
         .login-box {
-            background: #1a1a2e;
-            padding: 40px;
-            border-radius: 10px;
-            width: 350px;
-            box-shadow: 0 0 30px rgba(15, 52, 96, 0.5);
+            position: relative;
+            z-index: 10;
+            background: rgba(10, 10, 20, 0.75);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            padding: 45px 40px;
+            border-radius: 15px;
+            width: 360px;
+            max-width: 90%;
+            border: 1px solid rgba(255, 0, 60, 0.4);
+            box-shadow:
+                0 0 40px rgba(255, 0, 60, 0.35),
+                0 0 80px rgba(139, 0, 0, 0.25),
+                inset 0 0 30px rgba(0, 0, 0, 0.5);
+            animation: boxPulse 4s ease-in-out infinite;
         }
+
+        @keyframes boxPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 40px rgba(255, 0, 60, 0.35),
+                    0 0 80px rgba(139, 0, 0, 0.25),
+                    inset 0 0 30px rgba(0, 0, 0, 0.5);
+            }
+            50% {
+                box-shadow:
+                    0 0 60px rgba(255, 0, 60, 0.55),
+                    0 0 120px rgba(139, 0, 0, 0.4),
+                    inset 0 0 40px rgba(0, 0, 0, 0.6);
+            }
+        }
+
         h1 {
             text-align: center;
             margin-bottom: 30px;
-            color: #0f3460;
-            font-size: 24px;
+            font-size: 32px;
+            letter-spacing: 4px;
+            color: #ff003c;
+            text-shadow:
+                0 0 10px #ff003c,
+                0 0 20px #ff003c,
+                0 0 40px #8b0000,
+                0 0 80px #8b0000;
+            animation: titleFlicker 3s infinite;
         }
-        .input-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 5px; color: #888; }
-        input {
+
+        @keyframes titleFlicker {
+            0%, 100% { opacity: 1; }
+            45% { opacity: 1; }
+            47% { opacity: 0.6; }
+            49% { opacity: 1; }
+            92% { opacity: 1; }
+            94% { opacity: 0.4; }
+            96% { opacity: 1; }
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+            letter-spacing: 3px;
+            margin-bottom: 25px;
+            margin-top: -20px;
+        }
+
+        .input-group { margin-bottom: 25px; }
+
+        input[type="password"] {
             width: 100%;
-            padding: 12px;
-            background: #0f3460;
-            border: 1px solid #1a4a7a;
-            border-radius: 5px;
+            padding: 14px 16px;
+            background: rgba(20, 0, 30, 0.8);
+            border: 1.5px solid #4b0082;
+            border-radius: 8px;
             color: #fff;
-            font-size: 14px;
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 3px;
+            transition: all 0.3s;
+            box-shadow: inset 0 0 15px rgba(75, 0, 130, 0.4);
         }
-        input:focus { outline: none; border-color: #2980b9; }
-        button {
+
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #ff003c;
+            box-shadow:
+                inset 0 0 20px rgba(255, 0, 60, 0.3),
+                0 0 25px rgba(255, 0, 60, 0.6);
+            background: rgba(30, 0, 40, 0.9);
+        }
+
+        input[type="password"]::placeholder {
+            color: #555;
+            letter-spacing: normal;
+            text-align: center;
+        }
+
+        button[type="submit"] {
             width: 100%;
-            padding: 12px;
-            background: #0f3460;
+            padding: 14px;
+            background: linear-gradient(135deg, #8b0000, #ff003c);
             color: #fff;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
-            transition: background 0.3s;
+            font-weight: bold;
+            letter-spacing: 3px;
+            transition: all 0.3s;
+            box-shadow:
+                0 0 20px rgba(255, 0, 60, 0.6),
+                0 0 40px rgba(139, 0, 0, 0.4);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
-        button:hover { background: #1a4a7a; }
+
+        button[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow:
+                0 0 30px rgba(255, 0, 60, 0.9),
+                0 0 60px rgba(139, 0, 0, 0.6);
+            background: linear-gradient(135deg, #ff003c, #8b0000);
+        }
+
+        button[type="submit"]:active {
+            transform: translateY(0);
+        }
+
         .error {
-            background: #ff000033;
+            background: rgba(255, 0, 60, 0.15);
             color: #ff6b6b;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 12px;
+            border-radius: 8px;
             margin-bottom: 20px;
             text-align: center;
+            border: 1px solid rgba(255, 0, 60, 0.4);
             display: none;
+            animation: errorShake 0.5s;
+        }
+
+        @keyframes errorShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        /* ✅ جزيئات — تبقى فقط في النطاق الأوسط، ما تطلع للأعلى */
+        .particles {
+            position: fixed;
+            top: 25%;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            z-index: -1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particles span {
+            position: absolute;
+            bottom: 0;
+            width: 3px;
+            height: 3px;
+            background: #ff003c;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ff003c, 0 0 20px #ff003c;
+            animation: floatDrift 10s linear infinite;
+            opacity: 0;
+        }
+
+        /* الحركة الأفقية فقط — بدون طلوع للأعلى */
+        @keyframes floatDrift {
+            0% {
+                transform: translate(0, 0) scale(0.5);
+                opacity: 0;
+            }
+            20% { opacity: 0.7; }
+            50% {
+                transform: translate(30px, 0) scale(1);
+                opacity: 0.9;
+            }
+            80% { opacity: 0.7; }
+            100% {
+                transform: translate(-30px, 0) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-box {
+                width: 90%;
+                padding: 35px 25px;
+            }
+            h1 { font-size: 26px; letter-spacing: 3px; }
         }
     </style>
 </head>
 <body>
+    <!-- ✅ الجزيئات الآن في النطاق الأوسط فقط -->
+    <div class="particles" id="particles"></div>
+
     <div class="login-box">
         <h1>SPECTER-7</h1>
-        
-        <div class="error" id="errorMsg">بيانات الدخول خاطئة</div>
-        
+        <div class="subtitle">SECURE ACCESS</div>
+
+        <div class="error" id="errorMsg">كلمة المرور غير صحيحة</div>
+
         <form id="loginForm">
             <div class="input-group">
-                <label>اسم المستخدم</label>
-                <input type="text" id="username" required autofocus>
-            </div>
-            <div class="input-group">
-                <label>كلمة المرور</label>
-                <input type="password" id="password" required>
+                <input type="password" id="password" placeholder="أدخل كلمة المرور" required autofocus>
             </div>
             <button type="submit">دخول</button>
         </form>
     </div>
-    
+
     <script>
+        // ✅ توليد جزيئات في النطاق الأوسط — ما تطلع للأعلى
+        (function makeParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 20; i++) {
+                const p = document.createElement('span');
+                p.style.left = Math.random() * 100 + '%';
+                p.style.bottom = (Math.random() * 60) + '%';
+                p.style.animationDelay = (Math.random() * 10) + 's';
+                p.style.animationDuration = (6 + Math.random() * 8) + 's';
+                if (Math.random() > 0.6) {
+                    p.style.background = '#4b0082';
+                    p.style.boxShadow = '0 0 10px #4b0082, 0 0 20px #4b0082';
+                }
+                container.appendChild(p);
+            }
+        })();
+
+        const ADMIN_PASS = 'specter2024';
+
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            
-            const username = document.getElementById('username').value;
+
             const password = document.getElementById('password').value;
-            
-            // بيانات الدخول
-            const adminUser = 'admin';
-            const adminPass = 'specter2024';
-            
-            if (username === adminUser && password === adminPass) {
-                // حفظ الجلسة
+
+            if (password === ADMIN_PASS) {
                 sessionStorage.setItem('logged_in', 'true');
-                window.location.href = 'panel.html';
+                window.location.href = 'index.html';
             } else {
-                document.getElementById('errorMsg').style.display = 'block';
-                setTimeout(() => {
-                    document.getElementById('errorMsg').style.display = 'none';
-                }, 3000);
+                const err = document.getElementById('errorMsg');
+                err.style.display = 'block';
+                err.style.animation = 'none';
+                setTimeout(() => { err.style.animation = 'errorShake 0.5s'; }, 10);
+                setTimeout(() => { err.style.display = 'none'; }, 3000);
             }
         });
-        
+
         // إذا كان مسجل دخول بالفعل
         if (sessionStorage.getItem('logged_in') === 'true') {
-            window.location.href = 'panel.html';
+            window.location.href = 'index.html';
         }
     </script>
 </body>
