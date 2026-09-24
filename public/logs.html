@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>اللوقات</title>
+<style>
+body { background:#0a0a0a; color:#00ffcc; font-family: monospace; padding:15px; }
+pre { background:#111; padding:15px; border:1px solid #00ffcc; border-radius:8px; white-space:pre-wrap; word-break:break-all; font-size:12px; max-height:80vh; overflow:auto; }
+button { background:#00ffcc; color:#000; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold; margin:5px; font-size:15px; }
+h2 { color:#00ffcc; }
+select, input { background:#111; color:#00ffcc; border:1px solid #00ffcc; padding:10px; border-radius:8px; font-size:15px; margin:5px; }
+</style>
+</head>
+<body>
+<h2>📋 اللوقات</h2>
+
+<div>
+    <select id="deviceSelect">
+        <option value="">جاري تحميل الأجهزة...</option>
+    </select>
+    <button onclick="loadLogs()">تحديث</button>
+    <button onclick="copyLogs()">📋 نسخ</button>
+</div>
+
+<pre id="logs">اختر جهاز واضغط تحديث...</pre>
+
+<script>
+const token = sessionStorage.getItem('auth_token') || '';
+
+async function loadDevices() {
+    if (!token) {
+        document.getElementById('deviceSelect').innerHTML = '<option>سجّل دخول أول</option>';
+        return;
+    }
+    try {
+        const res = await fetch('/devices.json?token=' + encodeURIComponent(token));
+        const devices = await res.json();
+        const sel = document.getElementById('deviceSelect');
+        sel.innerHTML = '<option value="">اختر الجهاز...</option>';
+        (devices || []).forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = d.name || d.id;
+            sel.appendChild(opt);
+        });
+    } catch (e) {
+        document.getElementById('deviceSelect').innerHTML = '<option>خطأ في التحميل</option>';
+    }
+}
+
+async function loadLogs() {
+    const device = document.getElementById('deviceSelect').value;
+    if (!device) {
+        document.getElementById('logs').textContent = 'اختر جهاز أول';
+        return;
+    }
+    if (!token) {
+        document.getElementById('logs').textContent = 'سجّل دخول أول';
+        return;
+    }
+    document.getElementById('logs').textContent = 'جاري التحميل...';
+    try {
+        const res = await fetch('/api.php?action=get_logs&device=' + encodeURIComponent(device) + '&token=' + encodeURIComponent(token));
+        const text = await res.text();
+        document.getElementById('logs').textContent = text;
+    } catch (e) {
+        document.getElementById('logs').textContent = 'خطأ: ' + e.message;
+    }
+}
+
+function copyLogs() {
+    const text = document.getElementById('logs').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        alert('✅ تم النسخ');
+    });
+}
+
+loadDevices();
+</script>
+</body>
+</html>
