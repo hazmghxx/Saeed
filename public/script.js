@@ -1076,22 +1076,34 @@ async function deleteWhatsAppChat(sender) {
     } catch (e) {}
 }
 
-// ✅ جديد: مسح كل رسائل واتساب
-async function clearLiveMsgs() {
+// ✅ جديد: مسح كل رسائل واتساب من السيرفر
+async function clearWhatsAppList() {
     if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
     if (!confirm('⚠️ مسح كل رسائل واتساب من السيرفر؟')) return;
     try {
         const response = await authFetch(`/api.php?action=clear_whatsapp&device=${encodeURIComponent(currentDevice)}`);
         const data = await response.json();
         if (data.success) {
-            liveMsgs = [];
+            // نظّف الواجهة
             const div = document.getElementById('whatsappList');
             if (div) div.innerHTML = '<p style="color:#888;">تم المسح</p>';
-            showNotification('✅', 'تم مسح الرسائل', '🗑️');
+            
+            // صفّر العدادات
             const badge = document.getElementById('whatsappCount');
             if (badge) badge.textContent = '(0)';
-        } else alert('❌ فشل المسح');
-    } catch (e) { alert('❌ خطأ'); }
+            
+            // صفّر الرسائل الفورية أيضاً
+            liveMsgs = [];
+            const liveBadge = document.getElementById('liveMsgsCount');
+            if (liveBadge) liveBadge.textContent = '0';
+            
+            showNotification('✅', 'تم مسح رسائل واتساب', '🗑️');
+        } else {
+            alert('❌ فشل المسح - تأكد من رفع app.js على Render');
+        }
+    } catch (e) {
+        alert('❌ خطأ: ' + e.message);
+    }
 }
 
 function formatWhatsAppDate(t) {
