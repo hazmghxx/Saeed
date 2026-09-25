@@ -212,7 +212,7 @@ async function refresh() {
 function startRefresh() {
     if (refreshTimer) clearInterval(refreshTimer);
     refresh();
-    refreshTimer = setInterval(refresh, 5000);
+    refreshTimer = setInterval(refresh, 3000);
 }
 
 loadDevices();
