@@ -288,28 +288,6 @@ h1 {
     box-shadow: 0 0 18px rgba(155,89,182,0.7);
 }
 
-/* ═══ ⚡ زر المميزات المتقدمة ═══ */
-.style-advanced {
-    border-color: #FFD700;
-    box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
-}
-.style-advanced:hover {
-    background: linear-gradient(135deg, #FFD700, #B8860B);
-    color: #000;
-    box-shadow: 0 0 22px rgba(255, 215, 0, 0.9);
-}
-
-/* ═══ 🛡️ زر Admin ═══ */
-.style-admin {
-    border-color: #ff6b6b;
-    box-shadow: 0 0 12px rgba(255, 107, 107, 0.4);
-}
-.style-admin:hover {
-    background: linear-gradient(135deg, #ff6b6b, #cc0000);
-    color: #fff;
-    box-shadow: 0 0 22px rgba(255, 107, 107, 0.9);
-}
-
 /* ═══════════════════════════════════════════════════════
    STATUS BAR
    ═══════════════════════════════════════════════════════ */
@@ -961,4 +939,4 @@ tr:hover td {
     .images-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
     .image-card .thumb { height: 120px; }
     .messages-list { max-height: 55vh; }
-   }
+       }
