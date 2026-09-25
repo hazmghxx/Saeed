@@ -822,7 +822,7 @@ function selectDevice(deviceId) {
     if (dataInterval) clearInterval(dataInterval);
     initSSE();
     if (deviceId) {
-        updateInterval = setInterval(updateLiveData, 5000);
+        updateInterval = setInterval(updateLiveData, 3000);
         dataInterval = setInterval(() => { if (currentDevice) loadAllData(); }, 10000);
         updateLiveData();
         loadAllData();
