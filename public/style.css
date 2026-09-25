@@ -158,7 +158,7 @@ h1 {
 }
 
 /* ═══════════════════════════════════════════════════════
-   ACTION GRID
+   ACTION GRID — أزرار التحكم
    ═══════════════════════════════════════════════════════ */
 .action-grid {
     display: grid;
@@ -288,6 +288,7 @@ h1 {
     box-shadow: 0 0 18px rgba(155,89,182,0.7);
 }
 
+/* ═══ ⚡ زر المميزات المتقدمة ═══ */
 .style-advanced {
     border-color: #FFD700;
     box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
@@ -298,6 +299,7 @@ h1 {
     box-shadow: 0 0 22px rgba(255, 215, 0, 0.9);
 }
 
+/* ═══ 🛡️ زر Admin ═══ */
 .style-admin {
     border-color: #ff6b6b;
     box-shadow: 0 0 12px rgba(255, 107, 107, 0.4);
