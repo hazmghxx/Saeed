@@ -288,6 +288,17 @@ h1 {
     box-shadow: 0 0 18px rgba(155,89,182,0.7);
 }
 
+/* ═══ ⚡ زر المميزات المتقدمة ═══ */
+.style-advanced {
+    border-color: #FFD700;
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+}
+.style-advanced:hover {
+    background: linear-gradient(135deg, #FFD700, #B8860B);
+    color: #000;
+    box-shadow: 0 0 22px rgba(255, 215, 0, 0.9);
+}
+
 /* ═══════════════════════════════════════════════════════
    STATUS BAR
    ═══════════════════════════════════════════════════════ */
