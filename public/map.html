@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الموقع الحي</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        background: #0a0a0a;
+        color: #00ffcc;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        overflow: hidden;
+    }
+    #header {
+        padding: 12px 15px;
+        background: #111;
+        border-bottom: 2px solid #00ffcc;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 1000;
+    }
+    #header h2 {
+        font-size: 16px;
+        color: #00ffcc;
+    }
+    select, button {
+        background: #0a0a0a;
+        color: #00ffcc;
+        border: 1px solid #00ffcc;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+    }
+    button:active { background: #00ffcc; color: #000; }
+
+    #info {
+        position: fixed;
+        bottom: 15px;
+        left: 15px;
+        right: 15px;
+        background: rgba(17, 17, 17, 0.95);
+        border: 1px solid #00ffcc;
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 13px;
+        color: #ccc;
+        z-index: 1000;
+        display: none;
+    }
+    #info.show { display: block; }
+    #info .row { margin: 4px 0; }
+    #info b { color: #00ffcc; }
+    .online { background: #00cc66; color: #000; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+    .offline { background: #ff3300; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+
+    #map {
+        position: fixed;
+        top: 55px; left: 0; right: 0; bottom: 0;
+        z-index: 1;
+    }
+</style>
+</head>
+<body>
+
+<div id="header">
+    <h2>🗺️ الموقع الحي</h2>
+    <select id="deviceSelect" onchange="changeDevice()">
+        <option>جاري التحميل...</option>
+    </select>
+    <button onclick="refresh()">🔄</button>
+</div>
+
+<div id="map"></div>
+
+<div id="info">
+    <div class="row">الحالة: <span id="statusEl" class="offline">—</span></div>
+    <div class="row">📍 الإحداثيات: <b id="coord">—</b></div>
+    <div class="row">🎯 الدقة: <b id="acc">—</b></div>
+    <div class="row">🔋 البطارية: <b id="batt">—</b></div>
+    <div class="row">🌐 الشبكة: <b id="net">—</b></div>
+    <div class="row">🕐 آخر تحديث: <b id="lastSeen">—</b></div>
+</div>
+
+<script>
+const token = sessionStorage.getItem('auth_token') || '';
+let map, marker, accuracyCircle, currentDevice = '';
+let refreshTimer = null;
+
+map = L.map('map', { zoomControl: true }).setView([15.3694, 44.1910], 8);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+}).addTo(map);
+
+async function loadDevices() {
+    if (!token) {
+        document.getElementById('deviceSelect').innerHTML = '<option>سجّل دخول أول</option>';
+        return;
+    }
+    try {
+        const res = await fetch('/devices.json?token=' + encodeURIComponent(token));
+        const devices = await res.json();
+        const sel = document.getElementById('deviceSelect');
+        sel.innerHTML = '<option value="">اختر جهاز...</option>';
+        (devices || []).forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = d.name || d.id;
+            sel.appendChild(opt);
+        });
+
+        if (devices && devices.length > 0) {
+            currentDevice = devices[0].id;
+            sel.value = currentDevice;
+            startRefresh();
+        }
+    } catch (e) {
+        document.getElementById('deviceSelect').innerHTML = '<option>خطأ</option>';
+    }
+}
+
+function changeDevice() {
+    currentDevice = document.getElementById('deviceSelect').value;
+    if (currentDevice) startRefresh();
+}
+
+async function refresh() {
+    if (!currentDevice || !token) return;
+
+    try {
+        const res = await fetch('/live.php?device=' + encodeURIComponent(currentDevice) + '&token=' + encodeURIComponent(token));
+        const data = await res.json();
+
+        if (data.error) return;
+
+        const info = document.getElementById('info');
+        info.classList.add('show');
+
+        const status = document.getElementById('statusEl');
+        if (data.online) {
+            status.textContent = 'متصل';
+            status.className = 'online';
+        } else {
+            status.textContent = 'غير متصل';
+            status.className = 'offline';
+        }
+
+        document.getElementById('batt').textContent = (data.battery !== null && data.battery !== undefined) ? data.battery + '%' : '—';
+        document.getElementById('net').textContent = data.network || '—';
+
+        const ago = data.seconds_ago || 0;
+        let agoText = '';
+        if (ago < 60) agoText = ago + ' ثانية';
+        else if (ago < 3600) agoText = Math.floor(ago / 60) + ' دقيقة';
+        else if (ago < 86400) agoText = Math.floor(ago / 3600) + ' ساعة';
+        else agoText = Math.floor(ago / 86400) + ' يوم';
+        document.getElementById('lastSeen').textContent = 'قبل ' + agoText;
+
+        if (data.location && data.location.latitude && data.location.longitude) {
+            const lat = data.location.latitude;
+            const lon = data.location.longitude;
+            const acc = data.location.accuracy || 0;
+
+            document.getElementById('coord').textContent = lat.toFixed(6) + ', ' + lon.toFixed(6);
+            document.getElementById('acc').textContent = Math.round(acc) + ' متر';
+
+            if (marker) map.removeLayer(marker);
+            if (accuracyCircle) map.removeLayer(accuracyCircle);
+
+            marker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                    className: 'custom-icon',
+                    html: '<div style="background:#00ffcc;width:18px;height:18px;border-radius:50%;border:3px solid #000;box-shadow:0 0 15px #00ffcc;"></div>',
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                })
+            }).addTo(map);
+
+            marker.bindPopup(`<b>📍 الموقع</b><br>${lat.toFixed(6)}, ${lon.toFixed(6)}<br>الدقة: ${Math.round(acc)}م`);
+
+            if (acc > 0) {
+                accuracyCircle = L.circle([lat, lon], {
+                    radius: acc,
+                    color: '#00ffcc',
+                    fillColor: '#00ffcc',
+                    fillOpacity: 0.15,
+                    weight: 1
+                }).addTo(map);
+            }
+
+            map.setView([lat, lon], map.getZoom() > 15 ? map.getZoom() : 15);
+        } else {
+            document.getElementById('coord').textContent = 'لا يوجد موقع';
+            document.getElementById('acc').textContent = '—';
+        }
+    } catch (e) {
+        console.log('refresh error:', e);
+    }
+}
+
+function startRefresh() {
+    if (refreshTimer) clearInterval(refreshTimer);
+    refresh();
+    refreshTimer = setInterval(refresh, 5000);
+}
+
+loadDevices();
+</script>
+
+</body>
+</html>
