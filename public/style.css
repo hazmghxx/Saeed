@@ -261,6 +261,18 @@ h1 {
     box-shadow: 0 0 18px rgba(0,204,153,0.7);
 }
 
+/* ✅ جديد — البريد الفوري */
+.style-emails {
+    border-color: #00aaff;
+    box-shadow: 0 0 10px rgba(0, 170, 255, 0.3);
+}
+.style-emails .badge { color: #00aaff; }
+.style-emails:hover {
+    background: linear-gradient(135deg, #00aaff, #0066cc);
+    box-shadow: 0 0 18px rgba(0, 170, 255, 0.7);
+}
+.style-emails:hover .badge { background: #000; color: #00aaff; }
+
 .style-sms {
     border-color: #25D366;
     box-shadow: 0 0 10px rgba(37,211,102,0.3);
@@ -939,4 +951,4 @@ tr:hover td {
     .images-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
     .image-card .thumb { height: 120px; }
     .messages-list { max-height: 55vh; }
-       }
+}
