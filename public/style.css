@@ -991,4 +991,4 @@ tr:hover td {
     .images-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
     .image-card .thumb { height: 120px; }
     .messages-list { max-height: 55vh; }
-   }
+}
