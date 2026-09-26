@@ -44,6 +44,13 @@
                     <span id="liveVoicesCount" class="badge">0</span>
                 </button>
 
+                <!-- ✅ جديد — زر البريد الفوري -->
+                <button id="liveEmailsBtn" onclick="openLiveEmails()" class="action-btn-grid style-emails">
+                    <span class="icon">🆕</span>
+                    <span class="text">البريد الفوري</span>
+                    <span id="liveEmailsCount" class="badge">0</span>
+                </button>
+
                 <button id="sendSmsBtn" onclick="openSendSms()" class="action-btn-grid style-sms">
                     <span class="icon">📨</span>
                     <span class="text">إرسال SMS</span>
@@ -271,6 +278,20 @@
         </div>
     </div>
 
+    <!-- ✅ جديد — overlay البريد الفوري -->
+    <div id="liveEmailsOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+            <h2 style="color:#00aaff;text-shadow:0 0 15px #00aaff;">📧 البريد الفوري</h2>
+            <div>
+                <button onclick="clearLiveEmails()" style="background:#ff3300;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">🗑️ مسح الكل</button>
+                <button onclick="closeLiveEmails()" style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:bold;margin-right:10px;">✖ إغلاق</button>
+            </div>
+        </div>
+        <div id="liveEmailsList" style="display:flex;flex-direction:column;gap:12px;">
+            <p style="color:#666;text-align:center;padding:50px;">لا توجد رسائل بريد بعد</p>
+        </div>
+    </div>
+
     <script src="script.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() { playSound(); });
@@ -281,4 +302,4 @@
     }
     </script>
 </body>
-    </html>
+                    </html>
