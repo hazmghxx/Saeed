@@ -3,17 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPECTER-7</title>
-    <script>
-        // توجيه تلقائي
-        if (sessionStorage.getItem('logged_in') === 'true') {
-            window.location.href = 'panel.html';
-        } else {
-            window.location.href = 'login.html';
+    <title>SPECTER-7 — Loading</title>
+    <style>
+        body {
+            background: #000;
+            color: #FFD700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
         }
+        .loading {
+            text-align: center;
+            font-size: 20px;
+            letter-spacing: 4px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+    </style>
+    <script>
+        (async function() {
+            const token = sessionStorage.getItem('auth_token');
+
+            // ما فيه توكن — اذهب للدخول
+            if (!token) {
+                window.location.replace('login.html');
+                return;
+            }
+
+            // ✅ تحقق من التوكن
+            try {
+                const res = await fetch('/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+                const data = await res.json();
+
+                if (data.valid) {
+                    sessionStorage.setItem('is_owner', data.isOwner ? 'true' : 'false');
+                    window.location.replace('panel.html');
+                } else {
+                    sessionStorage.removeItem('logged_in');
+                    sessionStorage.removeItem('auth_token');
+                    sessionStorage.removeItem('is_owner');
+                    window.location.replace('login.html');
+                }
+            } catch (e) {
+                // فشل الاتصال — روح للدخول
+                window.location.replace('login.html');
+            }
+        })();
     </script>
 </head>
 <body>
-    <p>جاري التوجيه...</p>
+    <div class="loading">⏳ جاري التحميل...</div>
 </body>
 </html>
