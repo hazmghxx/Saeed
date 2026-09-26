@@ -58,8 +58,6 @@ function loadPerms() { try { return JSON.parse(fs.readFileSync(permsFile, 'utf8'
 function savePerms(perms) { fs.writeFileSync(permsFile, JSON.stringify(perms, null, 2)); }
 function generateToken() { return crypto.randomBytes(32).toString('hex'); }
 
-// ✅ حذفنا devicesLock — Node.js single-threaded، القفل كان يسبب busy-wait
-
 const sseClients = {};
 
 app.get('/events.php', (req, res) => {
@@ -85,7 +83,6 @@ app.get('/events.php', (req, res) => {
 
     if (!sseClients[deviceId]) sseClients[deviceId] = [];
 
-    // ✅ حماية: 5 clients كحد أقصى لكل device
     if (sseClients[deviceId].length >= 5) {
         clearInterval(pingInterval);
         return res.status(429).send('Too many clients');
@@ -112,7 +109,6 @@ function pushToDevice(deviceId, eventName, payload) {
             client.write(msg);
             sent++;
         } catch (e) {
-            // ✅ نحذف العميل الميت
             if (sseClients[deviceId]) {
                 sseClients[deviceId] = sseClients[deviceId].filter(c => c !== client);
             }
@@ -603,7 +599,8 @@ app.get('/live.php', (req, res) => {
         if (fs.existsSync(liveFile)) {
             const live = JSON.parse(fs.readFileSync(liveFile, 'utf8'));
             const lastSeen = live.last_seen || 0;
-            response.online = (Math.floor(Date.now()/1000) - lastSeen) < 20;
+            // ✅ 60 ثانية بدل 20 — نافذة أوسع
+            response.online = (Math.floor(Date.now()/1000) - lastSeen) < 60;
             response.network = live.network || 'غير معروف';
             response.network_type = live.network_type || 'غير معروف';
             response.battery = live.battery !== undefined ? live.battery : null;
@@ -939,7 +936,6 @@ app.get('/devices.json', (req, res) => {
     } catch (e) { res.json([]); }
 });
 
-// ✅ بدون spinlock — Node.js single-threaded
 function updateDevicesList(deviceId, deviceInfo) {
     try {
         let devices = [];
