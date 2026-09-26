@@ -68,6 +68,26 @@
         top: 55px; left: 0; right: 0; bottom: 0;
         z-index: 1;
     }
+
+    /* ✅ زر "العودة للموقع" */
+    #recenterBtn {
+        position: fixed;
+        bottom: 180px;
+        right: 15px;
+        z-index: 1000;
+        background: #00ffcc;
+        color: #000;
+        border: none;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        font-size: 22px;
+        cursor: pointer;
+        box-shadow: 0 0 15px rgba(0, 255, 204, 0.6);
+        display: none;
+    }
+    #recenterBtn.show { display: block; }
+    #recenterBtn:active { transform: scale(0.95); }
 </style>
 </head>
 <body>
@@ -81,6 +101,8 @@
 </div>
 
 <div id="map"></div>
+
+<button id="recenterBtn" onclick="recenterToDevice()" title="العودة للموقع">🎯</button>
 
 <div id="info">
     <div class="row">الحالة: <span id="statusEl" class="offline">—</span></div>
@@ -96,12 +118,20 @@ const token = sessionStorage.getItem('auth_token') || '';
 let map, marker, accuracyCircle, currentDevice = '';
 let refreshTimer = null;
 
+// ✅ نحفظ آخر موقع + آخر حالة
+let lastLocation = null;
+let hasAutoCentered = false;
+let userMovedMap = false;
+
 map = L.map('map', { zoomControl: true }).setView([15.3694, 44.1910], 8);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '© OpenStreetMap'
 }).addTo(map);
+
+// ✅ لو المستخدم حرّك الخريطة — نوقف auto-center
+map.on('dragstart zoomstart', () => { userMovedMap = true; updateRecenterBtn(); });
 
 async function loadDevices() {
     if (!token) {
@@ -110,6 +140,11 @@ async function loadDevices() {
     }
     try {
         const res = await fetch('/devices.json?token=' + encodeURIComponent(token));
+        if (res.status === 401) {
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+            return;
+        }
         const devices = await res.json();
         const sel = document.getElementById('deviceSelect');
         sel.innerHTML = '<option value="">اختر جهاز...</option>';
@@ -132,6 +167,9 @@ async function loadDevices() {
 
 function changeDevice() {
     currentDevice = document.getElementById('deviceSelect').value;
+    hasAutoCentered = false;
+    userMovedMap = false;
+    lastLocation = null;
     if (currentDevice) startRefresh();
 }
 
@@ -140,6 +178,11 @@ async function refresh() {
 
     try {
         const res = await fetch('/live.php?device=' + encodeURIComponent(currentDevice) + '&token=' + encodeURIComponent(token));
+        if (res.status === 401) {
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+            return;
+        }
         const data = await res.json();
 
         if (data.error) return;
@@ -199,7 +242,13 @@ async function refresh() {
                 }).addTo(map);
             }
 
-            map.setView([lat, lon], map.getZoom() > 15 ? map.getZoom() : 15);
+            // ✅ نضبط المركز فقط أول مرة، أو لو المستخدم ما حرّك الخريطة
+            if (!hasAutoCentered || !userMovedMap) {
+                map.setView([lat, lon], map.getZoom() > 15 ? map.getZoom() : 15);
+                hasAutoCentered = true;
+            }
+            lastLocation = { lat, lon, acc };
+            updateRecenterBtn();
         } else {
             document.getElementById('coord').textContent = 'لا يوجد موقع';
             document.getElementById('acc').textContent = '—';
@@ -209,10 +258,29 @@ async function refresh() {
     }
 }
 
+function recenterToDevice() {
+    if (lastLocation) {
+        map.setView([lastLocation.lat, lastLocation.lon], 16);
+        userMovedMap = false;
+        updateRecenterBtn();
+    }
+}
+
+function updateRecenterBtn() {
+    const btn = document.getElementById('recenterBtn');
+    if (!btn) return;
+    if (userMovedMap && lastLocation) {
+        btn.classList.add('show');
+    } else {
+        btn.classList.remove('show');
+    }
+}
+
 function startRefresh() {
     if (refreshTimer) clearInterval(refreshTimer);
     refresh();
-    refreshTimer = setInterval(refresh, 3000);
+    // ✅ كل 5 ثواني بدل 3
+    refreshTimer = setInterval(refresh, 5000);
 }
 
 loadDevices();
