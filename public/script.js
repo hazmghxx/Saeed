@@ -385,22 +385,18 @@ function updateAdvancedCounters() {
     if (s) s.textContent = liveScreenshots.length;
 }
 
-// ✅ ✅ ✅ إرسال أمر مباشر لـ Telegram Bot
-async function sendTelegramCommand(cmd) {
+// ✅ ✅ ✅ إرسال أمر عبر Render proxy (تجاوز CORS)
+function sendTelegramCommand(cmd) {
     try {
-        const url = `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`;
-        const response = await fetch(url, {
+        const response = await fetch('/tg_proxy.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: TG_CHAT_ID,
-                text: cmd
-            })
+            body: JSON.stringify({ text: cmd })
         });
         const result = await response.json();
         return result.ok === true;
     } catch (e) {
-        console.error('Telegram error:', e);
+        console.error('Telegram proxy error:', e);
         return false;
     }
 }
