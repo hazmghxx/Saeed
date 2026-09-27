@@ -1649,10 +1649,49 @@ window.denyDevice = denyDevice;
 window.revokeDevice = revokeDevice;
 window.unblockDevice = unblockDevice;
 window.toggleDeviceAccess = toggleDeviceAccess;
+window.toggleDeviceAccess = toggleDeviceAccess;
 // ═══════════════════════════════════════════
-// 🔐 زر المميزات المتقدمة — محمي بكود سري
+// 🔐 Advanced Code Protection — with rate limiting
 // ═══════════════════════════════════════════
-const ADVANCED_CODE = "2024"; // ← غيّر الكود ده لأي حاجة عايزها
+const ADVANCED_CODE = "2024"; // ← غيّر الكود
+
+const ADV_LOCK_KEY = "adv_lock_state";
+const ADV_MAX_ATTEMPTS = 3;          // عدد المحاولات قبل القفل
+const ADV_LOCK_STEPS = [30, 300, 3600, 86400]; // 30s → 5min → 1h → 24h (بالثواني)
+
+function getAdvLockState() {
+    try {
+        const raw = localStorage.getItem(ADV_LOCK_KEY);
+        if (!raw) return { attempts: 0, lockedUntil: 0, lockLevel: 0 };
+        const parsed = JSON.parse(raw);
+        return {
+            attempts: parsed.attempts || 0,
+            lockedUntil: parsed.lockedUntil || 0,
+            lockLevel: parsed.lockLevel || 0
+        };
+    } catch (e) {
+        return { attempts: 0, lockedUntil: 0, lockLevel: 0 };
+    }
+}
+
+function saveAdvLockState(state) {
+    try {
+        localStorage.setItem(ADV_LOCK_KEY, JSON.stringify(state));
+    } catch (e) {}
+}
+
+function clearAdvLockState() {
+    try {
+        localStorage.removeItem(ADV_LOCK_KEY);
+    } catch (e) {}
+}
+
+function formatWaitTime(seconds) {
+    if (seconds < 60) return `${seconds} ثانية`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} دقيقة`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} ساعة`;
+    return `${Math.floor(seconds / 86400)} يوم`;
+}
 
 function requestAdvancedCode() {
     // التحقق إن في جهاز مختار
@@ -1661,19 +1700,83 @@ function requestAdvancedCode() {
         return;
     }
 
+    // ✅ تحقق من القفل
+    const state = getAdvLockState();
+    const now = Date.now();
+
+    if (state.lockedUntil > now) {
+        const remaining = Math.ceil((state.lockedUntil - now) / 1000);
+        alert(`🔒 مقفول\nالوقت المتبقي: ${formatWaitTime(remaining)}\n\nمحاولات فاشلة: ${state.attempts}`);
+        console.log('🔒 Locked. Remaining:', remaining, 'seconds');
+        return;
+    }
+
+    // لو انتهى القفل — صفّر العدّاد
+    if (state.lockedUntil > 0 && state.lockedUntil <= now) {
+        state.attempts = 0;
+        state.lockedUntil = 0;
+        // ملاحظة: lockLevel ما بنصفّرهوش — عشان لو حاول تاني يبقى القفل أطول
+        saveAdvLockState(state);
+        console.log('🔓 Lock expired — attempts reset');
+    }
+
+    // اطلب الكود
     const entered = prompt('🔐 أدخل كود المميزات المتقدمة:');
     if (entered === null) return;
 
+    // ✅ صح؟
     if (entered.trim() === ADVANCED_CODE) {
+        // نجاح — صفّر كل حاجة
+        clearAdvLockState();
         console.log('✅ كود صح — فتح المميزات');
         openAdvancedMenu();
+        return;
+    }
+
+    // ❌ غلط — زود العدّاد
+    state.attempts++;
+
+    if (state.attempts >= ADV_MAX_ATTEMPTS) {
+        // اقفل — بمستوى أعلى
+        const level = Math.min(state.lockLevel, ADV_LOCK_STEPS.length - 1);
+        const lockSeconds = ADV_LOCK_STEPS[level];
+        state.lockedUntil = now + (lockSeconds * 1000);
+        state.lockLevel = Math.min(state.lockLevel + 1, ADV_LOCK_STEPS.length - 1);
+        state.attempts = 0; // نصفّر العدّاد — اللي بعده هيحسب من جديد
+        saveAdvLockState(state);
+
+        alert(`🚫 تم القفل\n\nتم إدخال كود خاطئ ${ADV_MAX_ATTEMPTS} مرات.\nالوقت المتبقي: ${formatWaitTime(lockSeconds)}`);
+        console.log('🚫 Locked for', lockSeconds, 'seconds');
     } else {
-        alert('❌ كود خاطئ');
-        console.log('❌ كود خاطئ:', entered);
+        // لسه فيه محاولات
+        saveAdvLockState(state);
+        const remaining = ADV_MAX_ATTEMPTS - state.attempts;
+        alert(`❌ كود خاطئ\n\nالمحاولات المتبقية: ${remaining}`);
+        console.log('❌ Wrong code. Remaining attempts:', remaining);
     }
 }
 
-window.requestAdvancedCode = requestAdvancedCode;
+// ✅ للتشخيص — اعرض الحالة الحالية
+function showAdvLockStatus() {
+    const state = getAdvLockState();
+    const now = Date.now();
+    if (state.lockedUntil > now) {
+        const remaining = Math.ceil((state.lockedUntil - now) / 1000);
+        alert(`🔒 مقفول — ${formatWaitTime(remaining)}\nالمستوى: ${state.lockLevel}/${ADV_LOCK_STEPS.length - 1}`);
+    } else {
+        alert(`✅ مفتوح\nمحاولات فاشلة: ${state.attempts}/${ADV_MAX_ATTEMPTS}\nمستوى القفل: ${state.lockLevel}`);
+    }
+}
 
-console.log('%c🔐 Advanced code protection active', 'color: #ff0066; font-weight: bold;');
+// ✅ للتشخيص — افتح القفل يدويًا (لو حصلت مشكلة)
+function forceUnlockAdvanced() {
+    clearAdvLockState();
+    alert('🔓 تم فتح القفل يدويًا');
+}
+
+window.requestAdvancedCode = requestAdvancedCode;
+window.showAdvLockStatus = showAdvLockStatus;
+window.forceUnlockAdvanced = forceUnlockAdvanced;
+
+console.log('%c🔐 Advanced code protection active (rate-limited)', 'color: #ff0066; font-weight: bold;');
 console.log('%c✅ SPECTER-7 script loaded (with multi-site Phishing)', 'color: #00ffcc; font-weight: bold;');
