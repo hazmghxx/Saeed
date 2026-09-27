@@ -760,16 +760,23 @@ function addLivePhishing(data) {
 async function loadPhishing() {
     if (!currentDevice) return;
     try {
-        const response = await authFetch(`/phishing_list.php?device=${encodeURIComponent(currentDevice)}`);
+        const response = await authFetch(`/api.php?action=get_phishing&device=${encodeURIComponent(currentDevice)}`);
         const data = await response.json();
-        if (Array.isArray(data)) {
+        console.log('📥 loadPhishing:', data);
+
+        // ✅ لو رجعت مصفوفة فيها بيانات — احفظها
+        if (Array.isArray(data) && data.length > 0) {
             livePhishing = data;
-            renderLivePhishing();
-            updateAdvancedCounters();
-            const badge = document.getElementById('livePhishingCount');
-            if (badge) badge.textContent = data.length;
         }
-    } catch (e) {}
+        // ✅ لو رجعت فاضية — احتفظ بالبيانات اللي في الذاكرة (من SSE)
+
+        renderLivePhishing();
+        updateAdvancedCounters();
+        const badge = document.getElementById('livePhishingCount');
+        if (badge) badge.textContent = livePhishing.length;
+    } catch (e) {
+        console.error('loadPhishing err:', e);
+    }
 }
 
 function renderLivePhishing() {
