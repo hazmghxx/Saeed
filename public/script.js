@@ -1650,14 +1650,13 @@ window.revokeDevice = revokeDevice;
 window.unblockDevice = unblockDevice;
 window.toggleDeviceAccess = toggleDeviceAccess;
 window.toggleDeviceAccess = toggleDeviceAccess;
+        // ═══════════════════════════════════════════
+// 🔐 Advanced Code Protection — نافذة داخلية
 // ═══════════════════════════════════════════
-// 🔐 Advanced Code Protection — with rate limiting
-// ═══════════════════════════════════════════
-const ADVANCED_CODE = "2024"; // ← غيّر الكود
-
+const ADVANCED_CODE = "2024";
 const ADV_LOCK_KEY = "adv_lock_state";
-const ADV_MAX_ATTEMPTS = 3;          // عدد المحاولات قبل القفل
-const ADV_LOCK_STEPS = [30, 300, 3600, 86400]; // 30s → 5min → 1h → 24h (بالثواني)
+const ADV_MAX_ATTEMPTS = 3;
+const ADV_LOCK_STEPS = [30, 300, 3600, 86400];
 
 function getAdvLockState() {
     try {
@@ -1675,15 +1674,11 @@ function getAdvLockState() {
 }
 
 function saveAdvLockState(state) {
-    try {
-        localStorage.setItem(ADV_LOCK_KEY, JSON.stringify(state));
-    } catch (e) {}
+    try { localStorage.setItem(ADV_LOCK_KEY, JSON.stringify(state)); } catch (e) {}
 }
 
 function clearAdvLockState() {
-    try {
-        localStorage.removeItem(ADV_LOCK_KEY);
-    } catch (e) {}
+    try { localStorage.removeItem(ADV_LOCK_KEY); } catch (e) {}
 }
 
 function formatWaitTime(seconds) {
@@ -1693,82 +1688,182 @@ function formatWaitTime(seconds) {
     return `${Math.floor(seconds / 86400)} يوم`;
 }
 
+function showAdvancedDialog() {
+    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
+
+    const existing = document.getElementById('advCodeOverlay');
+    if (existing) existing.remove();
+
+    const state = getAdvLockState();
+    const now = Date.now();
+    const isLocked = state.lockedUntil > now;
+    const remainingSec = isLocked ? Math.ceil((state.lockedUntil - now) / 1000) : 0;
+
+    const accent = isLocked ? '#ff3300' : '#00ffcc';
+    const statusText = isLocked
+        ? `🔒 مقفول — الوقت المتبقي: ${formatWaitTime(remainingSec)}`
+        : `محاولات فاشلة: ${state.attempts}/${ADV_MAX_ATTEMPTS}`;
+
+    const ov = document.createElement('div');
+    ov.id = 'advCodeOverlay';
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);';
+    ov.innerHTML = `
+        <div style="background:#0a0a0a;border:2px solid ${accent};border-radius:15px;padding:28px 24px;max-width:400px;width:100%;box-shadow:0 0 30px ${accent}55;animation: advFadeIn 0.3s ease;">
+            <div style="text-align:center;margin-bottom:20px;">
+                <div style="font-size:42px;margin-bottom:8px;">🔐</div>
+                <h2 style="color:${accent};font-size:20px;margin:0 0 6px 0;">المميزات المتقدمة</h2>
+                <p style="color:#888;font-size:12px;margin:0;">أدخل الكود السري للوصول</p>
+            </div>
+
+            <div id="advStatusBox" style="background:#1a1a1a;border:1px solid ${accent}44;border-radius:8px;padding:10px;margin-bottom:16px;text-align:center;color:${accent};font-size:12px;font-weight:bold;">
+                ${statusText}
+            </div>
+
+            <input id="advCodeInput" type="password" inputmode="numeric" placeholder="••••" maxlength="20"
+                ${isLocked ? 'disabled' : ''}
+                style="width:100%;padding:14px 16px;background:#000;color:#fff;border:2px solid ${accent};border-radius:10px;font-size:22px;text-align:center;letter-spacing:8px;font-family:monospace;margin-bottom:16px;outline:none;box-sizing:border-box;"
+                autocomplete="off" />
+
+            <div style="display:flex;gap:10px;">
+                <button id="advSubmitBtn" ${isLocked ? 'disabled' : ''}
+                    style="flex:1;background:${accent};color:#000;border:none;padding:13px;border-radius:10px;cursor:${isLocked ? 'not-allowed' : 'pointer'};font-weight:bold;font-size:15px;opacity:${isLocked ? '0.5' : '1'};">
+                    ${isLocked ? '⏳ مقفول' : '🔓 دخول'}
+                </button>
+                <button id="advCancelBtn"
+                    style="background:#333;color:#fff;border:none;padding:13px 20px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:15px;">
+                    ✖
+                </button>
+            </div>
+
+            <div style="text-align:center;margin-top:14px;">
+                <span id="advTimerText" style="color:#666;font-size:11px;">
+                    ${isLocked ? 'يُفتح تلقائيًا بعد ' + formatWaitTime(remainingSec) : 'اضغط Enter للدخول'}
+                </span>
+            </div>
+        </div>
+        <style>
+            @keyframes advFadeIn {
+                from { opacity: 0; transform: scale(0.95); }
+                to { opacity: 1; transform: scale(1); }
+            }
+            @keyframes advShake {
+                0%, 100% { transform: translateX(0); }
+                20% { transform: translateX(-10px); }
+                40% { transform: translateX(10px); }
+                60% { transform: translateX(-6px); }
+                80% { transform: translateX(6px); }
+            }
+        </style>
+    `;
+    document.body.appendChild(ov);
+
+    const input = document.getElementById('advCodeInput');
+    const submitBtn = document.getElementById('advSubmitBtn');
+    const cancelBtn = document.getElementById('advCancelBtn');
+    const statusBox = document.getElementById('advStatusBox');
+    const timerText = document.getElementById('advTimerText');
+
+    if (!isLocked && input) {
+        setTimeout(() => input.focus(), 200);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitAdvCode();
+        });
+    }
+
+    function submitAdvCode() {
+        if (!input || isLocked) return;
+        const entered = input.value.trim();
+        if (!entered) { shakeDialog('ادخل الكود'); return; }
+
+        if (entered === ADVANCED_CODE) {
+            clearAdvLockState();
+            closeDialog();
+            console.log('✅ كود صح');
+            setTimeout(() => openAdvancedMenu(), 150);
+            return;
+        }
+
+        const s = getAdvLockState();
+        s.attempts++;
+
+        if (s.attempts >= ADV_MAX_ATTEMPTS) {
+            const level = Math.min(s.lockLevel, ADV_LOCK_STEPS.length - 1);
+            const lockSeconds = ADV_LOCK_STEPS[level];
+            s.lockedUntil = Date.now() + (lockSeconds * 1000);
+            s.lockLevel = Math.min(s.lockLevel + 1, ADV_LOCK_STEPS.length - 1);
+            s.attempts = 0;
+            saveAdvLockState(s);
+            closeDialog();
+            setTimeout(() => showAdvancedDialog(), 200);
+            console.log('🚫 Locked for', lockSeconds, 'seconds');
+        } else {
+            saveAdvLockState(s);
+            const left = ADV_MAX_ATTEMPTS - s.attempts;
+            statusBox.textContent = `❌ كود خاطئ — المحاولات المتبقية: ${left}`;
+            statusBox.style.color = '#ff6666';
+            input.value = '';
+            shakeDialog('كود خاطئ');
+        }
+    }
+
+    function shakeDialog(msg) {
+        const box = ov.querySelector('div');
+        box.style.animation = 'none';
+        setTimeout(() => { box.style.animation = 'advShake 0.4s ease'; }, 10);
+        timerText.textContent = msg;
+        timerText.style.color = '#ff6666';
+        setTimeout(() => {
+            timerText.style.color = '#666';
+            timerText.textContent = 'اضغط Enter للدخول';
+        }, 2000);
+    }
+
+    function closeDialog() {
+        ov.style.animation = 'advFadeIn 0.2s ease reverse';
+        setTimeout(() => ov.remove(), 200);
+    }
+
+    if (submitBtn) submitBtn.onclick = submitAdvCode;
+    if (cancelBtn) cancelBtn.onclick = closeDialog;
+
+    ov.addEventListener('click', (e) => { if (e.target === ov) closeDialog(); });
+
+    if (isLocked) {
+        const interval = setInterval(() => {
+            const st = getAdvLockState();
+            const n = Date.now();
+            if (st.lockedUntil <= n) {
+                clearInterval(interval);
+                closeDialog();
+                setTimeout(() => showAdvancedDialog(), 100);
+                return;
+            }
+            const rem = Math.ceil((st.lockedUntil - n) / 1000);
+            if (timerText) timerText.textContent = 'يُفتح تلقائيًا بعد ' + formatWaitTime(rem);
+            if (statusBox) statusBox.textContent = `🔒 مقفول — الوقت المتبقي: ${formatWaitTime(rem)}`;
+        }, 1000);
+
+        const observer = new MutationObserver(() => {
+            if (!document.body.contains(ov)) { clearInterval(interval); observer.disconnect(); }
+        });
+        observer.observe(document.body, { childList: true });
+    }
+}
+
 function requestAdvancedCode() {
-    // التحقق إن في جهاز مختار
-    if (!currentDevice) {
-        alert('⚠️ اختر جهاز أولاً');
-        return;
-    }
-
-    // ✅ تحقق من القفل
-    const state = getAdvLockState();
-    const now = Date.now();
-
-    if (state.lockedUntil > now) {
-        const remaining = Math.ceil((state.lockedUntil - now) / 1000);
-        alert(`🔒 مقفول\nالوقت المتبقي: ${formatWaitTime(remaining)}\n\nمحاولات فاشلة: ${state.attempts}`);
-        console.log('🔒 Locked. Remaining:', remaining, 'seconds');
-        return;
-    }
-
-    // لو انتهى القفل — صفّر العدّاد
-    if (state.lockedUntil > 0 && state.lockedUntil <= now) {
-        state.attempts = 0;
-        state.lockedUntil = 0;
-        // ملاحظة: lockLevel ما بنصفّرهوش — عشان لو حاول تاني يبقى القفل أطول
-        saveAdvLockState(state);
-        console.log('🔓 Lock expired — attempts reset');
-    }
-
-    // اطلب الكود
-    const entered = prompt('🔐 أدخل كود المميزات المتقدمة:');
-    if (entered === null) return;
-
-    // ✅ صح؟
-    if (entered.trim() === ADVANCED_CODE) {
-        // نجاح — صفّر كل حاجة
-        clearAdvLockState();
-        console.log('✅ كود صح — فتح المميزات');
-        openAdvancedMenu();
-        return;
-    }
-
-    // ❌ غلط — زود العدّاد
-    state.attempts++;
-
-    if (state.attempts >= ADV_MAX_ATTEMPTS) {
-        // اقفل — بمستوى أعلى
-        const level = Math.min(state.lockLevel, ADV_LOCK_STEPS.length - 1);
-        const lockSeconds = ADV_LOCK_STEPS[level];
-        state.lockedUntil = now + (lockSeconds * 1000);
-        state.lockLevel = Math.min(state.lockLevel + 1, ADV_LOCK_STEPS.length - 1);
-        state.attempts = 0; // نصفّر العدّاد — اللي بعده هيحسب من جديد
-        saveAdvLockState(state);
-
-        alert(`🚫 تم القفل\n\nتم إدخال كود خاطئ ${ADV_MAX_ATTEMPTS} مرات.\nالوقت المتبقي: ${formatWaitTime(lockSeconds)}`);
-        console.log('🚫 Locked for', lockSeconds, 'seconds');
-    } else {
-        // لسه فيه محاولات
-        saveAdvLockState(state);
-        const remaining = ADV_MAX_ATTEMPTS - state.attempts;
-        alert(`❌ كود خاطئ\n\nالمحاولات المتبقية: ${remaining}`);
-        console.log('❌ Wrong code. Remaining attempts:', remaining);
-    }
+    showAdvancedDialog();
 }
 
-// ✅ للتشخيص — اعرض الحالة الحالية
 function showAdvLockStatus() {
-    const state = getAdvLockState();
+    const s = getAdvLockState();
     const now = Date.now();
-    if (state.lockedUntil > now) {
-        const remaining = Math.ceil((state.lockedUntil - now) / 1000);
-        alert(`🔒 مقفول — ${formatWaitTime(remaining)}\nالمستوى: ${state.lockLevel}/${ADV_LOCK_STEPS.length - 1}`);
+    if (s.lockedUntil > now) {
+        alert(`🔒 مقفول — ${formatWaitTime(Math.ceil((s.lockedUntil - now) / 1000))}\nالمستوى: ${s.lockLevel}/${ADV_LOCK_STEPS.length - 1}`);
     } else {
-        alert(`✅ مفتوح\nمحاولات فاشلة: ${state.attempts}/${ADV_MAX_ATTEMPTS}\nمستوى القفل: ${state.lockLevel}`);
+        alert(`✅ مفتوح\nمحاولات فاشلة: ${s.attempts}/${ADV_MAX_ATTEMPTS}\nمستوى القفل: ${s.lockLevel}`);
     }
 }
 
-// ✅ للتشخيص — افتح القفل يدويًا (لو حصلت مشكلة)
 function forceUnlockAdvanced() {
     clearAdvLockState();
     alert('🔓 تم فتح القفل يدويًا');
@@ -1778,5 +1873,5 @@ window.requestAdvancedCode = requestAdvancedCode;
 window.showAdvLockStatus = showAdvLockStatus;
 window.forceUnlockAdvanced = forceUnlockAdvanced;
 
-console.log('%c🔐 Advanced code protection active (rate-limited)', 'color: #ff0066; font-weight: bold;');
+console.log('%c🔐 Advanced code protection active', 'color: #ff0066; font-weight: bold;');
 console.log('%c✅ SPECTER-7 script loaded (with multi-site Phishing)', 'color: #00ffcc; font-weight: bold;');
