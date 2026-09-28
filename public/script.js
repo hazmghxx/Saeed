@@ -63,7 +63,7 @@ function logout() {
     sessionStorage.removeItem('logged_in');
     sessionStorage.removeItem('auth_token');
     sessionStorage.removeItem('is_owner');
-    sessionStorage.removeItem('ADVANCED_UNLOCK_KEY');
+    sessionStorage.removeItem(ADVANCED_UNLOCK_KEY);
     sessionStorage.removeItem('terms_accepted');
     sessionStorage.removeItem('terms_accepted_at');
     window.location.href = 'login.html';
