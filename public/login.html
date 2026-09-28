@@ -549,7 +549,8 @@
                     sessionStorage.setItem('logged_in', 'true');
                     sessionStorage.setItem('auth_token', data.token);
                     sessionStorage.setItem('is_owner', data.isOwner ? 'true' : 'false');
-                    window.location.href = 'index.html';
+                    sessionStorage.removeItem('terms_accepted');       // ← جديد: يجبره يقبل الشروط من جديد
+                    window.location.href = 'terms.html';               // ← جديد: يروح لصفحة الشروط
                     return;
                 }
 
@@ -594,7 +595,12 @@
                 const data = await res.json();
                 if (data.valid) {
                     sessionStorage.setItem('is_owner', data.isOwner ? 'true' : 'false');
-                    window.location.href = 'index.html';
+                    // ← جديد: لو الشروط مقبولة → index، وإلا → terms
+                    if (sessionStorage.getItem('terms_accepted') === 'true') {
+                        window.location.href = 'index.html';
+                    } else {
+                        window.location.href = 'terms.html';
+                    }
                 } else {
                     sessionStorage.removeItem('logged_in');
                     sessionStorage.removeItem('auth_token');
