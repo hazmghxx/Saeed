@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شروط الاستخدام — SPECTER-7</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background:#000; color:#fff; font-family:system-ui,-apple-system,'Segoe UI',sans-serif; margin:0; padding:20px; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+        .terms-box { max-width:700px; width:100%; background:#0d0d0d; border:2px solid #00ffcc; border-radius:15px; padding:30px; box-shadow:0 0 40px rgba(0,255,204,0.15); }
+        .terms-box h1 { color:#00ffcc; text-align:center; margin:0 0 10px 0; font-size:22px; text-shadow:0 0 15px #00ffcc; }
+        .terms-box .subtitle { color:#666; text-align:center; font-size:12px; margin-bottom:25px; }
+        .terms-content { background:#050505; border:1px solid #1a1a1a; border-radius:10px; padding:20px; max-height:400px; overflow-y:auto; margin-bottom:20px; line-height:1.9; font-size:14px; color:#ccc; }
+        .terms-content h3 { color:#00ffcc; font-size:15px; margin:18px 0 8px 0; }
+        .terms-content h3:first-child { margin-top:0; }
+        .terms-content p { margin:0 0 10px 0; }
+        .terms-content ul { padding-right:20px; margin:0 0 10px 0; }
+        .terms-content li { margin-bottom:5px; }
+        .agree-row { display:flex; align-items:flex-start; gap:10px; background:#0a1a1a; border:1px solid #00ffcc40; border-radius:10px; padding:15px; margin-bottom:20px; cursor:pointer; transition:all .2s; }
+        .agree-row:hover { border-color:#00ffcc; background:#0a2020; }
+        .agree-row input[type="checkbox"] { width:20px; height:20px; margin-top:2px; accent-color:#00ffcc; cursor:pointer; flex-shrink:0; }
+        .agree-row label { cursor:pointer; font-size:13px; color:#ccc; line-height:1.6; }
+        .agree-row label b { color:#00ffcc; }
+        .btn-row { display:flex; gap:10px; }
+        .btn-accept { flex:1; background:#00ffcc; color:#000; border:none; padding:15px; border-radius:10px; cursor:pointer; font-weight:bold; font-size:15px; transition:all .2s; }
+        .btn-accept:hover:not(:disabled) { background:#00ffaa; box-shadow:0 0 20px #00ffcc80; }
+        .btn-accept:disabled { background:#333; color:#666; cursor:not-allowed; }
+        .btn-decline { background:#333; color:#fff; border:none; padding:15px 25px; border-radius:10px; cursor:pointer; font-weight:bold; font-size:15px; }
+        .btn-decline:hover { background:#ff3300; }
+        .scroll-hint { color:#444; font-size:11px; text-align:center; margin-bottom:15px; }
+    </style>
+</head>
+<body>
+    <div class="terms-box">
+        <h1>⚖️ شروط الاستخدام</h1>
+        <p class="subtitle">SPECTER-7 — اتفاقية المستخدم</p>
+
+        <div class="terms-content" id="termsContent" onscroll="onTermsScroll()">
+            <h3>1. قبول الشروط</h3>
+            <p>باستخدامك لمنصة <b>SPECTER-7</b> فإنك تقرّ وتوافق على جميع الشروط الواردة في هذه الاتفاقية. إذا لم توافق على أي بند منها، يجب عليك التوقف فوراً عن استخدام النظام.</p>
+
+            <h3>2. وصف الخدمة</h3>
+            <p>SPECTER-7 هي منصة تقنية للتحكم وإدارة الأجهزة عن بُعد. تُقدَّم الخدمة "كما هي" دون أي ضمانات صريحة أو ضمنية.</p>
+
+            <h3>3. مسؤولية المستخدم</h3>
+            <p>أنت المسؤول الوحيد عن:</p>
+            <ul>
+                <li>استخدام النظام بما يتوافق مع القوانين المحلية والدولية.</li>
+                <li>الحصول على الموافقة الصريحة من أصحاب الأجهزة المستهدفة.</li>
+                <li>عدم استخدام النظام لأي نشاط غير قانوني أو ضار.</li>
+                <li>الحفاظ على سرية بيانات الدخول الخاصة بك.</li>
+            </ul>
+
+            <h3>4. جمع البيانات</h3>
+            <p>المنصة قد تجمع بيانات تقنية لأغراض التشغيل والتحسين، بما يشمل عنوان IP، نوع الجهاز، وسجلات الاستخدام. هذه البيانات تُستخدم داخلياً فقط ولا تُشارَك مع أطراف ثالثة.</p>
+
+            <h3>5. حدود المسؤولية</h3>
+            <p>المنصة ومالكوها ومطوّروها <b>غير مسؤولين</b> عن أي أضرار مباشرة أو غير مباشرة، أو فقدان بيانات، أو إساءة استخدام ناتجة عن استخدامك للنظام. تقع المسؤولية الكاملة على المستخدم.</p>
+
+            <h3>6. الحساب والصلاحيات</h3>
+            <p>يحق للمنصة تعليق أو حذف أي حساب يخالف الشروط دون إشعار مسبق. تتم مراجعة الأجهزة الجديدة قبل منحها صلاحية الوصول.</p>
+
+            <h3>7. الملكية الفكرية</h3>
+            <p>جميع حقوق النظام، الكود، والتصميم محفوظة. يُمنع نسخ أو إعادة توزيع النظام دون إذن كتابي مسبق.</p>
+
+            <h3>8. التعديلات</h3>
+            <p>تحتفظ المنصة بحق تعديل هذه الشروط في أي وقت. استمرارك في استخدام النظام بعد التعديل يعني قبولك الصريح للشروط الجديدة.</p>
+
+            <h3>9. إخلاء المسؤولية القانونية</h3>
+            <p>يُستخدم النظام على مسؤوليتك الشخصية. المنصة غير مسؤولة عن أي استخدام غير قانوني أو انتهاك للخصوصية من قِبَلك.</p>
+
+            <h3>10. الموافقة النهائية</h3>
+            <p>بالضغط على زر "أوافق وأدخل" فإنك تؤكد أنك قرأت وفهمت جميع الشروط أعلاه، وتتحمل كامل المسؤولية القانونية والأخلاقية عن استخدامك للنظام.</p>
+        </div>
+
+        <p class="scroll-hint" id="scrollHint">⬇️ مرّر للأسفل لقراءة كل الشروط</p>
+
+        <div class="agree-row" id="agreeRow" style="opacity:0.4;pointer-events:none;">
+            <input type="checkbox" id="agreeCheck" onchange="toggleAccept()">
+            <label for="agreeCheck">أُقرّ بأنني قرأت وفهمت جميع الشروط، وأتحمل كامل المسؤولية عن استخدامي للنظام. أُوافق على سياسة <b>SPECTER-7</b> طوعاً وبدون أي إكراه.</label>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn-accept" id="acceptBtn" disabled onclick="acceptTerms()">✅ أوافق وأدخل</button>
+            <button class="btn-decline" onclick="declineTerms()">✖ رفض</button>
+        </div>
+    </div>
+
+    <script>
+        // تحقق: هل المستخدم مسجل دخول؟
+        if (!sessionStorage.getItem('auth_token')) {
+            window.location.href = 'login.html';
+        }
+
+        // هل وافق سابقاً؟
+        if (sessionStorage.getItem('terms_accepted') === 'true') {
+            window.location.href = 'index.html';
+        }
+
+        let hasScrolledToBottom = false;
+
+        function onTermsScroll() {
+            const el = document.getElementById('termsContent');
+            const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+            if (atBottom && !hasScrolledToBottom) {
+                hasScrolledToBottom = true;
+                document.getElementById('scrollHint').textContent = '✅ قرأت الشروط — يمكنك الموافقة الآن';
+                document.getElementById('scrollHint').style.color = '#00ffcc';
+                document.getElementById('agreeRow').style.opacity = '1';
+                document.getElementById('agreeRow').style.pointerEvents = 'auto';
+            }
+        }
+
+        function toggleAccept() {
+            const checked = document.getElementById('agreeCheck').checked;
+            document.getElementById('acceptBtn').disabled = !checked;
+        }
+
+        function acceptTerms() {
+            sessionStorage.setItem('terms_accepted', 'true');
+            sessionStorage.setItem('terms_accepted_at', Date.now());
+            window.location.href = 'index.html';
+        }
+
+        function declineTerms() {
+            if (!confirm('إذا رفضت الشروط، سيتم تسجيل خروجك. متأكد؟')) return;
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>
