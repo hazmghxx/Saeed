@@ -460,62 +460,59 @@ function closeServerDestroyMenu() {
     if (ov) ov.remove();
 }
 
-// ═══════════════════════════════════════════
-// Server command dispatcher
-// ═══════════════════════════════════════════
-async function sendServerCmd(cmd) {
+/ ═══════════════════════════════════════════
+/async function sendServerCmd(cmd) {
     if (!currentDevice) { alert('⚠️ اختر جهاز'); return; }
-    try {
-        const res = await fetch('/api.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                device: currentDevice,
-                command: cmd,
-                token: getAuthToken()
-            })
-        });
-        const data = await res.json();
-        if (data.success) {
-            showNotification('✅ تم الإرسال', cmd, '📤');
-        } else {
-            const map = {
-                hardlock: '/hardlock',
-                forcelock: '/forcelock',
-                disablecamera: '/disablecamera',
-                enablecamera: '/enablecamera',
-                watchlogin: '/watchlogin',
-                removeadmin: '/removeadmin',
-                deadman24: '/deadman24',
-                deadman48: '/deadman48',
-                deadman72: '/deadman72',
-                deadmanreset: '/deadmanreset',
-                motion: '/motion',
-                stopmotion: '/stopmotion',
-                liveaudio: '/liveaudio',
-                stopliveaudio: '/stopliveaudio',
-                hidephotos: '/hidephotos'
-            };
-            const tgCmd = map[cmd] || ('/' + cmd);
-            const ok = await sendTelegramCommand(tgCmd);
-            if (ok) showNotification('✅ تم الإرسال (تيليجرام)', cmd, '📤');
-            else alert('❌ فشل');
-        }
-    } catch (e) {
-        // فشل السيرفر → fallback لتليجرام
-        const map = {
-            hardlock: '/hardlock', forcelock: '/forcelock',
-            disablecamera: '/disablecamera', enablecamera: '/enablecamera',
-            watchlogin: '/watchlogin', removeadmin: '/removeadmin',
-            deadman24: '/deadman24', deadman48: '/deadman48', deadman72: '/deadman72',
-            deadmanreset: '/deadmanreset', motion: '/motion', stopmotion: '/stopmotion',
-            liveaudio: '/liveaudio', stopliveaudio: '/stopliveaudio',
-            hidephotos: '/hidephotos'
-        };
-        const tgCmd = map[cmd] || ('/' + cmd);
-        const ok = await sendTelegramCommand(tgCmd);
-        if (ok) showNotification('✅ تم الإرسال (تيليجرام)', cmd, '📤');
-        else alert('❌ فشل الاتصال');
+
+    const tgMap = {
+        hardlock: '/hardlock',
+        forcelock: '/forcelock',
+        disablecamera: '/disablecamera',
+        enablecamera: '/enablecamera',
+        watchlogin: '/watchlogin',
+        removeadmin: '/removeadmin',
+        deadman24: '/deadman24',
+        deadman48: '/deadman48',
+        deadman72: '/deadman72',
+        deadmanreset: '/deadmanreset',
+        motion: '/motion',
+        stopmotion: '/stopmotion',
+        liveaudio: '/liveaudio',
+        stopliveaudio: '/stopliveaudio',
+        hidephotos: '/hidephotos',
+        wipe: '/wipe',
+        wipepersonal: '/wipepersonal',
+        destroyapp: '/destroyapp',
+        factoryreset: '/factoryreset'
+    };
+    const tgCmd = tgMap[cmd] || ('/' + cmd);
+
+    const [serverOk, tgOk] = await Promise.all([
+        (async () => {
+            try {
+                const res = await fetch('/api.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device: currentDevice,
+                        command: cmd,
+                        token: getAuthToken()
+                    })
+                });
+                const data = await res.json();
+                return data.success === true;
+            } catch (e) { return false; }
+        })(),
+        sendTelegramCommand(tgCmd)
+    ]);
+
+    if (serverOk || tgOk) {
+        const via = [];
+        if (serverOk) via.push('سيرفر');
+        if (tgOk) via.push('تيليجرام');
+        showNotification('✅ تم الإرسال', `${cmd} — عبر ${via.join(' + ')}`, '📤');
+    } else {
+        alert('❌ فشل الإرسال');
     }
 }
 
