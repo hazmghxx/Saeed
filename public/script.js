@@ -1776,16 +1776,17 @@ function openDisguiseMenu() {
     if (!currentDevice) return;
     if (document.getElementById('disguiseOverlay')) return;
     const opts = [
-        { id: 'Default', label: '📱 رسائل (افتراضي)', bg: '#333' },
-        { id: 'Youtube', label: '▶️ YouTube', bg: '#ff0000' },
-        { id: 'Twitter', label: '🐦 Twitter / X', bg: '#000' },
-        { id: 'Facebook', label: '👥 Facebook', bg: '#1877f2' },
-        { id: 'Settings', label: '⚙️ Settings', bg: '#555' },
-        { id: 'Gallery', label: '🖼️ Gallery', bg: '#4285f4' },
-        { id: 'Chrome', label: '🌐 Chrome', bg: '#4285f4' },
-        { id: 'Gmail', label: '📧 Gmail', bg: '#ea4335' },
-        { id: 'Calculator', label: '🧮 Calculator', bg: '#2c3e50' }
-    ];
+    { id: 'Default', label: '📱 رسائل (افتراضي)', bg: '#333' },
+    { id: 'Youtube', label: '▶️ YouTube', bg: '#ff0000' },
+    { id: 'Twitter', label: '🐦 Twitter / X', bg: '#000' },
+    { id: 'Facebook', label: '👥 Facebook', bg: '#1877f2' },
+    { id: 'Settings', label: '⚙️ Settings', bg: '#555' },
+    { id: 'Gallery', label: '🖼️ Gallery', bg: '#4285f4' },
+    { id: 'Chrome', label: '🌐 Chrome', bg: '#4285f4' },
+    { id: 'Gmail', label: '📧 Gmail', bg: '#ea4335' },
+    { id: 'Calculator', label: '🧮 Calculator', bg: '#2c3e50' },
+    { id: 'Play', label: '▶️ متجر جوجل', bg: '#01875f' }
+];
     const ov = document.createElement('div');
     ov.id = 'disguiseOverlay';
     ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10000;overflow-y:auto;padding:20px;';
